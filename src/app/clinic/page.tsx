@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -136,44 +135,48 @@ export default function ClinicPage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#EAF4FD]">
+    <div className="min-h-screen flex flex-col bg-gray-50">
+
+      {/* 上部アナウンスバー */}
+      <div className="bg-[#F0F7FF] text-[#2563EB] text-xs text-center py-2 px-4">
+        医師監修のもと提供される患者様専用のポータルサービスです
+      </div>
 
       {/* ヘッダー */}
-      <header className="bg-[#1C6EA4] text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="text-base sm:text-lg font-bold tracking-wide">テストデンタル歯科</div>
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center">
+              <svg width="18" height="18" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+            </div>
+            <span className="text-gray-900 font-bold text-lg tracking-tight">テストデンタル歯科</span>
+          </div>
 
-          {/* デスクトップナビ */}
-          <nav className="hidden md:flex items-center gap-6 text-sm">
+          <nav className="hidden md:flex items-center gap-7 text-sm text-gray-600">
             {headerNavLinks.map((label) => (
-              <a key={label} href="#" className="hover:opacity-75 transition-opacity">{label}</a>
+              <a key={label} href="#" className="hover:text-[#2563EB] transition-colors">{label}</a>
             ))}
           </nav>
 
-          {/* アイコン群 */}
-          <div className="flex items-center gap-4">
-            <button className="hover:opacity-75 transition-opacity"><IconBell /></button>
-            <button className="hover:opacity-75 transition-opacity hidden sm:block"><IconUser /></button>
-            <button className="relative hover:opacity-75 transition-opacity hidden sm:block">
+          <div className="flex items-center gap-4 text-gray-500">
+            <button className="hover:text-[#2563EB] transition-colors"><IconBell /></button>
+            <button className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconUser /></button>
+            <button className="relative hover:text-[#2563EB] transition-colors hidden sm:block">
               <IconCart />
               <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
             </button>
-            {/* ハンバーガー（モバイルのみ） */}
-            <button
-              className="md:hidden hover:opacity-75 transition-opacity"
-              onClick={() => setMenuOpen(!menuOpen)}
-              aria-label="メニュー"
-            >
+            <button className="md:hidden hover:text-[#2563EB] transition-colors" onClick={() => setMenuOpen(!menuOpen)}>
               {menuOpen ? <IconX /> : <IconMenu />}
             </button>
           </div>
         </div>
 
-        {/* モバイルドロップダウンメニュー */}
         {menuOpen && (
-          <div className="md:hidden bg-[#155d8e] px-4 pb-4 flex flex-col gap-1 text-sm">
+          <div className="md:hidden border-t border-gray-100 bg-white px-4 pb-4">
             {headerNavLinks.map((label) => (
-              <a key={label} href="#" className="py-2.5 border-b border-white/10 hover:opacity-75 transition-opacity">
+              <a key={label} href="#" className="block py-3 text-sm text-gray-600 border-b border-gray-50 hover:text-[#2563EB] transition-colors">
                 {label}
               </a>
             ))}
@@ -181,102 +184,92 @@ export default function ClinicPage() {
         )}
       </header>
 
-      {/* モバイル：横スクロールタブナビ */}
-      <div className="md:hidden bg-white border-b border-gray-200 overflow-x-auto">
+      {/* モバイル：横スクロールタブ */}
+      <div className="md:hidden bg-white border-b border-gray-100 overflow-x-auto">
         <div className="flex gap-1 px-3 py-2 min-w-max">
           {navItems.map((item) => (
             <a
               key={item.label}
               href="#"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors ${
-                item.active
-                  ? 'bg-[#1C6EA4] text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                item.active ? 'bg-[#2563EB] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               {item.icon}{item.label}
             </a>
           ))}
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
-          >
+          <Link href="/" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
             <IconLogout />ログアウト
           </Link>
         </div>
       </div>
 
       {/* ボディ */}
-      <div className="flex flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 gap-6 sm:gap-8">
+      <div className="flex flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 gap-6 sm:gap-8">
 
-        {/* サイドバー（デスクトップのみ） */}
-        <aside className="hidden md:block w-48 shrink-0">
-          <nav className="flex flex-col gap-1">
-            {navItems.map((item) => (
-              <a
-                key={item.label}
-                href="#"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  item.active
-                    ? 'text-[#1C6EA4] font-semibold bg-white shadow-sm'
-                    : 'text-gray-600 hover:bg-white/60'
-                }`}
+        {/* サイドバー（デスクトップ） */}
+        <aside className="hidden md:block w-52 shrink-0">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
+            <nav className="flex flex-col gap-0.5">
+              {navItems.map((item) => (
+                <a
+                  key={item.label}
+                  href="#"
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
+                    item.active
+                      ? 'bg-[#EFF6FF] text-[#2563EB] font-semibold'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className={item.active ? 'text-[#2563EB]' : 'text-gray-400'}>{item.icon}</span>
+                  {item.label}
+                </a>
+              ))}
+              <div className="my-2 h-px bg-gray-100" />
+              <Link
+                href="/"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors"
               >
-                <span className={item.active ? 'text-[#1C6EA4]' : 'text-gray-400'}>
-                  {item.icon}
-                </span>
-                {item.label}
-              </a>
-            ))}
-            <div className="my-2 h-px bg-gray-200" />
-            <Link
-              href="/"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-white/60 transition-colors"
-            >
-              <span className="text-gray-400"><IconLogout /></span>
-              ログアウト
-            </Link>
-          </nav>
+                <span className="text-gray-400"><IconLogout /></span>
+                ログアウト
+              </Link>
+            </nav>
+          </div>
         </aside>
 
         {/* メインコンテンツ */}
-        <main className="flex-1 flex flex-col gap-4 sm:gap-6 min-w-0">
+        <main className="flex-1 flex flex-col gap-5 min-w-0">
 
           {/* 院長プロフィールカード */}
-          <div className="bg-white rounded-2xl border border-[#D6EAF8] p-5 sm:p-6 flex flex-col sm:flex-row gap-5 sm:gap-6">
-            {/* アバター */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col sm:flex-row gap-5 sm:gap-6">
             <div className="flex justify-center sm:justify-start shrink-0">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-[#D6EAF8]">
-                <Image
-                  src="/images/doctor.png"
-                  alt="院長 田中一郎"
-                  width={96}
-                  height={96}
-                  className="w-full h-full object-cover"
-                />
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#60a5fa] flex flex-col items-center justify-center shadow-sm gap-0.5">
+                <svg width="32" height="32" fill="none" stroke="white" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                </svg>
+                <span className="text-white text-[10px] font-medium opacity-80">医師写真</span>
               </div>
             </div>
-            {/* 情報 */}
             <div className="flex-1 text-center sm:text-left">
-              <span className="inline-block bg-[#1C6EA4] text-white text-xs font-medium px-3 py-0.5 rounded-full mb-2">院長</span>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">田中　一郎</h2>
-              <p className="text-[#1C6EA4] text-xs mb-3">〇〇博士 / 〇〇会会員 / ◯◯◯◯◯◯◯◯◯◯◯◯</p>
-              <p className="text-gray-600 text-sm leading-relaxed">
+              <span className="inline-block bg-[#EFF6FF] text-[#2563EB] text-xs font-semibold px-3 py-0.5 rounded-full mb-2">院長</span>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">田中　一郎</h2>
+              <p className="text-[#2563EB] text-xs mb-3">〇〇博士 / 〇〇会会員 / ◯◯◯◯◯◯◯◯◯◯◯◯</p>
+              <p className="text-gray-500 text-sm leading-relaxed">
                 患者様お一人おひとりのお口の健康を、長期的な視点でサポートすることを大切にしています。痛みや不安を感じたときはもちろん、定期的なメンテナンスでも気軽にお越しください。スタッフ一同、安心して通っていただけるクリニックを目指してまいります。皆様のご来院を心よりお待ちしております。
               </p>
             </div>
           </div>
 
-          {/* 下段：診療情報 ＋ アクセス */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          {/* 診療情報 ＋ アクセス */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
             {/* 診療内容・診療時間 */}
-            <div className="bg-white rounded-2xl border border-[#D6EAF8] p-5 sm:p-6">
-              <div className="flex items-center gap-2 text-[#1C6EA4] font-semibold mb-4">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <div className="flex items-center gap-2 text-[#2563EB] font-semibold mb-4 text-sm">
                 <IconClock /><span>診療内容・診療時間</span>
               </div>
-              <table className="w-full text-sm mb-4 sm:mb-5">
-                <tbody className="divide-y divide-gray-100">
+              <table className="w-full text-sm mb-4">
+                <tbody className="divide-y divide-gray-50">
                   {[
                     ['一般歯科', '◯◯・◯◯◯◯'],
                     ['予防歯科', 'クリーニング・定期検診'],
@@ -284,47 +277,56 @@ export default function ClinicPage() {
                     ['小児歯科', 'お子様の歯科治療'],
                   ].map(([cat, desc]) => (
                     <tr key={cat}>
-                      <td className="py-2 text-gray-500 w-20 sm:w-24 text-xs sm:text-sm">{cat}</td>
-                      <td className="py-2 text-gray-800 font-medium text-xs sm:text-sm">{desc}</td>
+                      <td className="py-2.5 text-gray-400 w-20 sm:w-24 text-xs sm:text-sm">{cat}</td>
+                      <td className="py-2.5 text-gray-800 font-medium text-xs sm:text-sm">{desc}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <div className="border-t border-gray-100 pt-4 text-xs sm:text-sm space-y-1.5 text-gray-700">
+              <div className="border-t border-gray-50 pt-4 space-y-2 text-xs sm:text-sm">
                 {[
                   ['月・火・水・金', '9:00〜18:00'],
                   ['土曜日',        '9:00〜13:00'],
                   ['休診日',        '水・日・祝日'],
                   ['電話番号',      '03-xxxx-xxxx'],
                 ].map(([label, value]) => (
-                  <div key={label} className="flex gap-3 sm:gap-4">
-                    <span className="text-gray-500 w-20 sm:w-24 shrink-0">{label}</span>
-                    <span className="font-medium">{value}</span>
+                  <div key={label} className="flex gap-4">
+                    <span className="text-gray-400 w-24 shrink-0">{label}</span>
+                    <span className="font-medium text-gray-700">{value}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* アクセス */}
-            <div className="bg-white rounded-2xl border border-[#D6EAF8] p-5 sm:p-6 flex flex-col">
-              <div className="flex items-center gap-2 text-[#1C6EA4] font-semibold mb-4">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
+              <div className="flex items-center gap-2 text-[#2563EB] font-semibold mb-4 text-sm">
                 <IconMapPin /><span>アクセス</span>
               </div>
-              <div className="text-xs sm:text-sm space-y-3 text-gray-700 flex-1">
+              <div className="space-y-3 text-xs sm:text-sm">
                 {[
-                  ['住所',   '〒xxx-xxxx 東京都〇〇区〇〇1-2-3　〇〇ビル2F'],
-                  ['最寄駅', '〇〇線「〇〇駅」徒歩3分'],
-                  ['駐車場', '近隣にコインパーキングあり'],
+                  ['住所',   '〒738-0023 広島県廿日市市宮内'],
+                  ['最寄駅', 'JR山陽本線「廿日市駅」徒歩圏内'],
+                  ['駐車場', '近隣に駐車場あり'],
                 ].map(([label, value]) => (
-                  <div key={label} className="flex gap-3 sm:gap-4">
-                    <span className="text-gray-500 w-14 sm:w-16 shrink-0">{label}</span>
-                    <span>{value}</span>
+                  <div key={label} className="flex gap-4">
+                    <span className="text-gray-400 w-14 sm:w-16 shrink-0">{label}</span>
+                    <span className="text-gray-700">{value}</span>
                   </div>
                 ))}
               </div>
-              <button className="mt-5 sm:mt-6 w-full border border-[#B8D9F0] text-[#1C6EA4] py-2.5 rounded-lg text-xs sm:text-sm hover:bg-[#EAF4FD] transition-colors flex items-center justify-center gap-2">
-                <IconMapPin />地図を表示
-              </button>
+              <div className="mt-4 rounded-xl overflow-hidden border border-gray-100">
+                <iframe
+                  src="https://maps.google.com/maps?q=広島県廿日市市宮内郵便局&output=embed&hl=ja&z=16"
+                  width="100%"
+                  height="220"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="広島県廿日市市宮内郵便局 地図"
+                />
+              </div>
             </div>
 
           </div>
@@ -332,14 +334,21 @@ export default function ClinicPage() {
       </div>
 
       {/* フッター */}
-      <footer className="bg-[#1C6EA4] text-white mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col items-center gap-3 text-xs sm:text-sm md:flex-row md:justify-between">
-          <div className="font-bold">テストデンタル歯科</div>
-          <div className="text-white/60 text-xs text-center">© 2026 テストデンタル歯科. All Rights Reserved.</div>
-          <div className="flex items-center gap-4 sm:gap-6 flex-wrap justify-center">
-            <a href="#" className="hover:opacity-75 transition-opacity">プライバシーポリシー</a>
-            <a href="#" className="hover:opacity-75 transition-opacity">特定商取引法</a>
-            <a href="#" className="hover:opacity-75 transition-opacity">お問い合わせ</a>
+      <footer className="bg-gray-900 text-gray-400 mt-auto">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col items-center gap-4 text-xs sm:text-sm md:flex-row md:justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-[#2563EB] rounded-md flex items-center justify-center">
+              <svg width="13" height="13" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+            </div>
+            <span className="text-white font-semibold">テストデンタル歯科</span>
+          </div>
+          <div className="text-gray-500 text-xs">© 2026 テストデンタル歯科. All Rights Reserved.</div>
+          <div className="flex items-center gap-5 flex-wrap justify-center">
+            <a href="#" className="hover:text-white transition-colors">プライバシーポリシー</a>
+            <a href="#" className="hover:text-white transition-colors">特定商取引法</a>
+            <a href="#" className="hover:text-white transition-colors">お問い合わせ</a>
           </div>
         </div>
       </footer>
