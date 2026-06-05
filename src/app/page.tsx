@@ -136,7 +136,7 @@ export default function LoginPage() {
       </header>
 
       {/* メインコンテンツ */}
-      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 py-12 md:py-20 bg-gradient-to-b from-[#F8FAFF] to-white">
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12 md:py-20 bg-gradient-to-b from-[#F8FAFF] to-white">
         <div className="max-w-5xl w-full flex flex-col md:flex-row items-center gap-12 md:gap-20">
 
           {/* 左：ヒーローエリア */}
@@ -164,7 +164,7 @@ export default function LoginPage() {
           </div>
 
           {/* 右：ログインカード */}
-          <div className="w-full md:w-[400px] bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+          <div className="w-full md:w-[400px] bg-white rounded-2xl shadow-xl border border-gray-100 p-5 sm:p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-1">ログイン</h2>
             <p className="text-gray-400 text-sm mb-7">診療番号とパスワードを入力してください</p>
 

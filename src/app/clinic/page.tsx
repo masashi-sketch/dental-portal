@@ -121,18 +121,57 @@ function IconClock() {
 
 const navItems = [
   { label: 'クリニック紹介', icon: <IconClinic />,   active: true },
-  { label: 'ダッシュボード',  icon: <IconDashboard /> },
   { label: '予約・受診履歴', icon: <IconCalendar /> },
-  { label: '診療情報',        icon: <IconFile /> },
-  { label: 'サブスク',        icon: <IconRefresh /> },
-  { label: '単発注文',        icon: <IconBag /> },
-  { label: 'Q & A',           icon: <IconQA /> },
+  { label: '診療情報',        icon: <IconFile />,    dividerAfter: true },
+  { label: '定期購入',        icon: <IconRefresh /> },
+  { label: 'おすすめ商品',   icon: <IconBag />,      href: '/shop' },
+  { label: 'Q & A',           icon: <IconQA />,       href: '/qa' },
 ];
 
 const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
+const staffList = [
+  {
+    tab: '院長',
+    name: '山田　太郎',
+    badge: '院長',
+    credentials: '〇〇博士 / 〇〇会会員 / ◯◯◯◯◯◯◯◯◯◯◯◯',
+    description: '患者様お一人おひとりのお口の健康を、長期的な視点でサポートすることを大切にしています。痛みや不安を感じたときはもちろん、定期的なメンテナンスでも気軽にお越しください。スタッフ一同、安心して通っていただけるクリニックを目指してまいります。皆様のご来院を心よりお待ちしております。',
+    gradientFrom: '#2563EB',
+    gradientTo: '#60a5fa',
+    label: '院長',
+    activeTab: 'bg-[#2563EB] text-white',
+    inactiveTab: 'bg-[#EFF6FF] text-[#2563EB] hover:bg-[#dbeafe]',
+  },
+  {
+    tab: '歯科衛生士',
+    name: '山田　花子',
+    badge: '歯科衛生士',
+    credentials: '歯科衛生士免許 / ◯◯衛生士会会員',
+    description: '患者様のお口の健康を守るため、丁寧なクリーニングと予防ケアを心がけています。定期検診では一人ひとりのお口の状態に合わせたアドバイスをお伝えします。気になることがあればいつでもお気軽にご相談ください。皆様のご来院をスタッフ一同お待ちしております。',
+    gradientFrom: '#0891b2',
+    gradientTo: '#67e8f9',
+    label: '衛生士',
+    activeTab: 'bg-[#0891b2] text-white',
+    inactiveTab: 'bg-[#ECFEFF] text-[#0891b2] hover:bg-[#cffafe]',
+  },
+  {
+    tab: '受付',
+    name: '山田　梅子',
+    badge: '受付',
+    credentials: '医療事務資格 / ◯◯医療事務協会会員',
+    description: '来院される患者様が安心してご利用いただけるよう、笑顔で丁寧なご対応を心がけております。ご予約やお問い合わせ、保険に関するご質問など、どんな小さなことでもお気軽にお声がけください。皆様のご来院をお待ちしております。',
+    gradientFrom: '#7c3aed',
+    gradientTo: '#c4b5fd',
+    label: '受付',
+    activeTab: 'bg-[#7c3aed] text-white',
+    inactiveTab: 'bg-[#F5F3FF] text-[#7c3aed] hover:bg-[#ede9fe]',
+  },
+];
+
 export default function ClinicPage() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -188,15 +227,15 @@ export default function ClinicPage() {
       <div className="md:hidden bg-white border-b border-gray-100 overflow-x-auto">
         <div className="flex gap-1 px-3 py-2 min-w-max">
           {navItems.map((item) => (
-            <a
+            <Link
               key={item.label}
-              href="#"
+              href={item.href ?? '#'}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors ${
                 item.active ? 'bg-[#2563EB] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               {item.icon}{item.label}
-            </a>
+            </Link>
           ))}
           <Link href="/" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
             <IconLogout />ログアウト
@@ -212,18 +251,20 @@ export default function ClinicPage() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
             <nav className="flex flex-col gap-0.5">
               {navItems.map((item) => (
-                <a
-                  key={item.label}
-                  href="#"
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
-                    item.active
-                      ? 'bg-[#EFF6FF] text-[#2563EB] font-semibold'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className={item.active ? 'text-[#2563EB]' : 'text-gray-400'}>{item.icon}</span>
-                  {item.label}
-                </a>
+                <div key={item.label}>
+                  <Link
+                    href={item.href ?? '#'}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
+                      item.active
+                        ? 'bg-[#EFF6FF] text-[#2563EB] font-semibold'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className={item.active ? 'text-[#2563EB]' : 'text-gray-400'}>{item.icon}</span>
+                    {item.label}
+                  </Link>
+                  {item.dividerAfter && <div className="my-2 h-px bg-gray-100" />}
+                </div>
               ))}
               <div className="my-2 h-px bg-gray-100" />
               <Link
@@ -240,23 +281,43 @@ export default function ClinicPage() {
         {/* メインコンテンツ */}
         <main className="flex-1 flex flex-col gap-5 min-w-0">
 
-          {/* 院長プロフィールカード */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col sm:flex-row gap-5 sm:gap-6">
-            <div className="flex justify-center sm:justify-start shrink-0">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#60a5fa] flex flex-col items-center justify-center shadow-sm gap-0.5">
-                <svg width="32" height="32" fill="none" stroke="white" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                </svg>
-                <span className="text-white text-[10px] font-medium opacity-80">医師写真</span>
-              </div>
+          {/* スタッフ紹介カード（タブ切り替え） */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {/* タブ */}
+            <div className="flex gap-2 p-3 bg-gray-50 border-b border-gray-100">
+              {staffList.map((staff, i) => (
+                <button
+                  key={staff.tab}
+                  onClick={() => setActiveTab(i)}
+                  className={`flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm ${
+                    activeTab === i ? staff.activeTab : staff.inactiveTab
+                  }`}
+                >
+                  {staff.tab}
+                </button>
+              ))}
             </div>
-            <div className="flex-1 text-center sm:text-left">
-              <span className="inline-block bg-[#EFF6FF] text-[#2563EB] text-xs font-semibold px-3 py-0.5 rounded-full mb-2">院長</span>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">田中　一郎</h2>
-              <p className="text-[#2563EB] text-xs mb-3">〇〇博士 / 〇〇会会員 / ◯◯◯◯◯◯◯◯◯◯◯◯</p>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                患者様お一人おひとりのお口の健康を、長期的な視点でサポートすることを大切にしています。痛みや不安を感じたときはもちろん、定期的なメンテナンスでも気軽にお越しください。スタッフ一同、安心して通っていただけるクリニックを目指してまいります。皆様のご来院を心よりお待ちしております。
-              </p>
+            {/* コンテンツ */}
+            <div className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-6">
+              <div className="flex justify-center sm:justify-start shrink-0">
+                <div
+                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex flex-col items-center justify-center shadow-sm gap-0.5"
+                  style={{ background: `linear-gradient(to bottom right, ${staffList[activeTab].gradientFrom}, ${staffList[activeTab].gradientTo})` }}
+                >
+                  <svg width="32" height="32" fill="none" stroke="white" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <span className="text-white text-[10px] font-medium opacity-80">{staffList[activeTab].label}</span>
+                </div>
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <span className="inline-block bg-[#EFF6FF] text-[#2563EB] text-xs font-semibold px-3 py-0.5 rounded-full mb-2">
+                  {staffList[activeTab].badge}
+                </span>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{staffList[activeTab].name}</h2>
+                <p className="text-[#2563EB] text-xs mb-3">{staffList[activeTab].credentials}</p>
+                <p className="text-gray-500 text-sm leading-relaxed">{staffList[activeTab].description}</p>
+              </div>
             </div>
           </div>
 
@@ -264,7 +325,7 @@ export default function ClinicPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
             {/* 診療内容・診療時間 */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
               <div className="flex items-center gap-2 text-[#2563EB] font-semibold mb-4 text-sm">
                 <IconClock /><span>診療内容・診療時間</span>
               </div>
@@ -299,7 +360,7 @@ export default function ClinicPage() {
             </div>
 
             {/* アクセス */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 flex flex-col">
               <div className="flex items-center gap-2 text-[#2563EB] font-semibold mb-4 text-sm">
                 <IconMapPin /><span>アクセス</span>
               </div>
