@@ -81,7 +81,7 @@ const navCards = [
   {
     label: '定期購入',
     desc: 'サブスクリプション管理',
-    href: '#',
+    href: '/subscription',
     icon: <IconRefresh />,
     bg: 'bg-emerald-50',
     iconBg: 'bg-emerald-500',
@@ -125,7 +125,7 @@ const sideNavItems = [
   { label: 'クリニック紹介', icon: <IconClinicSm />,  href: '/clinic' },
   { label: '予約・受診履歴', icon: <IconCalendarSm />, href: '#' },
   { label: '診療情報',       icon: <IconFileSm />,     href: '#', dividerAfter: true },
-  { label: '定期購入',       icon: <IconRefreshSm />,  href: '#' },
+  { label: '定期購入',       icon: <IconRefreshSm />,  href: '/subscription' },
   { label: 'おすすめ商品',  icon: <IconBagSm />,      href: '/shop' },
   { label: 'Q & A',          icon: <IconQASm />,       href: '/qa' },
 ];
@@ -245,24 +245,6 @@ export default function HomePage() {
                     <IconChevron />
                   </div>
                 </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* お知らせ */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
-            <p className="text-xs text-gray-400 font-medium mb-3">お知らせ</p>
-            <div className="flex flex-col gap-3">
-              {[
-                { date: '2026.06.01', tag: '重要', tagColor: 'bg-red-50 text-red-500', text: '夏季休診のご案内（8/13〜8/15）' },
-                { date: '2026.05.20', tag: 'お知らせ', tagColor: 'bg-blue-50 text-blue-500', text: '定期購入サービスがリニューアルしました' },
-                { date: '2026.05.10', tag: 'お知らせ', tagColor: 'bg-gray-50 text-gray-500', text: '新商品「薬用洗口液 500ml」を追加しました' },
-              ].map((n) => (
-                <div key={n.text} className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
-                  <span className="text-xs text-gray-400 shrink-0 mt-0.5">{n.date}</span>
-                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${n.tagColor}`}>{n.tag}</span>
-                  <p className="text-sm text-gray-700 leading-snug">{n.text}</p>
-                </div>
               ))}
             </div>
           </div>

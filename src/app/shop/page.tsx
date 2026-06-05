@@ -243,7 +243,7 @@ const navItems = [
   { label: 'クリニック紹介', icon: <IconClinic />,  href: '/clinic' },
   { label: '予約・受診履歴', icon: <IconCalendar />, href: '#' },
   { label: '診療情報',       icon: <IconFile />,     href: '#', dividerAfter: true },
-  { label: '定期購入',       icon: <IconRefresh />,  href: '#' },
+  { label: '定期購入',       icon: <IconRefresh />,  href: '/subscription' },
   { label: 'おすすめ商品',  icon: <IconBag />,      href: '/shop', active: true },
   { label: 'Q & A',          icon: <IconQA />,       href: '/qa' },
 ];

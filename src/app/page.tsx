@@ -70,18 +70,22 @@ const features = [
   { icon: <IconCalendar />, label: '予約管理' },
   { icon: <IconFile />,     label: '診療情報' },
   { icon: <IconRefresh />,  label: '定期購入' },
-  { icon: <IconBag />,      label: '単発注文' },
 ];
 
 export default function LoginPage() {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push('/home');
+    if (userId === 'bgj' && password === 'dsm17938') {
+      router.push('/home');
+    } else {
+      setError('IDまたはパスワードが正しくありません。');
+    }
   };
 
   return (
@@ -148,19 +152,28 @@ export default function LoginPage() {
               患者様専用<br />
               <span className="text-[#2563EB]">ポータルサイト</span>
             </h1>
-            <p className="text-gray-500 text-sm sm:text-base leading-relaxed mb-8 max-w-md">
+            <p className="text-gray-500 text-sm sm:text-base leading-relaxed mb-6 max-w-md">
               ご予約の確認・変更、診療情報の閲覧、歯科用品のご注文など、各種サービスをいつでもご利用いただけます。
             </p>
 
-            {/* 機能一覧 */}
-            <div className="grid grid-cols-2 gap-3">
-              {features.map(({ icon, label }) => (
-                <div key={label} className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
-                  <span className="text-[#2563EB]">{icon}</span>
-                  <span className="text-sm font-medium text-gray-700">{label}</span>
-                </div>
-              ))}
+            {/* お知らせ */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 max-w-md">
+              <p className="text-xs text-gray-400 font-medium mb-3">お知らせ</p>
+              <div className="flex flex-col gap-2.5">
+                {[
+                  { date: '2026.06.01', tag: '重要', tagColor: 'bg-red-50 text-red-500', text: '夏季休診のご案内（8/13〜8/15）' },
+                  { date: '2026.05.20', tag: 'お知らせ', tagColor: 'bg-blue-50 text-blue-500', text: '定期購入サービスがリニューアルしました' },
+                  { date: '2026.05.10', tag: 'お知らせ', tagColor: 'bg-gray-50 text-gray-500', text: '新商品「薬用洗口液 500ml」を追加しました' },
+                ].map((n) => (
+                  <div key={n.text} className="flex items-start gap-2.5 py-2 border-b border-gray-50 last:border-0">
+                    <span className="text-[11px] text-gray-400 shrink-0 mt-0.5 w-20">{n.date}</span>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${n.tagColor}`}>{n.tag}</span>
+                    <p className="text-xs text-gray-700 leading-snug">{n.text}</p>
+                  </div>
+                ))}
+              </div>
             </div>
+
           </div>
 
           {/* 右：ログインカード */}
@@ -193,6 +206,11 @@ export default function LoginPage() {
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors placeholder-gray-300 bg-gray-50"
                 />
               </div>
+              {error && (
+                <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-center">
+                  {error}
+                </p>
+              )}
               <button
                 type="submit"
                 className="w-full bg-[#2563EB] text-white py-3 rounded-xl font-semibold hover:bg-[#1d4ed8] transition-colors cursor-pointer shadow-sm"

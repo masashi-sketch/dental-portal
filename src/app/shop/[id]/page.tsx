@@ -127,7 +127,7 @@ const navItems = [
   { label: 'クリニック紹介', icon: <IconClinic />,  href: '/clinic' },
   { label: '予約・受診履歴', icon: <IconCalendar />, href: '#' },
   { label: '診療情報',       icon: <IconFile />,     href: '#', dividerAfter: true },
-  { label: '定期購入',       icon: <IconRefresh />,  href: '#' },
+  { label: '定期購入',       icon: <IconRefresh />,  href: '/subscription' },
   { label: 'おすすめ商品',  icon: <IconBag />,      href: '/shop', active: true },
   { label: 'Q & A',          icon: <IconQA />,       href: '/qa' },
 ];
@@ -347,10 +347,13 @@ export default function ProductDetailPage() {
                     {added ? 'カートに追加済み' : 'カートに追加する'}
                   </button>
                   {product.tag === '定期購入対応' && (
-                    <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm border border-[#2563EB] text-[#2563EB] hover:bg-[#EFF6FF] transition-colors">
+                    <Link
+                      href="/subscription"
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm border border-[#2563EB] text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
+                    >
                       <IconRefreshSmall />
                       定期購入で注文
-                    </button>
+                    </Link>
                   )}
                 </div>
 

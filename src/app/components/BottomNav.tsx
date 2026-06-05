@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-export type BottomNavPage = 'home' | 'clinic' | 'reserve' | 'shop' | 'qa';
+export type BottomNavPage = 'home' | 'clinic' | 'reserve' | 'shop' | 'qa' | 'subscription';
 
 function IconHome({ filled }: { filled?: boolean }) {
   return filled ? (
