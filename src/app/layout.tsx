@@ -4,6 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "テストデンタル歯科 患者様専用ポータル",
   description: "患者様専用ポータルサイト",
+  openGraph: {
+    title: "テストデンタル歯科 患者様専用ポータル",
+    description: "患者様専用ポータルサイト",
+    siteName: "テストデンタル歯科",
+  },
 };
 
 export default function RootLayout({
