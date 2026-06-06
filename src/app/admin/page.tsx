@@ -19,8 +19,13 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
+      style={{ backgroundImage: 'url(/admin-login-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat' }}
+    >
+      {/* オーバーレイ */}
+      <div className="absolute inset-0 bg-gray-900/40" />
+      <div className="relative z-10 w-full max-w-sm">
 
         {/* ロゴ */}
         <div className="flex flex-col items-center mb-8">
@@ -73,18 +78,6 @@ export default function AdminLoginPage() {
               ログイン
             </button>
           </form>
-        </div>
-
-        {/* 外部リンク */}
-        <div className="mt-4">
-          <a
-            href="https://childhealth.jp/?srsltid=AfmBOorq5Na8WlWqf7GTOwMNK1Y1Urk_EgwCL0extO5FY_N_gE8SUtkw"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full text-center bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white py-3 rounded-xl text-sm font-medium transition-colors"
-          >
-            チャイルドヘルラボ
-          </a>
         </div>
 
         <p className="text-center text-gray-600 text-xs mt-6">
