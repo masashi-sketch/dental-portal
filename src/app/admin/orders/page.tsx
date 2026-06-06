@@ -26,10 +26,10 @@ const initialOrders: Order[] = [
 ];
 
 const statusColors: Record<OrderStatus, string> = {
-  '確認中':   'text-amber-400 bg-amber-500/10 border-amber-500/20',
-  '配送中':   'text-teal-400  bg-teal-500/10  border-teal-500/20',
-  '完了':     'text-gray-400  bg-gray-700     border-gray-600',
-  'キャンセル': 'text-red-400   bg-red-500/10   border-red-500/20',
+  '確認中':    'text-amber-600 bg-amber-50 border-amber-200',
+  '配送中':    'text-teal-600  bg-teal-50  border-teal-200',
+  '完了':      'text-slate-500 bg-slate-100 border-slate-200',
+  'キャンセル': 'text-red-600   bg-red-50   border-red-200',
 };
 
 export default function AdminOrdersPage() {
@@ -54,18 +54,18 @@ export default function AdminOrdersPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-900">
+    <div className="min-h-screen flex bg-sky-50">
       <AdminSidebar active="orders" />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-gray-800 border-b border-gray-700 px-6 py-4">
-          <h1 className="text-white font-bold text-lg">定期購入管理</h1>
-          <p className="text-gray-400 text-xs mt-0.5">定期購入の注文一覧とステータスを管理します</p>
+        <header className="bg-white border-b border-sky-100 px-6 py-4 shadow-sm">
+          <h1 className="text-slate-800 font-bold text-lg">定期購入管理</h1>
+          <p className="text-slate-500 text-xs mt-0.5">定期購入の注文一覧とステータスを管理します</p>
         </header>
 
-        <main className="flex-1 p-5 sm:p-6 bg-gray-900 flex flex-col gap-5">
+        <main className="flex-1 p-5 sm:p-6 bg-sky-50 flex flex-col gap-5">
           {toast && (
-            <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-teal-600 text-white text-sm px-5 py-3 rounded-2xl shadow-xl">{toast}</div>
+            <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-sky-600 text-white text-sm px-5 py-3 rounded-2xl shadow-xl">{toast}</div>
           )}
 
           {/* フィルタータブ */}
@@ -73,7 +73,7 @@ export default function AdminOrdersPage() {
             {(['すべて', '確認中', '配送中', '完了', 'キャンセル'] as const).map((s) => (
               <button key={s} onClick={() => setFilter(s)}
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
-                  filter === s ? 'bg-teal-500 text-white' : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-500'
+                  filter === s ? 'bg-sky-500 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:border-sky-300'
                 }`}>
                 {s} <span className="ml-1 text-xs opacity-70">({counts[s]})</span>
               </button>
@@ -81,40 +81,40 @@ export default function AdminOrdersPage() {
           </div>
 
           {/* テーブル */}
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden">
+          <div className="bg-white border border-sky-100 rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700">
+                  <tr className="border-b border-slate-100">
                     {['注文日', '患者名', '商品', 'コース', 'お届け先', '月額', 'ステータス', '次回配送', '変更'].map((h) => (
-                      <th key={h} className="text-left text-gray-400 font-medium px-4 py-3.5 whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left text-slate-500 font-medium px-4 py-3.5 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((o) => (
-                    <tr key={o.id} className="border-b border-gray-700/50 last:border-0 hover:bg-gray-700/30 transition-colors">
-                      <td className="px-4 py-4 text-gray-400 whitespace-nowrap text-xs">{o.orderedAt}</td>
-                      <td className="px-4 py-4 text-white font-semibold whitespace-nowrap">{o.patient}</td>
-                      <td className="px-4 py-4 text-gray-300 max-w-[160px] truncate">{o.product}</td>
-                      <td className="px-4 py-4 text-gray-300 whitespace-nowrap">{o.course}</td>
+                    <tr key={o.id} className="border-b border-slate-100 last:border-0 hover:bg-sky-50/80 transition-colors">
+                      <td className="px-4 py-4 text-slate-500 whitespace-nowrap text-xs">{o.orderedAt}</td>
+                      <td className="px-4 py-4 text-slate-800 font-semibold whitespace-nowrap">{o.patient}</td>
+                      <td className="px-4 py-4 text-slate-600 max-w-[160px] truncate">{o.product}</td>
+                      <td className="px-4 py-4 text-slate-600 whitespace-nowrap">{o.course}</td>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${o.delivery === '医院' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-gray-700 text-gray-400'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${o.delivery === '医院' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
                           {o.delivery}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-gray-300 whitespace-nowrap font-mono">¥{o.monthlyPrice.toLocaleString()}</td>
+                      <td className="px-4 py-4 text-slate-700 whitespace-nowrap font-mono">¥{o.monthlyPrice.toLocaleString()}</td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${statusColors[o.status]}`}>
                           {o.status}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-gray-400 whitespace-nowrap text-xs">{o.nextDelivery}</td>
+                      <td className="px-4 py-4 text-slate-500 whitespace-nowrap text-xs">{o.nextDelivery}</td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <select
                           value={o.status}
                           onChange={(e) => updateStatus(o.id, e.target.value as OrderStatus)}
-                          className="bg-gray-700 border border-gray-600 text-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/40 cursor-pointer"
+                          className="bg-sky-50 border border-sky-200 text-slate-700 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500/40 cursor-pointer"
                         >
                           <option>確認中</option>
                           <option>配送中</option>
@@ -125,7 +125,7 @@ export default function AdminOrdersPage() {
                     </tr>
                   ))}
                   {filtered.length === 0 && (
-                    <tr><td colSpan={9} className="text-center text-gray-500 py-10">該当する注文がありません</td></tr>
+                    <tr><td colSpan={9} className="text-center text-slate-400 py-10">該当する注文がありません</td></tr>
                   )}
                 </tbody>
               </table>
