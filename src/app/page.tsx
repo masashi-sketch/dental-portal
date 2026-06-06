@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 function IconSearch() {
   return (
@@ -117,7 +118,7 @@ export default function LoginPage() {
 
           <div className="flex items-center gap-4 text-gray-500">
             <button className="hover:text-[#2563EB] transition-colors"><IconSearch /></button>
-            <button className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconUser /></button>
+            <Link href="/admin" className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconUser /></Link>
             <button
               className="md:hidden hover:text-[#2563EB] transition-colors"
               onClick={() => setMenuOpen(!menuOpen)}
@@ -140,15 +141,15 @@ export default function LoginPage() {
       </header>
 
       {/* メインコンテンツ */}
-      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 py-6 md:py-10 relative overflow-hidden"
-        style={{ backgroundImage: 'url(/login-bg.png)', backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8 md:py-12 relative overflow-hidden"
+        style={{ backgroundImage: 'url(/login-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat' }}
       >
         {/* 白オーバーレイ */}
-        <div className="absolute inset-0 bg-white/25" />
-        <div className="relative z-10 max-w-5xl w-full flex flex-col md:flex-row items-center gap-8 md:gap-16">
+        <div className="absolute inset-0 bg-white/30" />
+        <div className="relative z-10 max-w-5xl w-full flex flex-col md:flex-row items-start gap-8 md:gap-16">
 
-          {/* 左：Patient Portal + h1 */}
-          <div className="flex-1 w-full">
+          {/* 左：Patient Portal + h1（スマホは中央揃え） */}
+          <div className="flex-1 w-full text-center md:text-left">
             <span className="inline-block bg-[#EFF6FF] text-[#2563EB] text-xs font-semibold px-3 py-1 rounded-full mb-4 tracking-wider">
               Patient Portal
             </span>
@@ -158,8 +159,8 @@ export default function LoginPage() {
             </h1>
           </div>
 
-          {/* 中央：ログインカード */}
-          <div className="w-full md:w-[400px] bg-white rounded-2xl shadow-xl border border-gray-100 p-5 sm:p-8">
+          {/* ログインカード（スマホは全幅・中央、PCは固定幅） */}
+          <div className="w-full max-w-sm mx-auto md:mx-0 md:w-[400px] md:max-w-none bg-white rounded-2xl shadow-xl border border-gray-100 p-5 sm:p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-1">ログイン</h2>
             <p className="text-gray-400 text-sm mb-6">診療番号とパスワードを入力してください</p>
 
