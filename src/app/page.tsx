@@ -140,48 +140,30 @@ export default function LoginPage() {
       </header>
 
       {/* メインコンテンツ */}
-      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12 md:py-20 bg-gradient-to-b from-[#F8FAFF] to-white">
-        <div className="max-w-5xl w-full flex flex-col md:flex-row items-center gap-12 md:gap-20">
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 py-6 md:py-10 relative overflow-hidden"
+        style={{ backgroundImage: 'url(/login-bg.png)', backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+      >
+        {/* 白オーバーレイ */}
+        <div className="absolute inset-0 bg-white/25" />
+        <div className="relative z-10 max-w-5xl w-full flex flex-col md:flex-row items-center gap-8 md:gap-16">
 
-          {/* 左：ヒーローエリア */}
+          {/* 左：Patient Portal + h1 */}
           <div className="flex-1 w-full">
             <span className="inline-block bg-[#EFF6FF] text-[#2563EB] text-xs font-semibold px-3 py-1 rounded-full mb-4 tracking-wider">
               Patient Portal
             </span>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-5">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
               患者様専用<br />
               <span className="text-[#2563EB]">ポータルサイト</span>
             </h1>
-            <p className="text-gray-500 text-sm sm:text-base leading-relaxed mb-6 max-w-md">
-              ご予約の確認・変更、診療情報の閲覧、歯科用品のご注文など、各種サービスをいつでもご利用いただけます。
-            </p>
-
-            {/* お知らせ */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 max-w-md">
-              <p className="text-xs text-gray-400 font-medium mb-3">お知らせ</p>
-              <div className="flex flex-col gap-2.5">
-                {[
-                  { date: '2026.06.01', tag: '重要', tagColor: 'bg-red-50 text-red-500', text: '夏季休診のご案内（8/13〜8/15）' },
-                  { date: '2026.05.20', tag: 'お知らせ', tagColor: 'bg-blue-50 text-blue-500', text: '定期購入サービスがリニューアルしました' },
-                  { date: '2026.05.10', tag: 'お知らせ', tagColor: 'bg-gray-50 text-gray-500', text: '新商品「薬用洗口液 500ml」を追加しました' },
-                ].map((n) => (
-                  <div key={n.text} className="flex items-start gap-2.5 py-2 border-b border-gray-50 last:border-0">
-                    <span className="text-[11px] text-gray-400 shrink-0 mt-0.5 w-20">{n.date}</span>
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${n.tagColor}`}>{n.tag}</span>
-                    <p className="text-xs text-gray-700 leading-snug">{n.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
           </div>
 
-          {/* 右：ログインカード */}
+          {/* 中央：ログインカード */}
           <div className="w-full md:w-[400px] bg-white rounded-2xl shadow-xl border border-gray-100 p-5 sm:p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-1">ログイン</h2>
-            <p className="text-gray-400 text-sm mb-7">診療番号とパスワードを入力してください</p>
+            <p className="text-gray-400 text-sm mb-6">診療番号とパスワードを入力してください</p>
 
-            <form onSubmit={handleLogin} className="space-y-5">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   ユーザーID（診療番号）
@@ -219,12 +201,12 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="flex justify-between mt-5 text-xs text-gray-400">
+            <div className="flex justify-between mt-4 text-xs text-gray-400">
               <a href="#" className="hover:text-[#2563EB] transition-colors">パスワードをお忘れの方</a>
               <a href="#" className="hover:text-[#2563EB] transition-colors">ログインでお困りの方</a>
             </div>
 
-            <div className="flex items-center gap-3 my-5">
+            <div className="flex items-center gap-3 my-4">
               <div className="flex-1 h-px bg-gray-100" />
               <span className="text-gray-300 text-xs">または</span>
               <div className="flex-1 h-px bg-gray-100" />
@@ -234,6 +216,7 @@ export default function LoginPage() {
               初めての方・新規登録はこちら
             </button>
           </div>
+
         </div>
       </main>
 

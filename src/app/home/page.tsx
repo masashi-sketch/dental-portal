@@ -203,6 +203,27 @@ export default function HomePage() {
                 <span className="text-gray-400"><IconLogout /></span>ログアウト
               </Link>
             </nav>
+
+            {/* お知らせ */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-xs text-gray-400 font-medium mb-3 px-1">お知らせ</p>
+              <div className="flex flex-col gap-1">
+                {[
+                  { date: '2026.06.01', tag: '重要', tagColor: 'bg-red-50 text-red-500', text: '夏季休診のご案内（8/13〜8/15）' },
+                  { date: '2026.05.20', tag: 'お知らせ', tagColor: 'bg-blue-50 text-blue-500', text: '定期購入サービスがリニューアルしました' },
+                  { date: '2026.05.10', tag: 'お知らせ', tagColor: 'bg-gray-50 text-gray-500', text: '新商品「薬用洗口液 500ml」を追加しました' },
+                ].map((n) => (
+                  <div key={n.text} className="flex flex-col gap-1 py-2 border-b border-gray-50 last:border-0 px-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-gray-400">{n.date}</span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${n.tagColor}`}>{n.tag}</span>
+                    </div>
+                    <p className="text-[11px] text-gray-600 leading-snug">{n.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </aside>
 
