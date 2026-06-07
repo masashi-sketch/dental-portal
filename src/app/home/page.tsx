@@ -114,6 +114,7 @@ const navCards = [
 ];
 
 /* サイドバー用（デスクトップ） */
+function IconHomeSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>; }
 function IconClinicSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>; }
 function IconCalendarSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>; }
 function IconFileSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8" /></svg>; }
@@ -122,6 +123,7 @@ function IconBagSm() { return <svg width="16" height="16" fill="none" stroke="cu
 function IconQASm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>; }
 
 const sideNavItems = [
+  { label: 'ホーム',         icon: <IconHomeSm />,     href: '/home', active: true },
   { label: 'クリニック紹介', icon: <IconClinicSm />,  href: '/clinic' },
   { label: '予約・受診履歴', icon: <IconCalendarSm />, href: '#' },
   { label: '診療情報',       icon: <IconFileSm />,     href: '#', dividerAfter: true },
@@ -190,9 +192,13 @@ export default function HomePage() {
               {sideNavItems.map((item) => (
                 <div key={item.label}>
                   <Link href={item.href}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
+                      item.active
+                        ? 'bg-[#EFF6FF] text-[#2563EB] font-semibold'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
                   >
-                    <span className="text-gray-400">{item.icon}</span>
+                    <span className={item.active ? 'text-[#2563EB]' : 'text-gray-400'}>{item.icon}</span>
                     {item.label}
                   </Link>
                   {item.dividerAfter && <div className="my-2 h-px bg-gray-100" />}

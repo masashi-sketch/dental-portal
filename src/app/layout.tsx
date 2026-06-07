@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { M_PLUS_Rounded_1c } from "next/font/google";
 import "./globals.css";
+import Providers from "@/components/Providers";
 
 const mPlusRounded = M_PLUS_Rounded_1c({
   weight: ["400", "500", "700", "800"],
@@ -26,7 +27,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className={mPlusRounded.className}>
-      <body className="min-h-screen flex flex-col overflow-x-hidden">{children}</body>
+      <body className="min-h-screen flex flex-col overflow-x-hidden">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

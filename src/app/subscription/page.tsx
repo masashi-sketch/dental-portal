@@ -50,6 +50,9 @@ function IconShield() {
 function IconTruck() {
   return <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>;
 }
+function IconHome() {
+  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>;
+}
 function IconStar() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>;
 }
@@ -130,6 +133,7 @@ function SupplementImage({ type, size = 'md' }: { type: string; size?: 'sm' | 'm
 }
 
 const navItems = [
+  { label: 'ホーム',         icon: <IconHome />,     href: '/home' },
   { label: 'クリニック紹介', icon: <IconClinic />,  href: '/clinic' },
   { label: '予約・受診履歴', icon: <IconCalendar />, href: '#' },
   { label: '診療情報',       icon: <IconFile />,     href: '#', dividerAfter: true },
