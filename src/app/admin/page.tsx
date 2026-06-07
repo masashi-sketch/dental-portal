@@ -11,25 +11,39 @@ export default function AdminLoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
+      className="min-h-screen flex flex-col relative overflow-hidden"
       style={{ backgroundImage: 'url(/admin-login-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat' }}
     >
       <div className="absolute inset-0 bg-gray-900/50" />
-      <div className="relative z-10 w-full max-w-sm">
 
-        {/* ロゴ */}
+      {/* ヘッダー：医院名のみ */}
+      <header className="relative z-10 border-b border-white/20 sticky top-0">
+        <div className="px-6 py-4 flex items-center gap-2">
+          <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center shrink-0">
+            <svg width="18" height="18" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+          </div>
+          <span className="text-white font-bold text-6xl tracking-tight">テストデンタル歯科</span>
+        </div>
+      </header>
+
+      {/* メイン：カード中央 */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-10">
+
+        {/* ロゴ + タイトル */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-14 h-14 bg-teal-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
             <svg width="28" height="28" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
           </div>
-          <h1 className="text-white text-xl font-bold">テストデンタル歯科</h1>
-          <p className="text-gray-400 text-sm mt-1">医院管理ポータル</p>
+          <h1 className="text-white text-2xl font-bold">医院管理ポータル</h1>
+          <p className="text-gray-300 text-sm mt-1">歯科医院スタッフ専用</p>
         </div>
 
         {/* ログインカード */}
-        <div className="bg-gray-800 rounded-2xl p-7 border border-gray-700">
+        <div className="w-full max-w-sm bg-gray-800 rounded-2xl p-7 border border-gray-700">
           <h2 className="text-white font-bold text-lg mb-1">管理者ログイン</h2>
           <p className="text-gray-400 text-xs mb-6">医院スタッフ専用ページです</p>
 
@@ -67,11 +81,14 @@ export default function AdminLoginPage() {
             <Link href="/auth/signin" className="text-teal-400 hover:underline">こちら</Link>
           </p>
         </div>
+      </main>
 
-        <p className="text-center text-gray-600 text-xs mt-6">
+      {/* フッター */}
+      <footer className="relative z-10 bg-gray-900/60 text-gray-400">
+        <div className="px-6 py-4 text-center text-xs">
           © 2026 テストデンタル歯科. All Rights Reserved.
-        </p>
-      </div>
+        </div>
+      </footer>
     </div>
   );
 }
