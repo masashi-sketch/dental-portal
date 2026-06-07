@@ -5,10 +5,10 @@ import { useState, useEffect } from 'react';
 
 export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia';
 
-// モック：これらのページでコンテンツが更新された日時
-const CONTENT_LAST_UPDATED: Partial<Record<AdminPage, string>> = {
-  campaign: '2026-06-07T09:00:00',
-  biogaia:  '2026-06-06T18:00:00',
+// モック：未読件数と最終更新日時
+const CONTENT_UNREAD: Partial<Record<AdminPage, { updatedAt: string; count: number }>> = {
+  campaign: { updatedAt: '2026-06-07T09:00:00', count: 2 },
+  biogaia:  { updatedAt: '2026-06-06T18:00:00', count: 3 },
 };
 
 function IconDashboard() {
@@ -61,59 +61,63 @@ const navItems: { key: AdminPage; label: string; href: string; icon: React.React
   { key: 'dashboard',  label: 'ダッシュボード',   href: '/admin/dashboard',   icon: <IconDashboard /> },
   { key: 'news',       label: 'お知らせ管理',     href: '/admin/news',        icon: <IconBell /> },
   { key: 'patients',   label: '患者様管理',       href: '/admin/patients',    icon: <IconUsers /> },
-  { key: 'commission', label: 'コミッション管理', href: '/admin/commission',  icon: <IconCommission />,  dividerBefore: true },
+  { key: 'commission', label: 'コミッション管理', href: '/admin/commission',  icon: <IconCommission />, dividerBefore: true },
   { key: 'orders',     label: '定期購入管理',     href: '/admin/orders',      icon: <IconRefresh /> },
   { key: 'products',   label: '商品管理',         href: '/admin/products',    icon: <IconBag /> },
-  { key: 'campaign',   label: 'キャンペーン情報', href: '/admin/campaign',    icon: <IconCampaign />,    dividerBefore: true },
+  { key: 'campaign',   label: 'キャンペーン情報', href: '/admin/campaign',    icon: <IconCampaign />,   dividerBefore: true },
   { key: 'biogaia',    label: 'バイオガイア通信', href: '/admin/biogaia',     icon: <IconNewsletter /> },
 ];
 
 const externalLinks = [
   { label: 'BiogaiaAcademy',    href: 'https://biogaia-academy.jp/?srsltid=AfmBOooyuVnGxUjZSqUif84eLmsf6y8F-hE-UilcU9wz2vTtBTJo6QdN', icon: <IconAcademy /> },
   { label: 'Biogaia学術情報',   href: 'https://reuteri-lab.jp/post/research', icon: <IconResearch /> },
-  { label: 'チャイルドヘルラボ', href: 'https://childhealth.jp/?srsltid=AfmBOorq5Na8WlWqf7GTOwMNK1Y1Urk_EgwCL0extO5FY_N_gE8SUtkw', icon: <IconChildHealth /> },
+  { label: 'こどもヘルスラボ', href: 'https://childhealth.jp/?srsltid=AfmBOorq5Na8WlWqf7GTOwMNK1Y1Urk_EgwCL0extO5FY_N_gE8SUtkw', icon: <IconChildHealth /> },
 ];
 
 function NavItems({
   active,
   onNavClick,
-  unreadPages,
+  unreadCounts,
 }: {
   active: AdminPage;
   onNavClick?: () => void;
-  unreadPages: Set<AdminPage>;
+  unreadCounts: Map<AdminPage, number>;
 }) {
   return (
     <>
       <p className="text-sky-300/60 text-xs font-semibold tracking-widest px-3 pb-2">MENU</p>
-      {navItems.map((item) => (
-        <div key={item.key}>
-          {item.dividerBefore && (
-            <div className="my-2 border-t-4 border-sky-800/70" />
-          )}
-          <Link
-            href={item.href}
-            onClick={onNavClick}
-            className={`flex items-center gap-3 px-3 py-3 rounded-xl text-lg font-medium transition-colors ${
-              active === item.key
-                ? 'bg-sky-400/20 text-sky-100'
-                : 'text-sky-100/80 hover:bg-sky-800/50 hover:text-white'
-            }`}
-          >
-            <span className={active === item.key ? 'text-sky-300' : 'text-sky-300/70'}>
-              {item.icon}
-            </span>
-            <span className="flex-1">{item.label}</span>
-            {unreadPages.has(item.key) ? (
-              <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full animate-pulse">
-                NEW
+      {navItems.map((item) => {
+        const count = unreadCounts.get(item.key) ?? 0;
+        return (
+          <div key={item.key}>
+            {item.dividerBefore && (
+              <div className="my-2 border-t-4 border-sky-800/70" />
+            )}
+            <Link
+              href={item.href}
+              onClick={onNavClick}
+              className={`flex items-center gap-3 px-3 py-3 rounded-xl text-lg font-medium transition-colors ${
+                active === item.key
+                  ? 'bg-sky-400/20 text-sky-100'
+                  : 'text-sky-100/80 hover:bg-sky-800/50 hover:text-white'
+              }`}
+            >
+              <span className={`shrink-0 ${active === item.key ? 'text-sky-300' : 'text-sky-300/70'}`}>
+                {item.icon}
               </span>
-            ) : active === item.key ? (
-              <span className="w-2 h-2 rounded-full bg-sky-400" />
-            ) : null}
-          </Link>
-        </div>
-      ))}
+              {/* テキストは折り返して全体表示 */}
+              <span className="flex-1 leading-snug">{item.label}</span>
+              {count > 0 ? (
+                <span className="min-w-[20px] h-5 px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shrink-0">
+                  {count}
+                </span>
+              ) : active === item.key ? (
+                <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
+              ) : null}
+            </Link>
+          </div>
+        );
+      })}
 
       <div className="mt-4 pt-4 border-t border-sky-800/50">
         <p className="text-sky-300/60 text-xs font-semibold tracking-widest px-3 pb-2">LINKS</p>
@@ -125,8 +129,9 @@ function NavItems({
             rel="noopener noreferrer"
             className="flex items-center gap-3 px-3 py-3 rounded-xl text-lg font-medium text-sky-100/80 hover:bg-sky-800/50 hover:text-white transition-colors"
           >
-            <span className="text-sky-300/70">{item.icon}</span>
-            <span className="flex-1 truncate">{item.label}</span>
+            <span className="text-sky-300/70 shrink-0">{item.icon}</span>
+            {/* 折り返して全体表示（truncate なし） */}
+            <span className="flex-1 leading-snug">{item.label}</span>
             <span className="text-sky-400/60 shrink-0"><IconExternal /></span>
           </a>
         ))}
@@ -138,7 +143,7 @@ function NavItems({
 function LogoBlock() {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="w-9 h-9 bg-sky-400 rounded-lg flex items-center justify-center">
+      <div className="w-9 h-9 bg-sky-400 rounded-lg flex items-center justify-center shrink-0">
         <svg width="18" height="18" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
           <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
         </svg>
@@ -153,28 +158,36 @@ function LogoBlock() {
 
 function SalesRepCard() {
   return (
-    <div className="px-3 pt-3 pb-1 border-t border-sky-800/50">
-      <div className="bg-sky-800/50 border border-sky-700/40 rounded-xl px-3 py-3">
-        <p className="text-sky-400/70 text-xs font-semibold tracking-widest mb-2">担当営業</p>
-        <div className="flex items-center gap-2.5 mb-2.5">
-          <div className="w-9 h-9 rounded-full bg-teal-500/30 border border-teal-400/40 flex items-center justify-center text-teal-200 font-bold text-sm shrink-0">
-            山
+    <div className="px-3 pt-3 pb-2 border-t-2 border-sky-700">
+      <div className="bg-sky-800/60 border border-teal-500/40 rounded-xl overflow-hidden">
+        {/* ヘッダー */}
+        <div className="bg-teal-600/40 px-3 py-2 border-b border-teal-500/40">
+          <p className="text-teal-200 text-xs font-bold tracking-widest text-center">── 営業担当 ──</p>
+        </div>
+        {/* 担当者名 */}
+        <div className="px-4 pt-3 pb-1">
+          <p className="text-white font-bold text-xl leading-tight">山本権兵衛</p>
+          <p className="text-teal-300 text-xs font-semibold mt-0.5">歯科衛生士</p>
+        </div>
+        {/* 電話番号（幅いっぱいに大きく） */}
+        <div className="px-4 py-3 flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-sky-100">
+            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="shrink-0 text-teal-300"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <span className="font-bold text-base tracking-wide">090-xxxx-xxxx</span>
           </div>
-          <div>
-            <p className="text-white font-semibold text-base leading-tight">山本権平</p>
-            <p className="text-sky-300/60 text-xs mt-0.5">営業担当</p>
+          <div className="flex items-center gap-2 text-sky-100">
+            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="shrink-0 text-teal-300"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg>
+            <span className="font-bold text-base tracking-wide">03-xxxxx-xxxxx</span>
           </div>
         </div>
-        <div className="flex flex-col gap-1 pl-0.5">
-          <div className="flex items-center gap-1.5 text-sky-300/70 text-xs">
-            <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-            <span>090-xxxx-xxxx</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-sky-300/70 text-xs">
-            <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg>
-            <span>03-xxxxx-xxxxx</span>
-          </div>
-        </div>
+        {/* お問い合わせ（枠の中、最下部） */}
+        <a
+          href="mailto:yamamoto@example.com"
+          className="flex items-center justify-center gap-2 w-full bg-teal-500 hover:bg-teal-400 text-white text-sm font-bold py-3 transition-colors border-t border-teal-500/40"
+        >
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          お問い合わせ
+        </a>
       </div>
     </div>
   );
@@ -182,29 +195,32 @@ function SalesRepCard() {
 
 export default function AdminSidebar({ active }: { active: AdminPage }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [unreadPages, setUnreadPages] = useState<Set<AdminPage>>(new Set());
+  const [unreadCounts, setUnreadCounts] = useState<Map<AdminPage, number>>(new Map());
 
   useEffect(() => {
-    const newUnread = new Set<AdminPage>();
-    for (const page of Object.keys(CONTENT_LAST_UPDATED) as AdminPage[]) {
-      const updatedAt = CONTENT_LAST_UPDATED[page]!;
+    const counts = new Map<AdminPage, number>();
+    for (const page of Object.keys(CONTENT_UNREAD) as AdminPage[]) {
+      const data = CONTENT_UNREAD[page]!;
       const lastRead = localStorage.getItem(`admin_lastRead_${page}`);
-      if (!lastRead || new Date(lastRead) < new Date(updatedAt)) {
-        newUnread.add(page);
+      if (!lastRead || new Date(lastRead) < new Date(data.updatedAt)) {
+        counts.set(page, data.count);
       }
     }
-    // 現在のページを「既読」にする
-    if (CONTENT_LAST_UPDATED[active] !== undefined) {
+    // 現在のページを既読にする
+    if (CONTENT_UNREAD[active] !== undefined) {
       localStorage.setItem(`admin_lastRead_${active}`, new Date().toISOString());
-      newUnread.delete(active);
+      counts.delete(active);
     }
-    setUnreadPages(newUnread);
+    setUnreadCounts(counts);
   }, [active]);
+
+  // モバイルトップバー用：未読合計
+  const totalUnread = Array.from(unreadCounts.values()).reduce((a, b) => a + b, 0);
 
   const logoutSection = (onNavClick?: () => void) => (
     <div className="px-3 py-4 border-t border-sky-800/50">
       <div className="flex items-center gap-3 px-3 py-2 mb-2">
-        <div className="w-9 h-9 rounded-full bg-sky-400/20 flex items-center justify-center text-sky-300 text-sm font-bold">
+        <div className="w-9 h-9 rounded-full bg-sky-400/20 flex items-center justify-center text-sky-300 text-sm font-bold shrink-0">
           A
         </div>
         <div>
@@ -225,12 +241,12 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
   return (
     <>
       {/* ── デスクトップ用サイドバー ── */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sky-900 min-h-screen">
+      <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sky-900 sticky top-0 h-screen overflow-hidden">
         <div className="px-5 py-5 border-b border-sky-800/50">
           <LogoBlock />
         </div>
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
-          <NavItems active={active} unreadPages={unreadPages} />
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          <NavItems active={active} unreadCounts={unreadCounts} />
         </nav>
         <SalesRepCard />
         {logoutSection()}
@@ -244,9 +260,10 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
           aria-label="メニューを開く"
         >
           <IconMenu />
-          {/* モバイルトップバーの未読ドット */}
-          {unreadPages.size > 0 && (
-            <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-sky-900" />
+          {totalUnread > 0 && (
+            <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              {totalUnread}
+            </span>
           )}
         </button>
         <div className="w-7 h-7 bg-sky-400 rounded-lg flex items-center justify-center shrink-0">
@@ -271,7 +288,6 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* ドロワーヘッダー */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-sky-800/50">
           <LogoBlock />
           <button
@@ -282,12 +298,9 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
             <IconClose />
           </button>
         </div>
-
-        {/* ナビゲーション */}
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
-          <NavItems active={active} onNavClick={() => setMobileOpen(false)} unreadPages={unreadPages} />
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          <NavItems active={active} onNavClick={() => setMobileOpen(false)} unreadCounts={unreadCounts} />
         </nav>
-
         <SalesRepCard />
         {logoutSection(() => setMobileOpen(false))}
       </aside>

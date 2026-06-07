@@ -73,6 +73,7 @@ function SupplementImageSm({ type }: { type: string }) {
 }
 
 const navItems = [
+  { label: 'ホーム',         icon: <IconHome />,     href: '/home' },
   { label: 'クリニック紹介', icon: <IconClinic />,  href: '/clinic' },
   { label: '予約・受診履歴', icon: <IconCalendar />, href: '#' },
   { label: '診療情報',       icon: <IconFile />,     href: '#', dividerAfter: true },
@@ -369,7 +370,7 @@ export default function SubscriptionOrderPage() {
                         </div>
                         <p className="font-bold text-gray-900 text-base">ご自宅へお届け</p>
                       </div>
-                      <p className="text-sm text-gray-500 ml-13">ご登録住所へ毎月お届けします。</p>
+                      <p className="text-sm text-gray-500 ml-[52px]">ご登録住所へ毎月お届けします。</p>
                       <div className="mt-3 bg-gray-50 rounded-xl px-4 py-3 text-xs text-gray-600 ml-0">
                         <p className="font-semibold mb-1">お届け先住所（登録情報）</p>
                         <p>〒100-0001　東京都千代田区丸の内1-1-1</p>

@@ -1,9 +1,36 @@
 'use client';
 
+import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
+
+type ClinicInfo = {
+  patientType: string;
+  treatmentType: string;
+  partTimeDoctor: string;
+  reception: string;
+  dentalAssistant: string;
+  nursery: string;
+  counselingRoom: boolean;
+  closedDay: string;
+  fullTimeDoctor: string;
+  hygienist: string;
+  labTech: string;
+  nurse: string;
+  nutritionist: string;
+  chairs: string;
+  waitingRoom: string;
+  mainReferrer: string;
+};
+
+const emptyForm: ClinicInfo = {
+  patientType: '', treatmentType: '', partTimeDoctor: '', reception: '',
+  dentalAssistant: '', nursery: '', counselingRoom: false, closedDay: '',
+  fullTimeDoctor: '', hygienist: '', labTech: '', nurse: '',
+  nutritionist: '', chairs: '', waitingRoom: '', mainReferrer: '',
+};
 
 const COMMISSION_RATE = 0.10;
 const MONTHLY_TARGET = 3000;
@@ -57,14 +84,37 @@ const tooltipFormatter = (value: any, name: any) => {
 };
 
 export default function CommissionPage() {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<ClinicInfo>(emptyForm);
+  const [toast, setToast] = useState('');
+
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+
+  const handleSave = () => {
+    showToast('経営情報を保存しました');
+    setShowForm(false);
+  };
+
+  const set = (key: keyof ClinicInfo, value: string | boolean) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const inputCls = 'w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400';
+
   return (
     <div className="min-h-screen flex bg-sky-50">
       <AdminSidebar active="commission" />
 
       <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0">
-        <header className="bg-white border-b border-sky-100 px-4 sm:px-6 py-4 shadow-sm">
-          <h1 className="text-slate-800 font-bold text-xl">コミッション管理</h1>
-          <p className="text-slate-600 text-sm mt-0.5">患者様の笑顔のために、ロイテリ菌を届けたい。</p>
+        <header className="bg-white border-b border-sky-100 px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-y-3 shadow-sm">
+          <div>
+            <h1 className="text-slate-800 font-bold text-xl">コミッション管理</h1>
+            <p className="text-slate-600 text-sm mt-0.5">患者様の笑顔のために、ロイテリ菌を届けたい。</p>
+          </div>
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-sky-500 hover:bg-sky-400 text-white text-base font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer">
+            ＋ 経営情報を追加
+          </button>
         </header>
 
         <main className="flex-1 p-5 sm:p-6 flex flex-col gap-6 bg-sky-50">
@@ -198,6 +248,148 @@ export default function CommissionPage() {
 
         </main>
       </div>
+
+      {/* トースト通知 */}
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-sky-600 text-white text-base px-5 py-3 rounded-2xl shadow-xl">{toast}</div>
+      )}
+
+      {/* 経営情報入力モーダル */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white border border-sky-100 rounded-2xl w-full max-w-2xl shadow-2xl my-6">
+
+            {/* モーダルヘッダー */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h2 className="text-slate-800 font-bold text-xl">経営情報を追加</h2>
+              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            <div className="px-6 py-5 flex flex-col gap-6">
+
+              {/* 医院情報セクション */}
+              <div>
+                <p className="text-slate-500 text-xs font-semibold tracking-widest mb-4 pb-2 border-b border-slate-100">医院情報</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">患者層分類</label>
+                    <input value={form.patientType} onChange={(e) => set('patientType', e.target.value)}
+                      placeholder="例）高齢者・ファミリー" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">常勤医師数</label>
+                    <input type="number" value={form.fullTimeDoctor} onChange={(e) => set('fullTimeDoctor', e.target.value)}
+                      placeholder="例）3" className={inputCls} />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">診療区分</label>
+                    <input value={form.treatmentType} onChange={(e) => set('treatmentType', e.target.value)}
+                      placeholder="例）一般・小児・矯正" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">歯科衛生士数</label>
+                    <input type="number" value={form.hygienist} onChange={(e) => set('hygienist', e.target.value)}
+                      placeholder="例）5" className={inputCls} />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">非常勤医師数</label>
+                    <input type="number" value={form.partTimeDoctor} onChange={(e) => set('partTimeDoctor', e.target.value)}
+                      placeholder="例）1" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">歯科技工士数</label>
+                    <input type="number" value={form.labTech} onChange={(e) => set('labTech', e.target.value)}
+                      placeholder="例）2" className={inputCls} />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">受付・TC数</label>
+                    <input type="number" value={form.reception} onChange={(e) => set('reception', e.target.value)}
+                      placeholder="例）3" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">看護師数</label>
+                    <input type="number" value={form.nurse} onChange={(e) => set('nurse', e.target.value)}
+                      placeholder="例）1" className={inputCls} />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">歯科助手数</label>
+                    <input type="number" value={form.dentalAssistant} onChange={(e) => set('dentalAssistant', e.target.value)}
+                      placeholder="例）4" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">管理栄養士数</label>
+                    <input type="number" value={form.nutritionist} onChange={(e) => set('nutritionist', e.target.value)}
+                      placeholder="例）1" className={inputCls} />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">保育士数</label>
+                    <input type="number" value={form.nursery} onChange={(e) => set('nursery', e.target.value)}
+                      placeholder="例）1" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">チェア数</label>
+                    <input type="number" value={form.chairs} onChange={(e) => set('chairs', e.target.value)}
+                      placeholder="例）8" className={inputCls} />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">カウンセリングルーム</label>
+                    <button
+                      type="button"
+                      onClick={() => set('counselingRoom', !form.counselingRoom)}
+                      className={`w-full py-3 rounded-xl border text-base font-medium transition-colors cursor-pointer ${
+                        form.counselingRoom
+                          ? 'bg-teal-50 border-teal-300 text-teal-700'
+                          : 'bg-sky-50 border-sky-200 text-slate-500'
+                      }`}
+                    >
+                      {form.counselingRoom ? '✓ あり' : 'なし'}
+                    </button>
+                  </div>
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">待合室規模（人数）</label>
+                    <input type="number" value={form.waitingRoom} onChange={(e) => set('waitingRoom', e.target.value)}
+                      placeholder="例）15" className={inputCls} />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">休診日</label>
+                    <input value={form.closedDay} onChange={(e) => set('closedDay', e.target.value)}
+                      placeholder="例）水・日・祝日" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 text-base font-medium mb-1.5 block">主な推薦者</label>
+                    <input value={form.mainReferrer} onChange={(e) => set('mainReferrer', e.target.value)}
+                      placeholder="例）山本権兵衛" className={inputCls} />
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            {/* フッターボタン */}
+            <div className="flex gap-3 px-6 py-4 border-t border-slate-100">
+              <button onClick={() => setShowForm(false)}
+                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-base font-medium transition-colors cursor-pointer">
+                キャンセル
+              </button>
+              <button onClick={handleSave}
+                className="flex-1 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-base transition-colors cursor-pointer">
+                保存する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

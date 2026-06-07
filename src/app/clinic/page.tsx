@@ -42,6 +42,13 @@ function IconX() {
     </svg>
   );
 }
+function IconHome() {
+  return (
+    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  );
+}
 function IconClinic() {
   return (
     <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -114,6 +121,7 @@ function IconClock() {
 }
 
 const navItems = [
+  { label: 'ホーム',         icon: <IconHome />,      href: '/home' },
   { label: 'クリニック紹介', icon: <IconClinic />,   active: true },
   { label: '予約・受診履歴', icon: <IconCalendar /> },
   { label: '診療情報',        icon: <IconFile />,    dividerAfter: true },
@@ -306,6 +314,7 @@ export default function ClinicPage() {
               <div className="flex items-center gap-2 text-[#2563EB] font-semibold mb-4 text-sm">
                 <IconClock /><span>診療内容・診療時間</span>
               </div>
+              <div className="overflow-x-auto">
               <table className="w-full text-sm mb-4">
                 <tbody className="divide-y divide-gray-50">
                   {[
@@ -321,6 +330,7 @@ export default function ClinicPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
               <div className="border-t border-gray-50 pt-4 space-y-2 text-xs sm:text-sm">
                 {[
                   ['月・火・水・金', '9:00〜18:00'],
