@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { signOut, useSession } from 'next-auth/react';
 
 export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia';
 
@@ -217,24 +218,47 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
   // モバイルトップバー用：未読合計
   const totalUnread = Array.from(unreadCounts.values()).reduce((a, b) => a + b, 0);
 
+  const { data: session } = useSession();
+
+  const portalSection = (onNavClick?: () => void) => (
+    <div className="px-3 pt-2 pb-1 border-t border-sky-800/50">
+      <p className="text-sky-400/60 text-[10px] font-bold tracking-widest px-3 pt-2 pb-1">ポータル切替</p>
+      <Link
+        href="/home"
+        onClick={onNavClick}
+        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sky-200/80 hover:bg-sky-800/50 hover:text-white transition-colors"
+      >
+        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+        患者様ポータル
+      </Link>
+      <Link
+        href="/bgj/dashboard"
+        onClick={onNavClick}
+        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sky-200/80 hover:bg-sky-800/50 hover:text-white transition-colors"
+      >
+        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        BGJポータル
+      </Link>
+    </div>
+  );
+
   const logoutSection = (onNavClick?: () => void) => (
-    <div className="px-3 py-4 border-t border-sky-800/50">
-      <div className="flex items-center gap-3 px-3 py-2 mb-2">
-        <div className="w-9 h-9 rounded-full bg-sky-400/20 flex items-center justify-center text-sky-300 text-sm font-bold shrink-0">
-          A
+    <div className="px-3 py-3 border-t border-sky-800/50">
+      <div className="flex items-center gap-2.5 px-3 py-2 mb-1">
+        <div className="w-8 h-8 rounded-full bg-sky-400/20 flex items-center justify-center text-sky-300 text-xs font-bold shrink-0">
+          {session?.user?.name?.[0] ?? 'U'}
         </div>
-        <div>
-          <p className="text-white text-sm font-semibold">管理者</p>
-          <p className="text-sky-300/70 text-xs">clinic</p>
+        <div className="min-w-0">
+          <p className="text-white text-xs font-semibold truncate">{session?.user?.name ?? '—'}</p>
+          <p className="text-sky-300/70 text-[10px] truncate">{session?.user?.email ?? '—'}</p>
         </div>
       </div>
-      <Link
-        href="/admin"
-        onClick={onNavClick}
-        className="flex items-center gap-3 px-3 py-3 rounded-xl text-base text-sky-100/80 hover:bg-sky-800/50 hover:text-white transition-colors"
+      <button
+        onClick={() => { onNavClick?.(); signOut({ callbackUrl: '/auth/signin' }); }}
+        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-sky-100/80 hover:bg-sky-800/50 hover:text-white transition-colors"
       >
         <IconLogout />ログアウト
-      </Link>
+      </button>
     </div>
   );
 
@@ -249,6 +273,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
           <NavItems active={active} unreadCounts={unreadCounts} />
         </nav>
         <SalesRepCard />
+        {portalSection()}
         {logoutSection()}
       </aside>
 
@@ -302,6 +327,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
           <NavItems active={active} onNavClick={() => setMobileOpen(false)} unreadCounts={unreadCounts} />
         </nav>
         <SalesRepCard />
+        {portalSection(() => setMobileOpen(false))}
         {logoutSection(() => setMobileOpen(false))}
       </aside>
     </>
