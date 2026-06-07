@@ -254,7 +254,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
         </div>
       </div>
       <button
-        onClick={() => { onNavClick?.(); signOut({ callbackUrl: '/auth/signin' }); }}
+        onClick={() => { onNavClick?.(); document.cookie = "portal-selected=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/"; signOut({ callbackUrl: '/auth/signin' }); }}
         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-sky-100/80 hover:bg-sky-800/50 hover:text-white transition-colors"
       >
         <IconLogout />ログアウト

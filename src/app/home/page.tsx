@@ -217,7 +217,7 @@ export default function HomePage() {
               </Link>
               <div className="my-1 h-px bg-gray-100" />
               <button
-                onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+                onClick={() => { document.cookie = "portal-selected=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/"; signOut({ callbackUrl: '/auth/signin' }); }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 <span className="text-gray-400"><IconLogout /></span>ログアウト

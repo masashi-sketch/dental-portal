@@ -111,7 +111,7 @@ export default function BgjSidebar() {
           <p className="text-violet-300 text-xs truncate">{session?.user?.email ?? "—"}</p>
         </div>
         <button
-          onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+          onClick={() => { document.cookie = "portal-selected=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/"; signOut({ callbackUrl: "/auth/signin" }); }}
           className="w-full flex items-center justify-center gap-2 text-violet-300 hover:text-white text-sm py-2 rounded-lg hover:bg-white/10 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
