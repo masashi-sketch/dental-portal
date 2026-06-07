@@ -224,7 +224,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
     <div className="px-3 pt-2 pb-1 border-t border-sky-800/50">
       <p className="text-sky-400/60 text-[10px] font-bold tracking-widest px-3 pt-2 pb-1">ポータル切替</p>
       <Link
-        href="/home"
+        href="/"
         onClick={onNavClick}
         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sky-200/80 hover:bg-sky-800/50 hover:text-white transition-colors"
       >
@@ -232,7 +232,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
         患者様ポータル
       </Link>
       <Link
-        href="/bgj/dashboard"
+        href="/bgj-login"
         onClick={onNavClick}
         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-sky-200/80 hover:bg-sky-800/50 hover:text-white transition-colors"
       >

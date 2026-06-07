@@ -12,10 +12,7 @@ export default auth((req: NextRequest & { auth: unknown }) => {
 
   if (isApiAuth) return NextResponse.next();
   if (isAuthPath) {
-    // ログイン済みなら / へリダイレクト
-    if (isAuthenticated) {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
+    // 認証済みでも /auth/signin は通過させる（ポータル再選択のため）
     return NextResponse.next();
   }
 

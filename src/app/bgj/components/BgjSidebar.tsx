@@ -86,7 +86,7 @@ export default function BgjSidebar() {
       <div className="px-3 pt-2 pb-1 border-t border-violet-700/50">
         <p className="text-violet-400/60 text-[10px] font-bold tracking-widest px-3 pt-2 pb-1">ポータル切替</p>
         <Link
-          href="/home"
+          href="/"
           onClick={() => setMobileOpen(false)}
           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-violet-200/80 hover:bg-white/10 hover:text-white transition-colors"
         >
@@ -94,7 +94,7 @@ export default function BgjSidebar() {
           患者様ポータル
         </Link>
         <Link
-          href="/admin/dashboard"
+          href="/admin"
           onClick={() => setMobileOpen(false)}
           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-violet-200/80 hover:bg-white/10 hover:text-white transition-colors"
         >
