@@ -4,7 +4,7 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 
 const mPlusRounded = M_PLUS_Rounded_1c({
-  weight: ["400", "500", "700", "800"],
+  weight: ["400", "700"],
   subsets: ["latin"],
   display: "swap",
   variable: "--font-m-plus-rounded",

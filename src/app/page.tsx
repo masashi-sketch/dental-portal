@@ -12,7 +12,7 @@ export default function PatientLoginPage() {
   return (
     <div
       className="min-h-screen flex flex-col relative overflow-hidden"
-      style={{ backgroundImage: 'url(/patient-login-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat' }}
+      style={{ backgroundImage: 'url(/patient-login-bg.jpg)', backgroundSize: 'cover', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat' }}
     >
       <div className="absolute inset-0 bg-gray-900/50" />
 
