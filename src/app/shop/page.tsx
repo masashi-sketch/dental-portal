@@ -402,6 +402,29 @@ export default function ShopPage() {
             </div>
           </div>
 
+          {/* 先生からのおすすめバナー */}
+          <div className="bg-gradient-to-r from-[#2563EB] to-[#60a5fa] rounded-2xl p-5 sm:p-6 text-white flex items-start gap-4">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+              <svg width="26" height="26" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-blue-100 text-xs font-semibold mb-0.5">テストデンタル歯科 院長より</p>
+              <p className="font-bold text-base sm:text-lg leading-snug mb-2">
+                L.ロイテリ菌で、口腔ケアを習慣に
+              </p>
+              <p className="text-blue-100 text-xs sm:text-sm leading-relaxed mb-3">
+                歯周病・口臭の改善に科学的根拠が認められた乳酸菌サプリです。毎日続けることで口腔内の善玉菌が増え、定期的なメンテナンス効果も高まります。ぜひ試してみてください。
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full font-medium">院長おすすめ No.1</span>
+                <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full font-medium">歯科医師監修</span>
+                <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full font-medium">定期購入対応</span>
+              </div>
+            </div>
+          </div>
+
           {/* カテゴリフィルター */}
           <div className="overflow-x-auto pb-1">
             <div className="flex gap-2 min-w-max md:flex-wrap md:min-w-0">

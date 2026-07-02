@@ -21,6 +21,43 @@ const initialPatients: Patient[] = [
   { id: 5, patientNo: 'T-00005', name: '患者 E', loginId: '◯◯◯◯◯', password: '◯◯◯◯◯◯◯◯', registeredAt: '2026-02-28', status: '有効' },
 ];
 
+function FakeQRCode({ size = 160 }: { size?: number }) {
+  const cell = size / 21;
+  const pattern = [
+    [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,1,0,0,1,0,1,0,0,1,0,0,0,0,0,1],
+    [1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1],
+    [1,0,1,1,1,0,1,0,0,1,0,0,0,0,1,0,1,1,1,0,1],
+    [1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1],
+    [1,0,0,0,0,0,1,0,0,0,0,1,0,0,1,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1],
+    [0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0],
+    [1,0,1,1,0,1,1,1,0,0,1,0,0,1,1,0,1,0,1,1,0],
+    [0,1,0,0,1,0,0,0,1,0,0,1,0,0,0,1,0,1,0,0,1],
+    [1,1,0,1,0,1,1,0,0,1,1,0,1,1,0,1,0,0,1,1,0],
+    [0,0,1,0,1,0,0,1,0,0,0,1,0,0,1,0,1,0,0,1,0],
+    [1,0,0,1,0,1,1,0,1,1,0,0,1,0,0,1,1,0,1,0,1],
+    [0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,0,1,0,0,1,0],
+    [1,1,1,1,1,1,1,0,0,1,0,1,1,0,1,0,0,1,1,0,1],
+    [1,0,0,0,0,0,1,0,1,0,0,0,0,1,0,1,0,0,0,1,0],
+    [1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,0,1,1,0,0,1],
+    [1,0,1,1,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1,0,0],
+    [1,0,1,1,1,0,1,0,0,1,1,0,1,0,0,0,1,1,0,1,1],
+    [1,0,0,0,0,0,1,0,1,0,0,1,0,1,1,0,0,0,1,0,0],
+    [1,1,1,1,1,1,1,0,0,1,1,0,1,0,0,1,1,0,0,1,1],
+  ];
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <rect width={size} height={size} fill="white" />
+      {pattern.map((row, r) =>
+        row.map((v, c) =>
+          v ? <rect key={`${r}-${c}`} x={c * cell} y={r * cell} width={cell} height={cell} fill="#0f172a" /> : null
+        )
+      )}
+    </svg>
+  );
+}
+
 export default function AdminPatientsPage() {
   const [patients, setPatients] = useState<Patient[]>(initialPatients);
   const [showForm, setShowForm] = useState(false);
@@ -29,6 +66,8 @@ export default function AdminPatientsPage() {
   const [form, setForm] = useState({ name: '', loginId: '', password: '', status: '有効' as Patient['status'] });
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [toast, setToast] = useState('');
+  const [showQR, setShowQR] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
@@ -92,10 +131,21 @@ export default function AdminPatientsPage() {
             <h1 className="text-slate-800 font-bold text-xl">患者様管理</h1>
             <p className="text-slate-600 text-sm mt-0.5">患者のID・パスワードを発行・管理します</p>
           </div>
-          <button onClick={openNew}
-            className="bg-sky-500 hover:bg-sky-400 text-white text-base font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer">
-            ＋ 患者IDを発行
-          </button>
+          <div className="flex gap-3">
+            <button onClick={() => setShowQR(true)}
+              className="bg-teal-500 hover:bg-teal-400 text-white text-base font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer flex items-center gap-2">
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/>
+              </svg>
+              QRで招待
+            </button>
+            <button onClick={openNew}
+              className="bg-sky-500 hover:bg-sky-400 text-white text-base font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer">
+              ＋ 患者IDを発行
+            </button>
+          </div>
         </header>
 
         <main className="flex-1 p-5 sm:p-6 bg-sky-50">
@@ -205,6 +255,36 @@ export default function AdminPatientsPage() {
               <button onClick={handleSave}
                 className="flex-1 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-base transition-colors cursor-pointer">
                 {editItem ? '更新する' : '発行する'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QRコード招待モーダル */}
+      {showQR && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-sky-100 rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
+            <h2 className="text-slate-800 font-bold text-xl mb-1">患者様を招待する</h2>
+            <p className="text-slate-500 text-sm mb-5">QRコードを患者様にお見せください。<br />当院に紐付いた状態で登録されます。</p>
+            <div className="flex justify-center mb-4">
+              <div className="border-2 border-slate-100 rounded-2xl p-3 inline-block shadow-sm">
+                <FakeQRCode size={160} />
+              </div>
+            </div>
+            <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-4 text-left">
+              <p className="text-xs text-slate-500 mb-1 font-medium">招待URL（コピーして送付も可）</p>
+              <p className="text-xs text-sky-700 font-mono break-all">https://portal.biogaia.jp/join?clinic=TEST-001</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowQR(false)}
+                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-base font-medium cursor-pointer hover:bg-slate-50 transition-colors">
+                閉じる
+              </button>
+              <button
+                onClick={() => { setUrlCopied(true); setTimeout(() => setUrlCopied(false), 2000); }}
+                className="flex-1 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-base cursor-pointer transition-colors">
+                {urlCopied ? '✓ コピーしました' : 'URLをコピー'}
               </button>
             </div>
           </div>

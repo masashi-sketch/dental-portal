@@ -35,6 +35,12 @@ const emptyForm: ClinicInfo = {
 const COMMISSION_RATE = 0.10;
 const MONTHLY_TARGET = 3000;
 
+const commissionTiers = [
+  { label: '〜¥30,000',        rate: 10, min: 0,     max: 30000 },
+  { label: '¥30,001〜¥50,000', rate: 12, min: 30001, max: 50000 },
+  { label: '¥50,001〜',        rate: 15, min: 50001, max: Infinity },
+];
+
 // 定期購入データ
 const orders = [
   { product: '定期購入商品 A', monthlyPrice: 3582, status: '配送中' },
@@ -65,6 +71,12 @@ const totalCommission = Math.floor(clinicTotalSales * COMMISSION_RATE);
 const annualCommission = totalCommission * 12;
 const achievementRate = Math.min(Math.round((totalCommission / MONTHLY_TARGET) * 100), 100);
 const patientCount = 21;
+
+const currentTierIndex = commissionTiers.findIndex(
+  (t) => clinicTotalSales >= t.min && clinicTotalSales <= t.max
+);
+const nextTier = commissionTiers[currentTierIndex + 1] ?? null;
+const toNextTier = nextTier ? nextTier.min - clinicTotalSales : 0;
 
 // 月次グラフデータ
 const monthlyData = [
@@ -174,8 +186,69 @@ export default function CommissionPage() {
                     />
                   </div>
                   <p className="text-slate-400 text-xs mt-1.5 text-right">目標 ¥{MONTHLY_TARGET.toLocaleString()}</p>
+                  {achievementRate < 100 ? (
+                    <p className="text-teal-600 text-sm font-semibold mt-2 text-center bg-teal-50 rounded-xl py-2">
+                      あと <span className="font-bold">¥{(MONTHLY_TARGET - totalCommission).toLocaleString()}</span> で目標達成！
+                    </p>
+                  ) : (
+                    <p className="text-teal-600 text-sm font-semibold mt-2 text-center bg-teal-50 rounded-xl py-2">
+                      今月の目標を達成しました！
+                    </p>
+                  )}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* 段階的コミッション率 */}
+          <div className="bg-white border border-sky-100 rounded-2xl p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <p className="text-slate-700 text-base font-bold">コミッション段階レート</p>
+              {nextTier && (
+                <span className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-3 py-1 rounded-full font-semibold">
+                  あと ¥{toNextTier.toLocaleString()} の売上で {nextTier.rate}% へランクアップ！
+                </span>
+              )}
+              {!nextTier && (
+                <span className="text-xs bg-teal-50 text-teal-600 border border-teal-200 px-3 py-1 rounded-full font-semibold">
+                  最高ランク達成中！
+                </span>
+              )}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    {['月間売上', 'コミッション率', '今月の試算', 'ランク'].map((h) => (
+                      <th key={h} className="text-left text-slate-500 font-semibold px-4 py-3 whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {commissionTiers.map((tier, i) => {
+                    const isCurrent = i === currentTierIndex;
+                    const comm = Math.floor(clinicTotalSales * (tier.rate / 100));
+                    return (
+                      <tr key={tier.label} className={`border-b border-slate-100 last:border-0 transition-colors ${isCurrent ? 'bg-teal-50' : 'hover:bg-sky-50/80'}`}>
+                        <td className={`px-4 py-3 font-medium whitespace-nowrap ${isCurrent ? 'text-teal-700' : 'text-slate-500'}`}>{tier.label}</td>
+                        <td className={`px-4 py-3 font-bold text-xl whitespace-nowrap ${isCurrent ? 'text-teal-700' : 'text-slate-300'}`}>{tier.rate}%</td>
+                        <td className={`px-4 py-3 font-mono font-semibold whitespace-nowrap ${isCurrent ? 'text-teal-700' : 'text-slate-300'}`}>
+                          ¥{comm.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {isCurrent ? (
+                            <span className="text-xs font-bold text-white bg-teal-500 px-3 py-1 rounded-full">現在のランク</span>
+                          ) : i < currentTierIndex ? (
+                            <span className="text-xs font-semibold text-slate-400">達成済み</span>
+                          ) : (
+                            <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">次のランク</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
 

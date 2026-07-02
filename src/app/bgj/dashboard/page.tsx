@@ -27,6 +27,14 @@ const recentOrders = [
   { code: "TK-0108", name: "駅前歯科医院", date: "2026-06-04", amount: 43200, staff: "田中花子" },
 ];
 
+const clinicRanking = [
+  { rank: 1, code: "SB-0091", name: "緑が丘歯科",          staff: "佐藤次郎",  monthly: 64800, growth: "+8.2%"  },
+  { rank: 2, code: "FK-0014", name: "博多デンタルクリニック", staff: "佐藤次郎",  monthly: 54000, growth: "+3.1%"  },
+  { rank: 3, code: "OS-0055", name: "海岸歯科医院",         staff: "山本権兵衛", monthly: 48600, growth: "+12.5%" },
+  { rank: 4, code: "TK-0108", name: "駅前歯科医院",         staff: "田中花子",  monthly: 43200, growth: "+2.0%"  },
+  { rank: 5, code: "TK-0031", name: "中央歯科クリニック",   staff: "田中花子",  monthly: 32400, growth: "-1.2%"  },
+];
+
 const kpis = [
   { label: "総得意先数", value: "248", sub: "前月比 +3", color: "text-violet-600", bg: "bg-violet-50 border-violet-200" },
   { label: "今月売上合計", value: "¥6,120千", sub: "前月比 +3.9%", color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200" },
@@ -141,6 +149,49 @@ export default function BgjDashboard() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* 医院ランキング */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 mt-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-bold text-slate-700">今月の医院ランキング（上位5院）</h2>
+          <Link href="/bgj/reports" className="text-xs text-violet-600 hover:text-violet-800 font-semibold">
+            全体レポートへ →
+          </Link>
+        </div>
+        <div className="flex flex-col gap-2">
+          {clinicRanking.map((c) => (
+            <Link
+              key={c.code}
+              href={`/bgj/customers/${c.code}`}
+              className={`flex items-center gap-3 p-3 rounded-xl transition-colors hover:opacity-90 ${
+                c.rank === 1 ? 'bg-amber-50 border border-amber-200' :
+                c.rank === 2 ? 'bg-slate-50 border border-slate-200' :
+                c.rank === 3 ? 'bg-orange-50 border border-orange-200' :
+                'border border-slate-100 hover:bg-slate-50'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
+                c.rank === 1 ? 'bg-amber-400 text-white' :
+                c.rank === 2 ? 'bg-slate-400 text-white' :
+                c.rank === 3 ? 'bg-amber-700 text-white' :
+                'bg-slate-200 text-slate-500'
+              }`}>
+                {c.rank}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-800 truncate">{c.name}</p>
+                <p className="text-xs text-slate-400">{c.code} · {c.staff}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-sm font-bold text-slate-700">¥{c.monthly.toLocaleString()}</p>
+                <p className={`text-xs font-semibold ${c.growth.startsWith('+') ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {c.growth} 前月比
+                </p>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </div>
