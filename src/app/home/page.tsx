@@ -6,6 +6,7 @@ import { signOut } from 'next-auth/react';
 import BottomNav from '../components/BottomNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
+import { isPatientNavKeyVisible, type PatientNavKey } from '@/lib/patientNav';
 
 function IconMenu() {
   return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
@@ -50,7 +51,7 @@ function IconChevron() {
   return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>;
 }
 
-const navCards = [
+const navCards: { label: string; desc: string; href: string; icon: React.ReactNode; bg: string; iconBg: string; text: string; border: string; arrow: string; navKey?: PatientNavKey }[] = [
   {
     label: 'クリニック紹介',
     desc: 'スタッフ・診療時間・アクセス',
@@ -61,6 +62,7 @@ const navCards = [
     text: 'text-[#2563EB]',
     border: 'border-blue-100',
     arrow: 'text-blue-300',
+    navKey: 'clinicInfo',
   },
   {
     label: '予約・受診履歴',
@@ -94,6 +96,7 @@ const navCards = [
     text: 'text-sky-700',
     border: 'border-sky-100',
     arrow: 'text-sky-300',
+    navKey: 'medication',
   },
   {
     label: '定期購入',
@@ -105,6 +108,7 @@ const navCards = [
     text: 'text-emerald-700',
     border: 'border-emerald-100',
     arrow: 'text-emerald-300',
+    navKey: 'subscription',
   },
   {
     label: 'おすすめ商品',
@@ -116,6 +120,7 @@ const navCards = [
     text: 'text-amber-700',
     border: 'border-amber-100',
     arrow: 'text-amber-300',
+    navKey: 'shop',
   },
   {
     label: 'Q & A',
@@ -127,6 +132,7 @@ const navCards = [
     text: 'text-violet-700',
     border: 'border-violet-100',
     arrow: 'text-violet-300',
+    navKey: 'qa',
   },
 ];
 
@@ -140,22 +146,22 @@ function IconBagSm() { return <svg width="16" height="16" fill="none" stroke="cu
 function IconQASm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>; }
 function IconPillSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7Z" /><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" strokeOpacity="0.5" /></svg>; }
 
-const sideNavItems = [
+const sideNavItems: { label: string; icon: React.ReactNode; href: string; active?: boolean; dividerAfter?: boolean; navKey?: PatientNavKey }[] = [
   { label: 'ホーム',         icon: <IconHomeSm />,     href: '/home', active: true },
-  { label: 'クリニック紹介', icon: <IconClinicSm />,  href: '/clinic' },
+  { label: 'クリニック紹介', icon: <IconClinicSm />,  href: '/clinic', navKey: 'clinicInfo' },
   { label: '予約・受診履歴', icon: <IconCalendarSm />, href: '#' },
   { label: '診療情報',       icon: <IconFileSm />,     href: '#', dividerAfter: true },
-  { label: 'お薬の受け取り', icon: <IconPillSm />,     href: '/medication', dividerAfter: true },
-  { label: '定期購入',       icon: <IconRefreshSm />,  href: '/subscription' },
-  { label: 'おすすめ商品',  icon: <IconBagSm />,      href: '/shop' },
-  { label: 'Q & A',          icon: <IconQASm />,       href: '/qa' },
+  { label: 'お薬の受け取り', icon: <IconPillSm />,     href: '/medication', dividerAfter: true, navKey: 'medication' },
+  { label: '定期購入',       icon: <IconRefreshSm />,  href: '/subscription', navKey: 'subscription' },
+  { label: 'おすすめ商品',  icon: <IconBagSm />,      href: '/shop', navKey: 'shop' },
+  { label: 'Q & A',          icon: <IconQASm />,       href: '/qa', navKey: 'qa' },
 ];
 
 const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { clinicName } = usePatientClinicBranding();
+  const { clinicName, navVisibility } = usePatientClinicBranding();
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'おはようございます' : hour < 18 ? 'こんにちは' : 'こんばんは';
@@ -211,7 +217,7 @@ export default function HomePage() {
         <aside className="hidden md:block w-52 shrink-0">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
             <nav className="flex flex-col gap-0.5">
-              {sideNavItems.map((item) => (
+              {sideNavItems.filter((item) => isPatientNavKeyVisible(item.navKey, navVisibility)).map((item) => (
                 <div key={item.label}>
                   <Link href={item.href}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
@@ -287,7 +293,7 @@ export default function HomePage() {
           <div>
             <p className="text-xs text-gray-400 font-medium mb-3 px-0.5">メニュー</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-              {navCards.map((card) => (
+              {navCards.filter((card) => isPatientNavKeyVisible(card.navKey, navVisibility)).map((card) => (
                 <Link
                   key={card.label}
                   href={card.href}
@@ -315,7 +321,7 @@ export default function HomePage() {
       </div>
 
       {/* ボトムナビ（モバイル） */}
-      <BottomNav active="home" />
+      <BottomNav active="home" navVisibility={navVisibility} />
 
       {/* フッター */}
       <footer className="bg-gray-900 text-gray-400 mt-auto hidden md:block">

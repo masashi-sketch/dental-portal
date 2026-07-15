@@ -162,9 +162,12 @@ vercel --prod
 # 技術・環境固有の注意
 
 - **Next.js 16.2.7。devもbuildも必ず`--webpack`を使う**（`package.json`に設定済み）。プロジェクトパスに日本語フォルダ「マイドライブ」を含むため、標準のTurbopackはUTF-8境界処理のバグでクラッシュする。
-- 認証：NextAuth v5 + Google OAuth。`@biogaia.jp`ドメインのみログイン可能（社員用）。**患者・クリニック個別の実認証は存在しない**。3ポータルとも同じ社員アカウントでログインし、`portal-selected` cookieで表示を出し分けているだけ。
-- DB：Supabase。サーバー専用クライアント（`src/lib/supabase/server.ts`）のみを使用し、`@supabase/ssr`は導入しない。クライアント（ブラウザ）に秘密鍵を一切露出しない設計。
-- 「誰として見るか」を決めるデモ用の軽量cookie：`portal-selected`（ポータル種別）、`demo-patient-id`（患者ポータルのプレビュー対象）、`active-customer-code`（医院ポータルに紐づく得意先）。いずれも本格的な認可の代替であり、実認証ではないことを常に意識する。
+- 認証：NextAuth v5、3種類のセッションロールがある。`role`(`'bgj' | 'clinic' | 'patient'`)・`customerCode`・`patientId`がセッションに載る（`src/auth.ts`）。
+  - `bgj`：Google OAuth、`@biogaia.jp`ドメインのみ（社員用）。
+  - `clinic`：`clinic-credentials`（`clinic_users`テーブル、`/clinic-login`）。自分の`customerCode`に固定。
+  - `patient`：`patient-credentials`（`patients`テーブル、`/`）。自分の`patientId`/`customerCode`に固定。
+- DB：Supabase。サーバー専用クライアント（`src/lib/supabase/server.ts`）のみを使用し、`@supabase/ssr`は導入しない。クライアント（ブラウザ）に秘密鍵を一切露出しない設計。患者の歯周病診断読み取りのみ、`src/lib/auth/scopedSupabaseClient.ts`経由でRLSも効くDBレベルの多層防御を追加済み。
+- 残っているデモ用cookie：`portal-selected`（ポータル種別）、`demo-patient-id`（スタッフが患者ポータルをプレビューするための対象患者ID、`resolveEffectivePatientId`で検証）、`patient-last-clinic`（患者ログイン画面の表示ブランディングだけに使う非機密cookie）。`active-customer-code`（旧・BGJ職員が医院用ポータルで得意先を選択する仕組み）は廃止済み。
 
 # セキュリティ方針
 

@@ -4,14 +4,10 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type { SalesRepWithMaster } from '@/lib/supabase/types';
 
-function readActiveCustomerCode(): string | null {
-  const match = document.cookie.match(/(?:^|; )active-customer-code=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
 // 医院用ポータルの「今どのクリニックとして見るか」の情報を取得する。
-// - クリニックログイン（clinic-credentials）: セッションのcustomerCodeを唯一の正とする（切替不可）
-// - BGJ職員（Google）: 従来通り「医院設定」で選んだactive-customer-codeを使う
+// クリニックログイン（clinic-credentials）のみ、セッションのcustomerCodeを唯一の正として使う。
+// BGJ職員は得意先を選択する仕組みを廃止したため、常にnullを返す
+// （BGJ職員向けの得意先ごとの管理はBGJポータル側で行う）。
 export function useActiveClinic() {
   const { data: session, status: sessionStatus } = useSession();
   const [clinicName, setClinicName] = useState<string | null>(null);
@@ -21,7 +17,7 @@ export function useActiveClinic() {
   useEffect(() => {
     if (sessionStatus === 'loading') return;
 
-    const code = session?.user?.role === 'clinic' ? session.user.customerCode : readActiveCustomerCode();
+    const code = session?.user?.role === 'clinic' ? session.user.customerCode : null;
     if (!code) {
       setLoaded(true);
       return;

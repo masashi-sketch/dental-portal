@@ -119,6 +119,11 @@ export type Clinic = {
   main_referrer: string | null;
   display_name: string | null;
   patient_background_url: string | null;
+  nav_show_clinic_info: boolean;
+  nav_show_medication: boolean;
+  nav_show_subscription: boolean;
+  nav_show_shop: boolean;
+  nav_show_qa: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -178,10 +183,11 @@ export const CLINIC_TERMS_COLUMNS =
   'customer_code, commission_rate, wholesale_rate, payment_terms_site, payment_method, contract_started_at, contract_renewal_at, updated_at, updated_by';
 
 export const CLINIC_COLUMNS =
-  'customer_code, name, area, staff_id, status, chairs, address, tel, contact_person, contract_since, patient_type, clinic_type, waiting_room, counseling_room, closed_day, full_time_dr, part_time_dr, hygienist, receptionist, assistant, technician, nurse, nutritionist, childcare, main_referrer, display_name, patient_background_url, created_at, updated_at';
+  'customer_code, name, area, staff_id, status, chairs, address, tel, contact_person, contract_since, patient_type, clinic_type, waiting_room, counseling_room, closed_day, full_time_dr, part_time_dr, hygienist, receptionist, assistant, technician, nurse, nutritionist, childcare, main_referrer, display_name, patient_background_url, nav_show_clinic_info, nav_show_medication, nav_show_subscription, nav_show_shop, nav_show_qa, created_at, updated_at';
 
-// クリニックのブランディング（表示名・背景画像URL）のみ。公開エンドポイントで使う。
-export const CLINIC_BRANDING_COLUMNS = 'customer_code, name, display_name, patient_background_url';
+// 患者ポータルに反映する設定（表示名・背景画像URL・ナビ表示切替）のみ。公開エンドポイントでも使う。
+export const CLINIC_PATIENT_SETTINGS_COLUMNS =
+  'customer_code, name, display_name, patient_background_url, nav_show_clinic_info, nav_show_medication, nav_show_subscription, nav_show_shop, nav_show_qa';
 
 export const CLINIC_ORDER_COLUMNS =
   'id, customer_code, order_date, product_name, quantity, amount, status, created_at';

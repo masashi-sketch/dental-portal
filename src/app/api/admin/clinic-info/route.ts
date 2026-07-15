@@ -58,11 +58,24 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { displayName, patientBackgroundUrl } = body ?? {};
+  const {
+    displayName,
+    patientBackgroundUrl,
+    navShowClinicInfo,
+    navShowMedication,
+    navShowSubscription,
+    navShowShop,
+    navShowQa,
+  } = body ?? {};
 
   const update: Record<string, unknown> = {};
   if (displayName !== undefined) update.display_name = displayName || null;
   if (patientBackgroundUrl !== undefined) update.patient_background_url = patientBackgroundUrl || null;
+  if (navShowClinicInfo !== undefined) update.nav_show_clinic_info = navShowClinicInfo;
+  if (navShowMedication !== undefined) update.nav_show_medication = navShowMedication;
+  if (navShowSubscription !== undefined) update.nav_show_subscription = navShowSubscription;
+  if (navShowShop !== undefined) update.nav_show_shop = navShowShop;
+  if (navShowQa !== undefined) update.nav_show_qa = navShowQa;
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { DEFAULT_NAV_VISIBILITY, isPatientNavKeyVisible, type NavVisibility, type PatientNavKey } from '@/lib/patientNav';
 
 export type BottomNavPage = 'home' | 'clinic' | 'reserve' | 'medication' | 'shop' | 'qa' | 'subscription';
 
@@ -80,20 +81,20 @@ function IconPill({ filled }: { filled?: boolean }) {
   );
 }
 
-const items: { key: BottomNavPage; label: string; href: string; icon: (a: { filled?: boolean }) => React.ReactNode }[] = [
+const items: { key: BottomNavPage; label: string; href: string; icon: (a: { filled?: boolean }) => React.ReactNode; navKey?: PatientNavKey }[] = [
   { key: 'home',       label: 'ホーム',   href: '/home',       icon: IconHome },
-  { key: 'clinic',     label: 'クリニック', href: '/clinic',   icon: IconClinic },
+  { key: 'clinic',     label: 'クリニック', href: '/clinic',   icon: IconClinic, navKey: 'clinicInfo' },
   { key: 'reserve',    label: '予約',     href: '#',           icon: IconCalendar },
-  { key: 'medication', label: 'お薬',     href: '/medication', icon: IconPill },
-  { key: 'shop',       label: '商品',     href: '/shop',       icon: IconBag },
-  { key: 'qa',         label: 'Q & A',    href: '/qa',         icon: IconQA },
+  { key: 'medication', label: 'お薬',     href: '/medication', icon: IconPill, navKey: 'medication' },
+  { key: 'shop',       label: '商品',     href: '/shop',       icon: IconBag, navKey: 'shop' },
+  { key: 'qa',         label: 'Q & A',    href: '/qa',         icon: IconQA, navKey: 'qa' },
 ];
 
-export default function BottomNav({ active }: { active: BottomNavPage }) {
+export default function BottomNav({ active, navVisibility = DEFAULT_NAV_VISIBILITY }: { active: BottomNavPage; navVisibility?: NavVisibility }) {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
       <div className="flex items-stretch justify-around px-1" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-        {items.map((item) => {
+        {items.filter((item) => isPatientNavKeyVisible(item.navKey, navVisibility)).map((item) => {
           const isActive = active === item.key;
           return (
             <Link

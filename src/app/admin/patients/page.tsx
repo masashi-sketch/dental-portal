@@ -53,11 +53,6 @@ type FormState = {
 
 const EMPTY_FORM: FormState = { customerCode: '', name: '', loginId: '', password: '', status: '有効' };
 
-function readActiveCustomerCode(): string {
-  const match = document.cookie.match(/(?:^|; )active-customer-code=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : '';
-}
-
 export default function AdminPatientsPage() {
   const { data: session } = useSession();
   const isClinicRole = session?.user?.role === 'clinic';
@@ -93,7 +88,7 @@ export default function AdminPatientsPage() {
 
   const openNew = () => {
     setEditItem(null);
-    setForm({ ...EMPTY_FORM, customerCode: isClinicRole ? (session!.user.customerCode ?? '') : readActiveCustomerCode() });
+    setForm({ ...EMPTY_FORM, customerCode: isClinicRole ? (session!.user.customerCode ?? '') : '' });
     setShowForm(true);
   };
 
@@ -300,16 +295,11 @@ export default function AdminPatientsPage() {
             <div className="flex flex-col gap-4">
               <div>
                 <label className="text-slate-700 text-base mb-1.5 block font-medium">得意先コード</label>
-                <input type="text" value={form.customerCode} readOnly={isClinicRole}
-                  onChange={(e) => !isClinicRole && setForm({ ...form, customerCode: e.target.value })}
+                <input type="text" value={form.customerCode} readOnly
                   placeholder="例）A000001"
-                  className={`w-full border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400 ${isClinicRole ? 'bg-slate-100 cursor-not-allowed' : 'bg-sky-50'}`} />
+                  className="w-full border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400 bg-slate-100 cursor-not-allowed" />
                 <p className="text-xs text-slate-400 mt-1.5">
-                  {isClinicRole ? (
-                    'ログイン中の医院の得意先コードが自動的に使われます。'
-                  ) : (
-                    <><Link href="/admin/settings" className="text-sky-600 hover:text-sky-500 underline">医院設定</Link>で選択した得意先が自動入力されます。異なる場合はここで修正できます。</>
-                  )}
+                  BGJポータルで採番された得意先コードが自動的に使われます（変更不可）。
                 </p>
               </div>
               <div>

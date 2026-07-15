@@ -5,6 +5,7 @@ import { useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
+import { isPatientNavKeyVisible, type PatientNavKey } from '@/lib/patientNav';
 import { subProducts } from './data';
 
 function IconBell() {
@@ -137,15 +138,15 @@ function SupplementImage({ type, size = 'md' }: { type: string; size?: 'sm' | 'm
   );
 }
 
-const navItems = [
+const navItems: { label: string; icon: React.ReactNode; href: string; active?: boolean; dividerAfter?: boolean; navKey?: PatientNavKey }[] = [
   { label: 'ホーム',         icon: <IconHome />,     href: '/home' },
-  { label: 'クリニック紹介', icon: <IconClinic />,  href: '/clinic' },
+  { label: 'クリニック紹介', icon: <IconClinic />,  href: '/clinic', navKey: 'clinicInfo' },
   { label: '予約・受診履歴', icon: <IconCalendar />, href: '#' },
   { label: '診療情報',       icon: <IconFile />,     href: '#', dividerAfter: true },
-  { label: 'お薬の受け取り', icon: <IconPill />,     href: '/medication', dividerAfter: true },
-  { label: '定期購入',       icon: <IconRefresh />,  href: '/subscription', active: true },
-  { label: 'おすすめ商品',  icon: <IconBag />,      href: '/shop' },
-  { label: 'Q & A',          icon: <IconQA />,       href: '/qa' },
+  { label: 'お薬の受け取り', icon: <IconPill />,     href: '/medication', navKey: 'medication', dividerAfter: true },
+  { label: '定期購入',       icon: <IconRefresh />,  href: '/subscription', navKey: 'subscription', active: true },
+  { label: 'おすすめ商品',  icon: <IconBag />,      href: '/shop', navKey: 'shop' },
+  { label: 'Q & A',          icon: <IconQA />,       href: '/qa', navKey: 'qa' },
 ];
 
 const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
@@ -159,7 +160,7 @@ const benefits = [
 
 export default function SubscriptionPage() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { clinicName } = usePatientClinicBranding();
+  const { clinicName, navVisibility } = usePatientClinicBranding();
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 pb-20 md:pb-0">
@@ -205,7 +206,7 @@ export default function SubscriptionPage() {
       </header>
 
       {/* ボトムナビ（モバイル） */}
-      <BottomNav active="subscription" />
+      <BottomNav active="subscription" navVisibility={navVisibility} />
 
       {/* ボディ */}
       <div className="flex flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 gap-6 sm:gap-8">
@@ -214,7 +215,7 @@ export default function SubscriptionPage() {
         <aside className="hidden md:block w-52 shrink-0">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
             <nav className="flex flex-col gap-0.5">
-              {navItems.map((item) => (
+              {navItems.filter((item) => isPatientNavKeyVisible(item.navKey, navVisibility)).map((item) => (
                 <div key={item.label}>
                   <Link href={item.href}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
