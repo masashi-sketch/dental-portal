@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { requireBgjSession } from '@/lib/auth/clinicScope';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { CLINIC_COLUMNS, SALES_REP_COLUMNS, STAFF_AREA_COLUMNS, STAFF_ROLE_COLUMNS } from '@/lib/supabase/types';
 
@@ -7,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const session = await auth();
-  if (!session?.user?.email) {
+  if (!requireBgjSession(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -71,7 +72,7 @@ const FIELD_MAP: Record<string, string> = {
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const session = await auth();
-  if (!session?.user?.email) {
+  if (!requireBgjSession(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

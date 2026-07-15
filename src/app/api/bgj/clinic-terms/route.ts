@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { requireBgjSession } from '@/lib/auth/clinicScope';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { CLINIC_TERMS_COLUMNS } from '@/lib/supabase/types';
 
@@ -7,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.email) {
+  if (!requireBgjSession(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

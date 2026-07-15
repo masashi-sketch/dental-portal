@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Session } from 'next-auth';
 import { auth } from '@/auth';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { CLINIC_USER_PUBLIC_COLUMNS } from '@/lib/supabase/types';
 import { hashPassword } from '@/lib/auth/password';
+import { requireBgjSession } from '@/lib/auth/clinicScope';
 
 export const dynamic = 'force-dynamic';
-
-// このAPIはBGJ社員専用（医院スタッフ自身のログイン情報発行・変更には使わせない）
-function requireBgjSession(session: Session | null) {
-  if (!session?.user?.email) return false;
-  if (session.user.role === 'clinic') return false;
-  return true;
-}
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const session = await auth();
