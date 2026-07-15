@@ -8,6 +8,7 @@ import {
   type PeriodontalGrade,
   type PeriodontalStage,
 } from '@/lib/supabase/types';
+import { isPatientInScope } from '@/lib/auth/clinicScope';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   const { id } = await params;
   const supabase = getSupabaseServerClient();
+  if (!(await isPatientInScope(supabase, id, session))) {
+    return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+  }
 
   const [
     { data: diagnoses, error: diagnosesError },
@@ -62,6 +66,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const { id } = await params;
+  const supabase = getSupabaseServerClient();
+  if (!(await isPatientInScope(supabase, id, session))) {
+    return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+  }
+
   const body = await request.json();
   const { stageCode, gradeCode, diagnosedAt, memo } = body ?? {};
 
@@ -69,7 +78,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'ステージとグレードは必須です。' }, { status: 400 });
   }
 
-  const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from('periodontal_diagnoses')
     .insert({

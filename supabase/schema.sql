@@ -276,7 +276,29 @@ create trigger trg_clinic_terms_updated_at
   for each row execute function public.set_clinic_terms_updated_at();
 
 -- ============================================================
--- 9. RLS：ポリシーを一切定義せず有効化するのみ。
+-- 9. 医院スタッフ用ログインアカウント（実認証。得意先コードに閉じたセッションを発行する）
+--    BGJポータル（/bgj/customers/[code]）で発行し、医院側は /clinic-login でログインする。
+--    1得意先コードに複数ログインを許可する（unique制約はlogin_idのみ）。
+-- ============================================================
+create table public.clinic_users (
+  id            uuid primary key default gen_random_uuid(),
+  customer_code text not null references public.clinics (customer_code) on delete cascade,
+  login_id      text not null unique,
+  password_hash text not null,
+  name          text,
+  status        text not null default '有効' check (status in ('有効','無効')),
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index idx_clinic_users_customer_code on public.clinic_users (customer_code);
+
+create trigger trg_clinic_users_updated_at
+  before update on public.clinic_users
+  for each row execute function public.set_updated_at_generic();
+
+-- ============================================================
+-- 10. RLS：ポリシーを一切定義せず有効化するのみ。
 --    anon/authenticated からは読み書き一切不可。service_role キーのみアクセス可能。
 -- ============================================================
 alter table public.periodontal_stages     enable row level security;
@@ -290,3 +312,4 @@ alter table public.clinic_visits          enable row level security;
 alter table public.patients               enable row level security;
 alter table public.periodontal_diagnoses  enable row level security;
 alter table public.clinic_terms           enable row level security;
+alter table public.clinic_users           enable row level security;

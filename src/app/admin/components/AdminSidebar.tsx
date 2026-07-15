@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
+import { useActiveClinic } from '@/hooks/useActiveClinic';
 import type { SalesRepWithMaster } from '@/lib/supabase/types';
 
 export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'settings';
@@ -147,7 +148,7 @@ function NavItems({
   );
 }
 
-function LogoBlock() {
+function LogoBlock({ clinicName }: { clinicName: string | null }) {
   return (
     <div className="flex items-center gap-2.5">
       <div className="w-9 h-9 bg-sky-400 rounded-lg flex items-center justify-center shrink-0">
@@ -155,36 +156,15 @@ function LogoBlock() {
           <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
         </svg>
       </div>
-      <div>
-        <p className="text-white font-bold text-base leading-tight">テストデンタル</p>
+      <div className="min-w-0">
+        <p className="text-white font-bold text-base leading-tight truncate">{clinicName ?? 'テストデンタル'}</p>
         <p className="text-sky-300/80 text-xs">管理ポータル</p>
       </div>
     </div>
   );
 }
 
-function readActiveCustomerCode(): string | null {
-  const match = document.cookie.match(/(?:^|; )active-customer-code=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-function SalesRepCard() {
-  const [salesRep, setSalesRep] = useState<SalesRepWithMaster | null>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    const code = readActiveCustomerCode();
-    if (!code) {
-      setLoaded(true);
-      return;
-    }
-    fetch(`/api/bgj/clinics/${code}`)
-      .then((res) => (res.ok ? res.json() : { clinic: null }))
-      .then((data) => setSalesRep(data.clinic?.staff ?? null))
-      .catch(() => setSalesRep(null))
-      .finally(() => setLoaded(true));
-  }, []);
-
+function SalesRepCard({ salesRep, loaded }: { salesRep: SalesRepWithMaster | null; loaded: boolean }) {
   if (!loaded) return null;
 
   if (!salesRep) {
@@ -236,6 +216,7 @@ function SalesRepCard() {
 export default function AdminSidebar({ active }: { active: AdminPage }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Map<AdminPage, number>>(new Map());
+  const { clinicName, salesRep, loaded: clinicLoaded } = useActiveClinic();
 
   useEffect(() => {
     const counts = new Map<AdminPage, number>();
@@ -306,7 +287,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
       {/* ── デスクトップ用サイドバー ── */}
       <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sky-900 sticky top-0 h-screen overflow-hidden">
         <div className="px-5 py-5 border-b border-sky-800/50">
-          <LogoBlock />
+          <LogoBlock clinicName={clinicName} />
         </div>
         <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
           <NavItems active={active} unreadCounts={unreadCounts} />
@@ -334,7 +315,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
             <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
           </svg>
         </div>
-        <p className="text-white font-bold text-base truncate">テストデンタル 管理ポータル</p>
+        <p className="text-white font-bold text-base truncate">{clinicName ?? 'テストデンタル'} 管理ポータル</p>
       </div>
 
       {/* ── モバイルドロワー：背景オーバーレイ ── */}
@@ -352,7 +333,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
         }`}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-sky-800/50">
-          <LogoBlock />
+          <LogoBlock clinicName={clinicName} />
           <button
             onClick={() => setMobileOpen(false)}
             className="text-sky-300 hover:text-white p-1 rounded-lg hover:bg-sky-800 transition-colors ml-2 shrink-0"
@@ -370,7 +351,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
 
       {/* ── 営業担当カード：画面右下に常時固定 ── */}
       <div className="fixed bottom-4 right-4 z-50 w-56">
-        <SalesRepCard />
+        <SalesRepCard salesRep={salesRep} loaded={clinicLoaded} />
       </div>
     </>
   );

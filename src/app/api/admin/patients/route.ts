@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { PATIENT_COLUMNS } from '@/lib/supabase/types';
+import { resolveScopedCustomerCode } from '@/lib/auth/clinicScope';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const customerCode = request.nextUrl.searchParams.get('customerCode');
+  const requestedCode = request.nextUrl.searchParams.get('customerCode');
+  const customerCode = resolveScopedCustomerCode(session, requestedCode);
   const supabase = getSupabaseServerClient();
   let query = supabase
     .from('patients')
@@ -32,7 +34,8 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { customerCode, name, loginId, password, status } = body ?? {};
+  const { name, loginId, password, status } = body ?? {};
+  const customerCode = resolveScopedCustomerCode(session, body?.customerCode ?? null);
   if (!customerCode || !name || !loginId || !password) {
     return NextResponse.json({ error: '必須項目が不足しています。' }, { status: 400 });
   }

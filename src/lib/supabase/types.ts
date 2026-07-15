@@ -140,6 +140,20 @@ export type ClinicVisit = {
   created_at: string;
 };
 
+export type ClinicUser = {
+  id: string;
+  customer_code: string;
+  login_id: string;
+  password_hash: string;
+  name: string | null;
+  status: '有効' | '無効';
+  created_at: string;
+  updated_at: string;
+};
+
+// クライアントへ返す用（password_hashを含まない）
+export type ClinicUserPublic = Omit<ClinicUser, 'password_hash'>;
+
 // select('*') を避け、APIルート間で使う列指定をここに集約する。
 export const PATIENT_COLUMNS =
   'id, customer_code, patient_no, name, login_id, password, status, registered_at, created_at, updated_at';
@@ -168,3 +182,10 @@ export const SALES_REP_COLUMNS = 'id, name, role_id, area_id, phone, email, phot
 export const STAFF_ROLE_COLUMNS = 'id, name, created_at, updated_at';
 
 export const STAFF_AREA_COLUMNS = 'id, name, created_at, updated_at';
+
+export const CLINIC_USER_COLUMNS =
+  'id, customer_code, login_id, password_hash, name, status, created_at, updated_at';
+
+// クライアントへ返す一覧・詳細用（password_hashを含めない）
+export const CLINIC_USER_PUBLIC_COLUMNS =
+  'id, customer_code, login_id, name, status, created_at, updated_at';

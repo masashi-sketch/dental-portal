@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import AdminSidebar from '../components/AdminSidebar';
 import type { Clinic, ClinicTerms } from '@/lib/supabase/types';
 
@@ -12,6 +13,9 @@ function readActiveCustomerCode(): string {
 }
 
 export default function AdminSettingsPage() {
+  const { data: session, status: sessionStatus } = useSession();
+  const isClinicRole = session?.user?.role === 'clinic';
+
   const [selectedCode, setSelectedCode] = useState('');
   const [savedCode, setSavedCode] = useState('');
   const [toast, setToast] = useState('');
@@ -20,6 +24,15 @@ export default function AdminSettingsPage() {
   const [clinics, setClinics] = useState<Clinic[]>([]);
 
   useEffect(() => {
+    if (sessionStatus === 'loading') return;
+
+    // クリニックログインは自分の得意先コードに固定（切替不可）
+    if (isClinicRole) {
+      setSelectedCode(session!.user.customerCode ?? '');
+      setSavedCode(session!.user.customerCode ?? '');
+      return;
+    }
+
     const current = readActiveCustomerCode();
     setSelectedCode(current);
     setSavedCode(current);
@@ -27,7 +40,17 @@ export default function AdminSettingsPage() {
       .then((res) => (res.ok ? res.json() : { clinics: [] }))
       .then((data) => setClinics(data.clinics ?? []))
       .catch(() => setClinics([]));
-  }, []);
+  }, [sessionStatus, isClinicRole, session]);
+
+  // クリニックログインは/api/bgj/*にアクセスできないため一覧取得はスキップし、
+  // 自院の情報だけを/api/admin/clinic-infoから取得する
+  useEffect(() => {
+    if (!isClinicRole || !savedCode) return;
+    fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(savedCode)}`)
+      .then((res) => (res.ok ? res.json() : { clinic: null }))
+      .then((data) => { if (data.clinic) setClinics([data.clinic]); })
+      .catch(() => {});
+  }, [isClinicRole, savedCode]);
 
   useEffect(() => {
     if (!savedCode) {
@@ -36,13 +59,16 @@ export default function AdminSettingsPage() {
     }
     let cancelled = false;
     setTermsLoading(true);
-    fetch(`/api/bgj/clinic-terms/${savedCode}`)
+    const termsUrl = isClinicRole
+      ? '/api/admin/clinic-terms'
+      : `/api/bgj/clinic-terms/${savedCode}`;
+    fetch(termsUrl)
       .then((res) => (res.ok ? res.json() : { terms: null }))
       .then((data) => { if (!cancelled) setTerms(data.terms ?? null); })
       .catch(() => { if (!cancelled) setTerms(null); })
       .finally(() => { if (!cancelled) setTermsLoading(false); });
     return () => { cancelled = true; };
-  }, [savedCode]);
+  }, [savedCode, isClinicRole]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
@@ -62,7 +88,9 @@ export default function AdminSettingsPage() {
       <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0">
         <header className="bg-white border-b border-sky-100 px-4 sm:px-6 py-4 shadow-sm">
           <h1 className="text-slate-800 font-bold text-xl">医院設定</h1>
-          <p className="text-slate-600 text-sm mt-0.5">この医院ポータルに紐づく得意先を選択します</p>
+          <p className="text-slate-600 text-sm mt-0.5">
+            {isClinicRole ? 'ログイン中の医院の設定を確認できます' : 'この医院ポータルに紐づく得意先を選択します'}
+          </p>
         </header>
 
         <main className="flex-1 p-5 sm:p-6 max-w-2xl">
@@ -110,6 +138,7 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
+          {!isClinicRole && (
           <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm">
             <label className="text-slate-700 text-base mb-2 block font-medium">得意先を選択</label>
             <select
@@ -133,6 +162,7 @@ export default function AdminSettingsPage() {
               この得意先で設定する
             </button>
           </div>
+          )}
         </main>
       </div>
     </div>

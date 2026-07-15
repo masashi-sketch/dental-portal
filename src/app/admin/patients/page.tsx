@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import AdminSidebar from '../components/AdminSidebar';
 import type { Patient } from '@/lib/supabase/types';
 
@@ -58,6 +59,8 @@ function readActiveCustomerCode(): string {
 }
 
 export default function AdminPatientsPage() {
+  const { data: session } = useSession();
+  const isClinicRole = session?.user?.role === 'clinic';
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +94,7 @@ export default function AdminPatientsPage() {
 
   const openNew = () => {
     setEditItem(null);
-    setForm({ ...EMPTY_FORM, customerCode: readActiveCustomerCode() });
+    setForm({ ...EMPTY_FORM, customerCode: isClinicRole ? (session!.user.customerCode ?? '') : readActiveCustomerCode() });
     setShowForm(true);
   };
 
@@ -305,11 +308,16 @@ export default function AdminPatientsPage() {
             <div className="flex flex-col gap-4">
               <div>
                 <label className="text-slate-700 text-base mb-1.5 block font-medium">得意先コード</label>
-                <input type="text" value={form.customerCode} onChange={(e) => setForm({ ...form, customerCode: e.target.value })}
+                <input type="text" value={form.customerCode} readOnly={isClinicRole}
+                  onChange={(e) => !isClinicRole && setForm({ ...form, customerCode: e.target.value })}
                   placeholder="例）A000001"
-                  className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400" />
+                  className={`w-full border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400 ${isClinicRole ? 'bg-slate-100 cursor-not-allowed' : 'bg-sky-50'}`} />
                 <p className="text-xs text-slate-400 mt-1.5">
-                  <Link href="/admin/settings" className="text-sky-600 hover:text-sky-500 underline">医院設定</Link>で選択した得意先が自動入力されます。異なる場合はここで修正できます。
+                  {isClinicRole ? (
+                    'ログイン中の医院の得意先コードが自動的に使われます。'
+                  ) : (
+                    <><Link href="/admin/settings" className="text-sky-600 hover:text-sky-500 underline">医院設定</Link>で選択した得意先が自動入力されます。異なる場合はここで修正できます。</>
+                  )}
                 </p>
               </div>
               <div>

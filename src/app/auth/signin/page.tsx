@@ -23,7 +23,7 @@ const PORTALS = [
     id: "clinic",
     label: "医院用ポータル",
     description: "歯科医院向けサービス",
-    href: "/admin",
+    href: "/clinic-login",
     color: "from-teal-500 to-emerald-500",
     bg: "bg-teal-50 hover:bg-teal-100 border-teal-200 hover:border-teal-400",
     text: "text-teal-700",
@@ -60,6 +60,11 @@ function SignInContent() {
   const router = useRouter();
 
   const handleEnter = () => {
+    if (selected.id === "clinic") {
+      // 医院用ポータルはGoogle OAuthを使わず、専用ログイン画面へ
+      router.push(selected.href);
+      return;
+    }
     setPortalCookie();
     if (status === "authenticated") {
       // すでにGoogle認証済み → 直接ポータルへ
@@ -120,7 +125,14 @@ function SignInContent() {
         </div>
 
         {/* 入るボタン */}
-        {status === "authenticated" ? (
+        {selected.id === "clinic" ? (
+          <button
+            onClick={handleEnter}
+            className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md"
+          >
+            医院ログイン画面へ →
+          </button>
+        ) : status === "authenticated" ? (
           <button
             onClick={handleEnter}
             className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-sky-500 to-teal-500 hover:from-sky-600 hover:to-teal-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md"
@@ -143,7 +155,9 @@ function SignInContent() {
         )}
 
         <p className="text-xs text-slate-400 text-center mt-5">
-          @biogaia.jp のGoogle Workspaceアカウントが必要です
+          {selected.id === "clinic"
+            ? "医院ごとに発行されたログインID・パスワードでログインします"
+            : "@biogaia.jp のGoogle Workspaceアカウントが必要です"}
         </p>
       </div>
     </div>

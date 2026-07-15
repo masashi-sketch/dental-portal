@@ -4,11 +4,11 @@ import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
-import type { Clinic, ClinicOrder, ClinicStatus, ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
+import type { Clinic, ClinicOrder, ClinicStatus, ClinicUserPublic, ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
 
 type ClinicWithStaff = Clinic & { staff: SalesRepWithMaster | null };
 
-const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "訪問記録"];
+const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "訪問記録", "ログイン管理"];
 
 type ClinicFormState = {
   name: string;
@@ -116,6 +116,25 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   const [termsLoading, setTermsLoading] = useState(true);
   const [termsSaving, setTermsSaving] = useState(false);
 
+  // ログイン管理（医院スタッフ用アカウント）
+  const [clinicUsers, setClinicUsers] = useState<ClinicUserPublic[]>([]);
+  const [clinicUsersLoading, setClinicUsersLoading] = useState(true);
+  const [newLoginForm, setNewLoginForm] = useState({ loginId: "", password: "", name: "" });
+  const [creatingLogin, setCreatingLogin] = useState(false);
+  const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [savingLoginAction, setSavingLoginAction] = useState(false);
+
+  const fetchClinicUsers = async () => {
+    setClinicUsersLoading(true);
+    try {
+      const res = await fetch(`/api/bgj/clinics/${code}/user`);
+      if (res.ok) setClinicUsers((await res.json()).clinicUsers ?? []);
+    } finally {
+      setClinicUsersLoading(false);
+    }
+  };
+
   const fetchAll = async () => {
     setLoading(true);
     setError(null);
@@ -146,6 +165,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
       .then((data) => setSalesReps(data.salesReps ?? []))
       .catch(() => setSalesReps([]));
   }, []);
+
+  useEffect(() => { fetchClinicUsers(); }, [code]);
 
   useEffect(() => {
     (async () => {
@@ -270,6 +291,74 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
       setSavingVisit(false);
+    }
+  };
+
+  const handleCreateLogin = async () => {
+    if (!newLoginForm.loginId.trim() || !newLoginForm.password.trim()) return;
+    setCreatingLogin(true);
+    try {
+      const res = await fetch(`/api/bgj/clinics/${code}/user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newLoginForm),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? "作成に失敗しました");
+      }
+      showToast("ログインを発行しました");
+      setNewLoginForm({ loginId: "", password: "", name: "" });
+      await fetchClinicUsers();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setCreatingLogin(false);
+    }
+  };
+
+  const handleResetPassword = async (id: string) => {
+    if (!resetPasswordValue.trim()) return;
+    setSavingLoginAction(true);
+    try {
+      const res = await fetch(`/api/bgj/clinics/${code}/user`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, password: resetPasswordValue }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? "更新に失敗しました");
+      }
+      showToast("パスワードを再設定しました");
+      setResetPasswordId(null);
+      setResetPasswordValue("");
+      await fetchClinicUsers();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setSavingLoginAction(false);
+    }
+  };
+
+  const handleToggleLoginStatus = async (user: ClinicUserPublic) => {
+    setSavingLoginAction(true);
+    try {
+      const res = await fetch(`/api/bgj/clinics/${code}/user`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: user.id, status: user.status === "有効" ? "無効" : "有効" }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? "更新に失敗しました");
+      }
+      showToast(user.status === "有効" ? "無効化しました" : "有効化しました");
+      await fetchClinicUsers();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setSavingLoginAction(false);
     }
   };
 
@@ -649,6 +738,114 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                   {v.memo && <p className="text-sm text-slate-600 bg-slate-50 rounded-xl px-3 py-2">{v.memo}</p>}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* ログイン管理 */}
+          {activeTab === "ログイン管理" && (
+            <div className="flex flex-col gap-4">
+              <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                <h3 className="text-sm font-bold text-slate-700 mb-1">医院ログイン一覧</h3>
+                <p className="text-xs text-slate-400 mb-4">
+                  ここで発行したログインID・パスワードで、医院側が「/clinic-login」から自分の得意先コードに閉じたセッションでログインできます。
+                </p>
+                {clinicUsersLoading ? (
+                  <p className="text-slate-400 text-sm">読み込み中...</p>
+                ) : clinicUsers.length === 0 ? (
+                  <p className="text-slate-400 text-sm">まだログインは発行されていません。</p>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {clinicUsers.map((u) => (
+                      <div key={u.id} className="border border-slate-100 rounded-xl p-4">
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800">{u.login_id}</p>
+                            <p className="text-xs text-slate-400">{u.name || "担当者名未設定"}</p>
+                          </div>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            u.status === "有効" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                          }`}>
+                            {u.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-3">
+                          {resetPasswordId === u.id ? (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="新しいパスワード"
+                                value={resetPasswordValue}
+                                onChange={(e) => setResetPasswordValue(e.target.value)}
+                                className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+                              />
+                              <button
+                                onClick={() => handleResetPassword(u.id)}
+                                disabled={savingLoginAction}
+                                className="text-xs text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 font-semibold px-3 py-1.5 rounded-lg"
+                              >
+                                確定
+                              </button>
+                              <button
+                                onClick={() => { setResetPasswordId(null); setResetPasswordValue(""); }}
+                                className="text-xs text-slate-500 hover:text-slate-700 font-semibold"
+                              >
+                                キャンセル
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => { setResetPasswordId(u.id); setResetPasswordValue(""); }}
+                                className="text-xs text-violet-600 hover:text-violet-800 font-semibold"
+                              >
+                                パスワード再設定
+                              </button>
+                              <button
+                                onClick={() => handleToggleLoginStatus(u)}
+                                disabled={savingLoginAction}
+                                className="text-xs text-slate-500 hover:text-slate-700 font-semibold disabled:opacity-50"
+                              >
+                                {u.status === "有効" ? "無効化する" : "有効化する"}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                <h3 className="text-sm font-bold text-slate-700 mb-4">新規ログインを発行</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">ログインID</label>
+                    <input value={newLoginForm.loginId}
+                      onChange={(e) => setNewLoginForm({ ...newLoginForm, loginId: e.target.value })}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">初期パスワード</label>
+                    <input value={newLoginForm.password}
+                      onChange={(e) => setNewLoginForm({ ...newLoginForm, password: e.target.value })}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">担当者名（任意）</label>
+                    <input value={newLoginForm.name}
+                      onChange={(e) => setNewLoginForm({ ...newLoginForm, name: e.target.value })}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  </div>
+                </div>
+                <button
+                  onClick={handleCreateLogin}
+                  disabled={creatingLogin}
+                  className="bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold px-6 py-3 rounded-xl transition-colors"
+                >
+                  {creatingLogin ? "発行中..." : "発行する"}
+                </button>
+              </div>
             </div>
           )}
         </>
