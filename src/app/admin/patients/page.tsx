@@ -1,25 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
-
-type Patient = {
-  id: number;
-  patientNo: string;
-  name: string;
-  loginId: string;
-  password: string;
-  registeredAt: string;
-  status: '有効' | '無効';
-};
-
-const initialPatients: Patient[] = [
-  { id: 1, patientNo: 'T-00001', name: '患者 A', loginId: '◯◯◯◯◯', password: '◯◯◯◯◯◯◯◯', registeredAt: '2025-01-15', status: '有効' },
-  { id: 2, patientNo: 'T-00002', name: '患者 B', loginId: '◯◯◯◯◯', password: '◯◯◯◯◯◯◯◯', registeredAt: '2025-03-20', status: '有効' },
-  { id: 3, patientNo: 'T-00003', name: '患者 C', loginId: '◯◯◯◯◯', password: '◯◯◯◯◯◯◯◯', registeredAt: '2025-05-10', status: '有効' },
-  { id: 4, patientNo: 'T-00004', name: '患者 D', loginId: '◯◯◯◯◯', password: '◯◯◯◯◯◯◯◯', registeredAt: '2025-06-01', status: '無効' },
-  { id: 5, patientNo: 'T-00005', name: '患者 E', loginId: '◯◯◯◯◯', password: '◯◯◯◯◯◯◯◯', registeredAt: '2026-02-28', status: '有効' },
-];
+import type { Patient } from '@/lib/supabase/types';
 
 function FakeQRCode({ size = 160 }: { size?: number }) {
   const cell = size / 21;
@@ -58,67 +42,147 @@ function FakeQRCode({ size = 160 }: { size?: number }) {
   );
 }
 
+type FormState = {
+  customerCode: string;
+  name: string;
+  loginId: string;
+  password: string;
+  status: Patient['status'];
+};
+
+const EMPTY_FORM: FormState = { customerCode: '', name: '', loginId: '', password: '', status: '有効' };
+
+function readActiveCustomerCode(): string {
+  const match = document.cookie.match(/(?:^|; )active-customer-code=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : '';
+}
+
 export default function AdminPatientsPage() {
-  const [patients, setPatients] = useState<Patient[]>(initialPatients);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Patient | null>(null);
-  const [showPw, setShowPw] = useState<number | null>(null);
-  const [form, setForm] = useState({ name: '', loginId: '', password: '', status: '有効' as Patient['status'] });
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [showPw, setShowPw] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [showQR, setShowQR] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
-  const nextPatientNo = () => {
-    const nums = patients.map((p) => Number(p.patientNo.replace('T-', '')));
-    return `T-${String(Math.max(...nums) + 1).padStart(5, '0')}`;
+  const fetchPatients = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/patients');
+      if (!res.ok) throw new Error('患者一覧の取得に失敗しました');
+      const { patients } = await res.json();
+      setPatients(patients);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'エラーが発生しました');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => { fetchPatients(); }, []);
 
   const openNew = () => {
     setEditItem(null);
-    setForm({ name: '', loginId: '', password: '', status: '有効' });
+    setForm({ ...EMPTY_FORM, customerCode: readActiveCustomerCode() });
     setShowForm(true);
   };
 
   const openEdit = (p: Patient) => {
     setEditItem(p);
-    setForm({ name: p.name, loginId: p.loginId, password: p.password, status: p.status });
+    setForm({ customerCode: p.customer_code, name: p.name, loginId: p.login_id, password: p.password, status: p.status });
     setShowForm(true);
   };
 
-  const handleSave = () => {
-    if (!form.name.trim() || !form.loginId.trim() || !form.password.trim()) return;
-    if (editItem) {
-      setPatients(patients.map((p) => p.id === editItem.id ? { ...p, ...form } : p));
-      showToast('患者情報を更新しました');
-    } else {
-      const newPatient: Patient = {
-        id: Date.now(),
-        patientNo: nextPatientNo(),
-        name: form.name,
-        loginId: form.loginId,
-        password: form.password,
-        registeredAt: new Date().toISOString().slice(0, 10),
-        status: form.status,
-      };
-      setPatients([newPatient, ...patients]);
-      showToast('患者IDを発行しました');
+  const handleSave = async () => {
+    if (!form.customerCode.trim() || !form.name.trim() || !form.loginId.trim() || !form.password.trim()) return;
+    try {
+      if (editItem) {
+        const res = await fetch(`/api/admin/patients/${editItem.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerCode: form.customerCode,
+            name: form.name,
+            loginId: form.loginId,
+            password: form.password,
+            status: form.status,
+          }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.error ?? '更新に失敗しました');
+        }
+        showToast('患者情報を更新しました');
+      } else {
+        const res = await fetch('/api/admin/patients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerCode: form.customerCode,
+            name: form.name,
+            loginId: form.loginId,
+            password: form.password,
+            status: form.status,
+          }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.error ?? '発行に失敗しました');
+        }
+        const { patient } = await res.json();
+        showToast(`患者ID ${patient.patient_no} を発行しました`);
+      }
+      setShowForm(false);
+      await fetchPatients();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     }
-    setShowForm(false);
   };
 
-  const handleDelete = (id: number) => {
-    setPatients(patients.filter((p) => p.id !== id));
-    setDeleteId(null);
-    showToast('患者情報を削除しました');
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/patients/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? '削除に失敗しました');
+      }
+      setDeleteId(null);
+      showToast('患者情報を削除しました');
+      await fetchPatients();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'エラーが発生しました');
+    }
   };
 
-  const toggleStatus = (id: number) => {
-    setPatients(patients.map((p) =>
-      p.id === id ? { ...p, status: p.status === '有効' ? '無効' : '有効' } : p
-    ));
+  const toggleStatus = async (p: Patient) => {
+    const nextStatus: Patient['status'] = p.status === '有効' ? '無効' : '有効';
+    try {
+      const res = await fetch(`/api/admin/patients/${p.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? '更新に失敗しました');
+      }
+      await fetchPatients();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'エラーが発生しました');
+    }
+  };
+
+  const previewAsPatient = (id: string) => {
+    document.cookie = `demo-patient-id=${id}; path=/; max-age=86400; SameSite=Lax`;
+    window.open('/medication', '_blank');
   };
 
   return (
@@ -153,22 +217,33 @@ export default function AdminPatientsPage() {
             <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-sky-600 text-white text-base px-5 py-3 rounded-2xl shadow-xl">{toast}</div>
           )}
 
+          {error && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
+          )}
+
           <div className="bg-white border border-sky-100 rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-base">
                 <thead>
                   <tr className="border-b border-slate-100">
-                    {['患者番号', '氏名', 'ログインID', 'パスワード', '登録日', 'ステータス', '操作'].map((h) => (
+                    {['患者番号', '得意先コード', '氏名', 'ログインID', 'パスワード', '登録日', 'ステータス', '操作'].map((h) => (
                       <th key={h} className="text-left text-slate-600 font-semibold px-5 py-4 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
+                  {loading && (
+                    <tr><td colSpan={8} className="px-5 py-8 text-center text-slate-400">読み込み中...</td></tr>
+                  )}
+                  {!loading && patients.length === 0 && (
+                    <tr><td colSpan={8} className="px-5 py-8 text-center text-slate-400">患者様がまだ登録されていません</td></tr>
+                  )}
                   {patients.map((p) => (
                     <tr key={p.id} className="border-b border-slate-100 last:border-0 hover:bg-sky-50/80 transition-colors">
-                      <td className="px-5 py-4 text-slate-600 font-mono text-sm whitespace-nowrap">{p.patientNo}</td>
+                      <td className="px-5 py-4 text-slate-600 font-mono text-sm whitespace-nowrap">{p.patient_no}</td>
+                      <td className="px-5 py-4 text-slate-700 font-mono text-sm whitespace-nowrap">{p.customer_code}</td>
                       <td className="px-5 py-4 text-slate-800 font-semibold whitespace-nowrap">{p.name}</td>
-                      <td className="px-5 py-4 text-slate-700 font-mono whitespace-nowrap">{p.loginId}</td>
+                      <td className="px-5 py-4 text-slate-700 font-mono whitespace-nowrap">{p.login_id}</td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <span className="text-slate-700 font-mono text-sm">
@@ -180,16 +255,24 @@ export default function AdminPatientsPage() {
                           </button>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-slate-600 whitespace-nowrap">{p.registeredAt}</td>
+                      <td className="px-5 py-4 text-slate-600 whitespace-nowrap">{p.registered_at}</td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <button onClick={() => toggleStatus(p.id)} className={`text-sm font-semibold px-3 py-1.5 rounded-full cursor-pointer transition-opacity hover:opacity-70 ${
+                        <button onClick={() => toggleStatus(p)} className={`text-sm font-semibold px-3 py-1.5 rounded-full cursor-pointer transition-opacity hover:opacity-70 ${
                           p.status === '有効' ? 'text-teal-700 bg-teal-50' : 'text-slate-600 bg-slate-100'
                         }`}>
                           {p.status}
                         </button>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Link href={`/admin/patients/${p.id}`}
+                            className="text-sm text-sky-700 hover:text-sky-600 bg-sky-50 px-4 py-2 rounded-lg transition-colors cursor-pointer font-medium">
+                            詳細
+                          </Link>
+                          <button onClick={() => previewAsPatient(p.id)}
+                            className="text-sm text-teal-700 hover:text-teal-600 bg-teal-50 px-4 py-2 rounded-lg transition-colors cursor-pointer font-medium">
+                            患者ポータルをプレビュー
+                          </button>
                           <button onClick={() => openEdit(p)}
                             className="text-sm text-blue-700 hover:text-blue-600 bg-blue-50 px-4 py-2 rounded-lg transition-colors cursor-pointer font-medium">
                             編集
@@ -216,10 +299,19 @@ export default function AdminPatientsPage() {
             <h2 className="text-slate-800 font-bold text-xl mb-5">{editItem ? '患者情報を編集' : '新規患者IDを発行'}</h2>
             {!editItem && (
               <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-5">
-                <p className="text-sky-700 text-sm">発行予定の患者番号：<span className="font-bold">{nextPatientNo()}</span></p>
+                <p className="text-sky-700 text-sm">患者番号は登録後に自動採番されます。</p>
               </div>
             )}
             <div className="flex flex-col gap-4">
+              <div>
+                <label className="text-slate-700 text-base mb-1.5 block font-medium">得意先コード</label>
+                <input type="text" value={form.customerCode} onChange={(e) => setForm({ ...form, customerCode: e.target.value })}
+                  placeholder="例）A000001"
+                  className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400" />
+                <p className="text-xs text-slate-400 mt-1.5">
+                  <Link href="/admin/settings" className="text-sky-600 hover:text-sky-500 underline">医院設定</Link>で選択した得意先が自動入力されます。異なる場合はここで修正できます。
+                </p>
+              </div>
               <div>
                 <label className="text-slate-700 text-base mb-1.5 block font-medium">氏名</label>
                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-export type BottomNavPage = 'home' | 'clinic' | 'reserve' | 'shop' | 'qa' | 'subscription';
+export type BottomNavPage = 'home' | 'clinic' | 'reserve' | 'medication' | 'shop' | 'qa' | 'subscription';
 
 function IconHome({ filled }: { filled?: boolean }) {
   return filled ? (
@@ -66,13 +66,27 @@ function IconQA({ filled }: { filled?: boolean }) {
     </svg>
   );
 }
+function IconPill({ filled }: { filled?: boolean }) {
+  return filled ? (
+    <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M10.5 20.5 3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7Z" />
+      <line x1="8.5" y1="8.5" x2="15.5" y2="15.5" stroke="white" strokeWidth="2" />
+    </svg>
+  ) : (
+    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <path d="M10.5 20.5 3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7Z" />
+      <line x1="8.5" y1="8.5" x2="15.5" y2="15.5" strokeOpacity="0.5" />
+    </svg>
+  );
+}
 
 const items: { key: BottomNavPage; label: string; href: string; icon: (a: { filled?: boolean }) => React.ReactNode }[] = [
-  { key: 'home',    label: 'ホーム',     href: '/home',   icon: IconHome },
-  { key: 'clinic',  label: 'クリニック', href: '/clinic', icon: IconClinic },
-  { key: 'reserve', label: '予約',       href: '#',       icon: IconCalendar },
-  { key: 'shop',    label: '商品',       href: '/shop',   icon: IconBag },
-  { key: 'qa',      label: 'Q & A',      href: '/qa',     icon: IconQA },
+  { key: 'home',       label: 'ホーム',   href: '/home',       icon: IconHome },
+  { key: 'clinic',     label: 'クリニック', href: '/clinic',   icon: IconClinic },
+  { key: 'reserve',    label: '予約',     href: '#',           icon: IconCalendar },
+  { key: 'medication', label: 'お薬',     href: '/medication', icon: IconPill },
+  { key: 'shop',       label: '商品',     href: '/shop',       icon: IconBag },
+  { key: 'qa',         label: 'Q & A',    href: '/qa',         icon: IconQA },
 ];
 
 export default function BottomNav({ active }: { active: BottomNavPage }) {

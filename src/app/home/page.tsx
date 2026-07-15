@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { signOut } from 'next-auth/react';
 import BottomNav from '../components/BottomNav';
+import PreviewModeBanner from '@/components/PreviewModeBanner';
 
 function IconMenu() {
   return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
@@ -40,6 +41,9 @@ function IconBag() {
 }
 function IconQA() {
   return <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
+}
+function IconPill() {
+  return <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7Z" /><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" strokeOpacity="0.5" /></svg>;
 }
 function IconChevron() {
   return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>;
@@ -78,6 +82,17 @@ const navCards = [
     text: 'text-cyan-700',
     border: 'border-cyan-100',
     arrow: 'text-cyan-300',
+  },
+  {
+    label: 'お薬の受け取り',
+    desc: '処方内容・受け取り状況の確認',
+    href: '/medication',
+    icon: <IconPill />,
+    bg: 'bg-sky-50',
+    iconBg: 'bg-sky-600',
+    text: 'text-sky-700',
+    border: 'border-sky-100',
+    arrow: 'text-sky-300',
   },
   {
     label: '定期購入',
@@ -122,12 +137,14 @@ function IconFileSm() { return <svg width="16" height="16" fill="none" stroke="c
 function IconRefreshSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>; }
 function IconBagSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>; }
 function IconQASm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>; }
+function IconPillSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7Z" /><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" strokeOpacity="0.5" /></svg>; }
 
 const sideNavItems = [
   { label: 'ホーム',         icon: <IconHomeSm />,     href: '/home', active: true },
   { label: 'クリニック紹介', icon: <IconClinicSm />,  href: '/clinic' },
   { label: '予約・受診履歴', icon: <IconCalendarSm />, href: '#' },
   { label: '診療情報',       icon: <IconFileSm />,     href: '#', dividerAfter: true },
+  { label: 'お薬の受け取り', icon: <IconPillSm />,     href: '/medication', dividerAfter: true },
   { label: '定期購入',       icon: <IconRefreshSm />,  href: '/subscription' },
   { label: 'おすすめ商品',  icon: <IconBagSm />,      href: '/shop' },
   { label: 'Q & A',          icon: <IconQASm />,       href: '/qa' },
@@ -143,6 +160,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 pb-20 md:pb-0">
+
+      <PreviewModeBanner />
 
       {/* アナウンスバー */}
       <div className="bg-[#F0F7FF] text-[#2563EB] text-xs text-center py-2 px-4">

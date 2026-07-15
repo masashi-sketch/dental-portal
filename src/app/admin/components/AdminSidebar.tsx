@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
+import SalesRepAvatar from '@/components/SalesRepAvatar';
+import type { SalesRepWithMaster } from '@/lib/supabase/types';
 
-export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia';
+export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'settings';
 
 // モック：未読件数と最終更新日時
 const CONTENT_UNREAD: Partial<Record<AdminPage, { updatedAt: string; count: number }>> = {
@@ -57,6 +59,9 @@ function IconMenu() {
 function IconClose() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 }
+function IconSettings() {
+  return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;
+}
 
 const navItems: { key: AdminPage; label: string; href: string; icon: React.ReactNode; dividerBefore?: boolean }[] = [
   { key: 'dashboard',  label: 'ダッシュボード',   href: '/admin/dashboard',   icon: <IconDashboard /> },
@@ -67,6 +72,7 @@ const navItems: { key: AdminPage; label: string; href: string; icon: React.React
   { key: 'products',   label: '商品管理',         href: '/admin/products',    icon: <IconBag /> },
   { key: 'campaign',   label: 'キャンペーン情報', href: '/admin/campaign',    icon: <IconCampaign />,   dividerBefore: true },
   { key: 'biogaia',    label: 'バイオガイア通信', href: '/admin/biogaia',     icon: <IconNewsletter /> },
+  { key: 'settings',   label: '医院設定',         href: '/admin/settings',    icon: <IconSettings />,   dividerBefore: true },
 ];
 
 const externalLinks = [
@@ -157,7 +163,41 @@ function LogoBlock() {
   );
 }
 
+function readActiveCustomerCode(): string | null {
+  const match = document.cookie.match(/(?:^|; )active-customer-code=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 function SalesRepCard() {
+  const [salesRep, setSalesRep] = useState<SalesRepWithMaster | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const code = readActiveCustomerCode();
+    if (!code) {
+      setLoaded(true);
+      return;
+    }
+    fetch(`/api/bgj/clinics/${code}`)
+      .then((res) => (res.ok ? res.json() : { clinic: null }))
+      .then((data) => setSalesRep(data.clinic?.staff ?? null))
+      .catch(() => setSalesRep(null))
+      .finally(() => setLoaded(true));
+  }, []);
+
+  if (!loaded) return null;
+
+  if (!salesRep) {
+    return (
+      <div className="shadow-xl rounded-xl overflow-hidden">
+        <div className="bg-sky-800/60 border border-teal-500/40 rounded-xl overflow-hidden p-4 text-center">
+          <p className="text-teal-200 text-xs font-bold tracking-widest mb-2">── 営業担当 ──</p>
+          <p className="text-sky-200/70 text-xs leading-relaxed">医院設定で得意先を選択すると、担当者が表示されます</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="shadow-xl rounded-xl overflow-hidden">
       <div className="bg-sky-800/60 border border-teal-500/40 rounded-xl overflow-hidden">
@@ -165,25 +205,24 @@ function SalesRepCard() {
         <div className="bg-teal-600/40 px-3 py-2 border-b border-teal-500/40">
           <p className="text-teal-200 text-xs font-bold tracking-widest text-center">── 営業担当 ──</p>
         </div>
-        {/* 担当者名 */}
-        <div className="px-4 pt-3 pb-1">
-          <p className="text-white font-bold text-xl leading-tight">山本権兵衛</p>
-          <p className="text-teal-300 text-xs font-semibold mt-0.5">歯科衛生士</p>
+        {/* 担当者名・顔写真 */}
+        <div className="px-4 pt-3 pb-1 flex items-center gap-3">
+          <SalesRepAvatar name={salesRep.name} photoUrl={salesRep.photo_url} size={44} className="text-lg" />
+          <div className="min-w-0">
+            <p className="text-white font-bold text-lg leading-tight truncate">{salesRep.name}</p>
+            <p className="text-teal-300 text-xs font-semibold mt-0.5">{salesRep.role?.name || '—'}</p>
+          </div>
         </div>
-        {/* 電話番号（幅いっぱいに大きく） */}
+        {/* 電話番号 */}
         <div className="px-4 py-3 flex flex-col gap-2">
           <div className="flex items-center gap-2 text-sky-100">
             <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="shrink-0 text-teal-300"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-            <span className="font-bold text-base tracking-wide">090-xxxx-xxxx</span>
-          </div>
-          <div className="flex items-center gap-2 text-sky-100">
-            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="shrink-0 text-teal-300"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg>
-            <span className="font-bold text-base tracking-wide">03-xxxxx-xxxxx</span>
+            <span className="font-bold text-base tracking-wide">{salesRep.phone || '—'}</span>
           </div>
         </div>
         {/* お問い合わせ（枠の中、最下部） */}
         <a
-          href="mailto:yamamoto@example.com"
+          href={salesRep.email ? `mailto:${salesRep.email}` : undefined}
           className="flex items-center justify-center gap-2 w-full bg-teal-500 hover:bg-teal-400 text-white text-sm font-bold py-3 transition-colors border-t border-teal-500/40"
         >
           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>

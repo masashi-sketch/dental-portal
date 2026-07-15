@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import BottomNav from '../components/BottomNav';
+import PreviewModeBanner from '@/components/PreviewModeBanner';
 
 /* ── ヘッダー共通アイコン ── */
 function IconBell() {
@@ -62,6 +63,9 @@ function IconBag() {
 }
 function IconQA() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
+}
+function IconPill() {
+  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7Z" /><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" strokeOpacity="0.5" /></svg>;
 }
 function IconLogout() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
@@ -247,6 +251,7 @@ const navItems = [
   { label: 'クリニック紹介', icon: <IconClinic />,  href: '/clinic' },
   { label: '予約・受診履歴', icon: <IconCalendar />, href: '#' },
   { label: '診療情報',       icon: <IconFile />,     href: '#', dividerAfter: true },
+  { label: 'お薬の受け取り', icon: <IconPill />,     href: '/medication', dividerAfter: true },
   { label: '定期購入',       icon: <IconRefresh />,  href: '/subscription' },
   { label: 'おすすめ商品',  icon: <IconBag />,      href: '/shop', active: true },
   { label: 'Q & A',          icon: <IconQA />,       href: '/qa' },
@@ -275,6 +280,8 @@ export default function ShopPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 pb-20 md:pb-0">
+
+      <PreviewModeBanner />
 
       {/* トースト通知 */}
       {toast && (
