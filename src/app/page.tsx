@@ -2,12 +2,43 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import Link from 'next/link';
+
+function setPortalCookie() {
+  document.cookie = 'portal-selected=true; path=/; SameSite=Lax';
+}
 
 export default function PatientLoginPage() {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const handleLogin = async () => {
+    if (!userId.trim() || !password.trim()) {
+      setError('ログインIDとパスワードを入力してください。');
+      return;
+    }
+    setLoading(true);
+    setError('');
+
+    const result = await signIn('patient-credentials', {
+      loginId: userId,
+      password,
+      redirect: false,
+    });
+
+    setLoading(false);
+    if (!result || result.error) {
+      setError('ログインIDまたはパスワードが正しくありません。');
+      return;
+    }
+
+    setPortalCookie();
+    router.push('/home');
+  };
 
   return (
     <div
@@ -44,16 +75,23 @@ export default function PatientLoginPage() {
         {/* ログインカード */}
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 sm:p-8">
           <h2 className="text-xl font-bold text-gray-900 mb-1">ログイン</h2>
-          <p className="text-gray-400 text-sm mb-6">患者IDとパスワードを入力してください</p>
+          <p className="text-gray-400 text-sm mb-6">ログインIDとパスワードを入力してください</p>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-2.5 mb-4">
+              {error}
+            </div>
+          )}
 
           <div className="flex flex-col gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">患者ID</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">ログインID</label>
               <input
                 type="text"
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
-                placeholder="例）T-00123"
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                placeholder="例）yamada01"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors placeholder-gray-300 bg-gray-50"
               />
             </div>
@@ -63,15 +101,17 @@ export default function PatientLoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 placeholder="••••••••"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors placeholder-gray-300 bg-gray-50"
               />
             </div>
             <button
-              onClick={() => router.push('/home')}
-              className="w-full bg-[#2563EB] text-white py-3 rounded-xl font-semibold hover:bg-[#1d4ed8] transition-colors cursor-pointer shadow-sm mt-1"
+              onClick={handleLogin}
+              disabled={loading}
+              className="w-full bg-[#2563EB] text-white py-3 rounded-xl font-semibold hover:bg-[#1d4ed8] disabled:opacity-60 transition-colors cursor-pointer shadow-sm mt-1"
             >
-              ログイン
+              {loading ? 'ログイン中…' : 'ログイン'}
             </button>
           </div>
 

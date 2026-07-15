@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import AdminSidebar from '../components/AdminSidebar';
-import type { Patient } from '@/lib/supabase/types';
+import type { PatientPublic } from '@/lib/supabase/types';
 
 function FakeQRCode({ size = 160 }: { size?: number }) {
   const cell = size / 21;
@@ -48,7 +48,7 @@ type FormState = {
   name: string;
   loginId: string;
   password: string;
-  status: Patient['status'];
+  status: PatientPublic['status'];
 };
 
 const EMPTY_FORM: FormState = { customerCode: '', name: '', loginId: '', password: '', status: '有効' };
@@ -61,12 +61,11 @@ function readActiveCustomerCode(): string {
 export default function AdminPatientsPage() {
   const { data: session } = useSession();
   const isClinicRole = session?.user?.role === 'clinic';
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const [patients, setPatients] = useState<PatientPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editItem, setEditItem] = useState<Patient | null>(null);
-  const [showPw, setShowPw] = useState<string | null>(null);
+  const [editItem, setEditItem] = useState<PatientPublic | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [toast, setToast] = useState('');
@@ -98,14 +97,15 @@ export default function AdminPatientsPage() {
     setShowForm(true);
   };
 
-  const openEdit = (p: Patient) => {
+  const openEdit = (p: PatientPublic) => {
     setEditItem(p);
-    setForm({ customerCode: p.customer_code, name: p.name, loginId: p.login_id, password: p.password, status: p.status });
+    setForm({ customerCode: p.customer_code, name: p.name, loginId: p.login_id, password: '', status: p.status });
     setShowForm(true);
   };
 
   const handleSave = async () => {
-    if (!form.customerCode.trim() || !form.name.trim() || !form.loginId.trim() || !form.password.trim()) return;
+    if (!form.customerCode.trim() || !form.name.trim() || !form.loginId.trim()) return;
+    if (!editItem && !form.password.trim()) return;
     try {
       if (editItem) {
         const res = await fetch(`/api/admin/patients/${editItem.id}`, {
@@ -115,7 +115,7 @@ export default function AdminPatientsPage() {
             customerCode: form.customerCode,
             name: form.name,
             loginId: form.loginId,
-            password: form.password,
+            ...(form.password.trim() ? { password: form.password } : {}),
             status: form.status,
           }),
         });
@@ -165,8 +165,8 @@ export default function AdminPatientsPage() {
     }
   };
 
-  const toggleStatus = async (p: Patient) => {
-    const nextStatus: Patient['status'] = p.status === '有効' ? '無効' : '有効';
+  const toggleStatus = async (p: PatientPublic) => {
+    const nextStatus: PatientPublic['status'] = p.status === '有効' ? '無効' : '有効';
     try {
       const res = await fetch(`/api/admin/patients/${p.id}`, {
         method: 'PATCH',
@@ -248,15 +248,7 @@ export default function AdminPatientsPage() {
                       <td className="px-5 py-4 text-slate-800 font-semibold whitespace-nowrap">{p.name}</td>
                       <td className="px-5 py-4 text-slate-700 font-mono whitespace-nowrap">{p.login_id}</td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-700 font-mono text-sm">
-                            {showPw === p.id ? p.password : '••••••••'}
-                          </span>
-                          <button onClick={() => setShowPw(showPw === p.id ? null : p.id)}
-                            className="text-sky-600 hover:text-sky-500 text-sm underline cursor-pointer">
-                            {showPw === p.id ? '隠す' : '表示'}
-                          </button>
-                        </div>
+                        <span className="text-slate-400 font-mono text-sm">••••••••</span>
                       </td>
                       <td className="px-5 py-4 text-slate-600 whitespace-nowrap">{p.registered_at}</td>
                       <td className="px-5 py-4 whitespace-nowrap">
@@ -333,14 +325,14 @@ export default function AdminPatientsPage() {
                   className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400" />
               </div>
               <div>
-                <label className="text-slate-700 text-base mb-1.5 block font-medium">パスワード</label>
+                <label className="text-slate-700 text-base mb-1.5 block font-medium">{editItem ? 'パスワード再設定' : '初期パスワード'}</label>
                 <input type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder="半角英数字"
+                  placeholder={editItem ? '変更する場合のみ入力' : '半角英数字'}
                   className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400" />
               </div>
               <div>
                 <label className="text-slate-700 text-base mb-1.5 block font-medium">ステータス</label>
-                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as Patient['status'] })}
+                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as PatientPublic['status'] })}
                   className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40">
                   <option>有効</option>
                   <option>無効</option>

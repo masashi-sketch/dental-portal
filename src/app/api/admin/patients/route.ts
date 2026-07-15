@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { PATIENT_COLUMNS } from '@/lib/supabase/types';
+import { PATIENT_PUBLIC_COLUMNS } from '@/lib/supabase/types';
 import { resolveScopedCustomerCode } from '@/lib/auth/clinicScope';
+import { hashPassword } from '@/lib/auth/password';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
   const supabase = getSupabaseServerClient();
   let query = supabase
     .from('patients')
-    .select(PATIENT_COLUMNS)
+    .select(PATIENT_PUBLIC_COLUMNS)
     .order('created_at', { ascending: false })
     .limit(500);
   if (customerCode) query = query.eq('customer_code', customerCode);
@@ -47,10 +48,10 @@ export async function POST(request: NextRequest) {
       customer_code: customerCode,
       name,
       login_id: loginId,
-      password,
+      password_hash: hashPassword(password),
       status: status ?? '有効',
     })
-    .select(PATIENT_COLUMNS)
+    .select(PATIENT_PUBLIC_COLUMNS)
     .single();
 
   if (error) {

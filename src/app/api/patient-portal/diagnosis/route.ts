@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { auth } from '@/auth';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { resolveEffectivePatientId } from '@/lib/auth/patientScope';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const cookieStore = await cookies();
-  const patientId = cookieStore.get('demo-patient-id')?.value;
+  const session = await auth();
+  const supabase = getSupabaseServerClient();
+  const patientId = await resolveEffectivePatientId(supabase, session);
 
   if (!patientId) {
     return NextResponse.json({ diagnosis: null });
   }
 
-  const supabase = getSupabaseServerClient();
   const { data: diagnosisRows, error: diagnosisError } = await supabase
     .from('periodontal_diagnoses')
     .select('stage_code, grade_code, diagnosed_at, memo')

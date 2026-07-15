@@ -2,9 +2,9 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { CLINIC_USER_COLUMNS } from "@/lib/supabase/types";
+import { CLINIC_USER_COLUMNS, PATIENT_COLUMNS } from "@/lib/supabase/types";
 import { verifyPassword } from "@/lib/auth/password";
-import type { ClinicUser } from "@/lib/supabase/types";
+import type { ClinicUser, Patient } from "@/lib/supabase/types";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -44,6 +44,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       },
     }),
+    Credentials({
+      id: "patient-credentials",
+      name: "患者様ログイン",
+      credentials: {
+        loginId: { label: "ログインID", type: "text" },
+        password: { label: "パスワード", type: "password" },
+      },
+      async authorize(credentials) {
+        const loginId = credentials?.loginId as string | undefined;
+        const password = credentials?.password as string | undefined;
+        if (!loginId || !password) return null;
+
+        const supabase = getSupabaseServerClient();
+        const { data } = await supabase
+          .from("patients")
+          .select(PATIENT_COLUMNS)
+          .eq("login_id", loginId)
+          .eq("status", "有効")
+          .maybeSingle<Patient>();
+        if (!data) return null;
+
+        const valid = verifyPassword(password, data.password_hash);
+        if (!valid) return null;
+
+        return {
+          id: data.id,
+          name: data.name,
+          role: "patient" as const,
+          customerCode: data.customer_code,
+          patientId: data.id,
+        };
+      },
+    }),
   ],
   session: { strategy: "jwt" },
   callbacks: {
@@ -58,14 +91,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as { role?: "clinic" }).role ?? "bgj";
+        token.role = (user as { role?: "clinic" | "patient" }).role ?? "bgj";
         token.customerCode = (user as { customerCode?: string }).customerCode ?? null;
+        token.patientId = (user as { patientId?: string }).patientId ?? null;
       }
       return token;
     },
     async session({ session, token }) {
-      session.user.role = (token.role as "bgj" | "clinic") ?? "bgj";
+      session.user.role = (token.role as "bgj" | "clinic" | "patient") ?? "bgj";
       session.user.customerCode = (token.customerCode as string | null) ?? null;
+      session.user.patientId = (token.patientId as string | null) ?? null;
       return session;
     },
     async redirect({ url, baseUrl }) {

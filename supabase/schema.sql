@@ -205,8 +205,7 @@ create table public.patients (
   patient_no    text generated always as ('T-' || lpad(seq_no::text, 5, '0')) stored,
   name          text not null,
   login_id      text not null,
-  -- 注意：既存モックUIの表示/非表示トグルを踏襲した平文保存。本番導入時は必ずハッシュ化すること。
-  password      text not null,
+  password_hash text not null,
   status        text not null default '有効' check (status in ('有効','無効')),
   registered_at date not null default current_date,
   created_at    timestamptz not null default now(),

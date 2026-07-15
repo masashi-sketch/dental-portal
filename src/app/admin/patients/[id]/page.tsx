@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
 import AdminSidebar from '../../components/AdminSidebar';
-import type { Patient, PeriodontalDiagnosisWithMaster, PeriodontalGrade, PeriodontalStage } from '@/lib/supabase/types';
+import type { PatientPublic, PeriodontalDiagnosisWithMaster, PeriodontalGrade, PeriodontalStage } from '@/lib/supabase/types';
 
 type DiagnosisForm = {
   stageCode: string;
@@ -17,7 +17,7 @@ const EMPTY_DIAGNOSIS_FORM: DiagnosisForm = { stageCode: '', gradeCode: '', diag
 export default function AdminPatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
 
-  const [patient, setPatient] = useState<Patient | null>(null);
+  const [patient, setPatient] = useState<PatientPublic | null>(null);
   const [diagnoses, setDiagnoses] = useState<PeriodontalDiagnosisWithMaster[]>([]);
   const [stages, setStages] = useState<PeriodontalStage[]>([]);
   const [grades, setGrades] = useState<PeriodontalGrade[]>([]);
