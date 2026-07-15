@@ -82,9 +82,9 @@ function IconPill({ filled }: { filled?: boolean }) {
 }
 
 const items: { key: BottomNavPage; label: string; href: string; icon: (a: { filled?: boolean }) => React.ReactNode; navKey?: PatientNavKey }[] = [
-  { key: 'home',       label: 'ホーム',   href: '/home',       icon: IconHome },
+  { key: 'home',       label: 'ホーム',   href: '/home',       icon: IconHome, navKey: 'home' },
   { key: 'clinic',     label: 'クリニック', href: '/clinic',   icon: IconClinic, navKey: 'clinicInfo' },
-  { key: 'reserve',    label: '予約',     href: '#',           icon: IconCalendar },
+  { key: 'reserve',    label: '予約',     href: '#',           icon: IconCalendar, navKey: 'reservation' },
   { key: 'medication', label: 'お薬',     href: '/medication', icon: IconPill, navKey: 'medication' },
   { key: 'shop',       label: '商品',     href: '/shop',       icon: IconBag, navKey: 'shop' },
   { key: 'qa',         label: 'Q & A',    href: '/qa',         icon: IconQA, navKey: 'qa' },

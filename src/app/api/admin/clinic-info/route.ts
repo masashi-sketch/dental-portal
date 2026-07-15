@@ -61,23 +61,55 @@ export async function PATCH(request: NextRequest) {
   const {
     displayName,
     patientBackgroundUrl,
+    navShowHome,
     navShowClinicInfo,
+    navShowReservation,
+    navShowMedicalRecord,
     navShowMedication,
     navShowSubscription,
     navShowShop,
     navShowQa,
+    showPeriodontalDiagnosis,
   } = body ?? {};
 
   const update: Record<string, unknown> = {};
   if (displayName !== undefined) update.display_name = displayName || null;
   if (patientBackgroundUrl !== undefined) update.patient_background_url = patientBackgroundUrl || null;
+  if (navShowHome !== undefined) update.nav_show_home = navShowHome;
   if (navShowClinicInfo !== undefined) update.nav_show_clinic_info = navShowClinicInfo;
+  if (navShowReservation !== undefined) update.nav_show_reservation = navShowReservation;
+  if (navShowMedicalRecord !== undefined) update.nav_show_medical_record = navShowMedicalRecord;
   if (navShowMedication !== undefined) update.nav_show_medication = navShowMedication;
   if (navShowSubscription !== undefined) update.nav_show_subscription = navShowSubscription;
   if (navShowShop !== undefined) update.nav_show_shop = navShowShop;
   if (navShowQa !== undefined) update.nav_show_qa = navShowQa;
+  if (showPeriodontalDiagnosis !== undefined) update.show_periodontal_diagnosis = showPeriodontalDiagnosis;
 
   const supabase = getSupabaseServerClient();
+
+  const navColumns = [
+    'nav_show_home',
+    'nav_show_clinic_info',
+    'nav_show_reservation',
+    'nav_show_medical_record',
+    'nav_show_medication',
+    'nav_show_subscription',
+    'nav_show_shop',
+    'nav_show_qa',
+  ] as const;
+  const touchesNav = navColumns.some((col) => col in update);
+  if (touchesNav) {
+    const { data: current } = await supabase
+      .from('clinics')
+      .select(navColumns.join(', '))
+      .eq('customer_code', session.user.customerCode)
+      .maybeSingle<Record<(typeof navColumns)[number], boolean>>();
+    const merged = navColumns.map((col) => (col in update ? (update[col] as boolean) : (current?.[col] ?? true)));
+    if (merged.every((v) => !v)) {
+      return NextResponse.json({ error: '患者ポータルのメニューは、少なくとも1つ表示にする必要があります。' }, { status: 400 });
+    }
+  }
+
   const { data, error } = await supabase
     .from('clinics')
     .update(update)

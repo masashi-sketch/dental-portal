@@ -149,6 +149,18 @@ create table public.clinics (
   main_referrer   text,                              -- 主な紹介者
   display_name            text,                      -- 医院・患者ポータルの表示名（未設定ならnameを使う。医院自身も編集可）
   patient_background_url  text,                       -- 患者ポータルのログイン画面背景画像URL（未設定なら標準画像）
+  -- 患者ポータルのサイドバー・ボトムナビ各項目の表示/非表示（医院設定画面で編集可、全てデフォルトtrue）。
+  -- アプリ側で「少なくとも1つはtrue」を強制する（DBレベルの制約は設けていない）。
+  nav_show_home            boolean not null default true,
+  nav_show_clinic_info     boolean not null default true,
+  nav_show_reservation     boolean not null default true,
+  nav_show_medical_record  boolean not null default true,
+  nav_show_medication      boolean not null default true,
+  nav_show_subscription    boolean not null default true,
+  nav_show_shop            boolean not null default true,
+  nav_show_qa              boolean not null default true,
+  -- 歯周病の診断結果を患者ポータルに表示するか（オフの場合、医院用ポータルでの新規診断入力も不可にする）。
+  show_periodontal_diagnosis boolean not null default true,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import AdminSidebar from '../../components/AdminSidebar';
 import type { PatientPublic, PeriodontalDiagnosisWithMaster, PeriodontalGrade, PeriodontalStage } from '@/lib/supabase/types';
 
@@ -16,6 +17,7 @@ const EMPTY_DIAGNOSIS_FORM: DiagnosisForm = { stageCode: '', gradeCode: '', diag
 
 export default function AdminPatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { data: session } = useSession();
 
   const [patient, setPatient] = useState<PatientPublic | null>(null);
   const [diagnoses, setDiagnoses] = useState<PeriodontalDiagnosisWithMaster[]>([]);
@@ -27,6 +29,7 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
   const [showDiagnosisForm, setShowDiagnosisForm] = useState(false);
   const [diagnosisForm, setDiagnosisForm] = useState<DiagnosisForm>(EMPTY_DIAGNOSIS_FORM);
   const [saving, setSaving] = useState(false);
+  const [periodontalEnabled, setPeriodontalEnabled] = useState(true);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
@@ -59,6 +62,17 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
   };
 
   useEffect(() => { fetchAll(); }, [id]);
+
+  useEffect(() => {
+    const customerCode = session?.user?.customerCode;
+    if (!customerCode) return;
+    fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(customerCode)}`)
+      .then((res) => (res.ok ? res.json() : { clinic: null }))
+      .then((data) => {
+        if (data.clinic) setPeriodontalEnabled(data.clinic.show_periodontal_diagnosis);
+      })
+      .catch(() => {});
+  }, [session?.user?.customerCode]);
 
   const previewAsPatient = () => {
     document.cookie = `demo-patient-id=${id}; path=/; max-age=86400; SameSite=Lax`;
@@ -170,13 +184,20 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
                   <h2 className="text-sm font-bold text-slate-700">歯周病診断</h2>
                   <button
                     onClick={openDiagnosisForm}
-                    className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+                    disabled={!periodontalEnabled}
+                    className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
                   >
                     ＋ 新規診断を記録
                   </button>
                 </div>
 
-                {showDiagnosisForm && (
+                {!periodontalEnabled && (
+                  <p className="text-xs text-slate-400 bg-slate-50 rounded-lg px-3 py-2 mb-4">
+                    「医院設定」の歯周病表示がオフのため、新規診断の入力はできません。オンにすると入力できるようになります。
+                  </p>
+                )}
+
+                {showDiagnosisForm && periodontalEnabled && (
                   <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 mb-4 flex flex-col gap-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>

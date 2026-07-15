@@ -74,6 +74,7 @@ const navCards: { label: string; desc: string; href: string; icon: React.ReactNo
     text: 'text-indigo-600',
     border: 'border-indigo-100',
     arrow: 'text-indigo-300',
+    navKey: 'reservation',
   },
   {
     label: '診療情報',
@@ -85,6 +86,7 @@ const navCards: { label: string; desc: string; href: string; icon: React.ReactNo
     text: 'text-cyan-700',
     border: 'border-cyan-100',
     arrow: 'text-cyan-300',
+    navKey: 'medicalRecord',
   },
   {
     label: 'お薬の受け取り',
@@ -147,10 +149,10 @@ function IconQASm() { return <svg width="16" height="16" fill="none" stroke="cur
 function IconPillSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7Z" /><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" strokeOpacity="0.5" /></svg>; }
 
 const sideNavItems: { label: string; icon: React.ReactNode; href: string; active?: boolean; dividerAfter?: boolean; navKey?: PatientNavKey }[] = [
-  { label: 'ホーム',         icon: <IconHomeSm />,     href: '/home', active: true },
+  { label: 'ホーム',         icon: <IconHomeSm />,     href: '/home', active: true, navKey: 'home' },
   { label: 'クリニック紹介', icon: <IconClinicSm />,  href: '/clinic', navKey: 'clinicInfo' },
-  { label: '予約・受診履歴', icon: <IconCalendarSm />, href: '#' },
-  { label: '診療情報',       icon: <IconFileSm />,     href: '#', dividerAfter: true },
+  { label: '予約・受診履歴', icon: <IconCalendarSm />, href: '#', navKey: 'reservation' },
+  { label: '診療情報',       icon: <IconFileSm />,     href: '#', dividerAfter: true, navKey: 'medicalRecord' },
   { label: 'お薬の受け取り', icon: <IconPillSm />,     href: '/medication', dividerAfter: true, navKey: 'medication' },
   { label: '定期購入',       icon: <IconRefreshSm />,  href: '/subscription', navKey: 'subscription' },
   { label: 'おすすめ商品',  icon: <IconBagSm />,      href: '/shop', navKey: 'shop' },

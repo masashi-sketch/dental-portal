@@ -132,10 +132,10 @@ function MedicineImage({ type, size = 'md' }: { type: string; size?: 'sm' | 'md'
 }
 
 const navItems: { label: string; icon: React.ReactNode; href: string; active?: boolean; dividerAfter?: boolean; navKey?: PatientNavKey }[] = [
-  { label: 'ホーム',         icon: <IconHome />,     href: '/home' },
+  { label: 'ホーム',         icon: <IconHome />,     href: '/home', navKey: 'home' },
   { label: 'クリニック紹介', icon: <IconClinic />,  href: '/clinic', navKey: 'clinicInfo' },
-  { label: '予約・受診履歴', icon: <IconCalendar />, href: '#' },
-  { label: '診療情報',       icon: <IconFile />,     href: '#' },
+  { label: '予約・受診履歴', icon: <IconCalendar />, href: '#', navKey: 'reservation' },
+  { label: '診療情報',       icon: <IconFile />,     href: '#', navKey: 'medicalRecord' },
   { label: 'お薬の受け取り', icon: <IconPill />,     href: '/medication', navKey: 'medication', active: true, dividerAfter: true },
   { label: '定期購入',       icon: <IconRefresh />,  href: '/subscription', navKey: 'subscription' },
   { label: 'おすすめ商品',  icon: <IconBag />,      href: '/shop', navKey: 'shop' },
@@ -154,7 +154,7 @@ const currentStep = 2; // 0-indexed：準備完了の段階
 
 export default function MedicationPage() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { clinicName, navVisibility } = usePatientClinicBranding();
+  const { clinicName, navVisibility, showPeriodontalDiagnosis } = usePatientClinicBranding();
   const [receiveMethod, setReceiveMethod] = useState<'pickup' | 'delivery'>('pickup');
   const [diagnosis, setDiagnosis] = useState<PeriodontalDiagnosisView>(null);
   const [diagnosisLoaded, setDiagnosisLoaded] = useState(false);
@@ -265,7 +265,7 @@ export default function MedicationPage() {
           </div>
 
           {/* 歯周病の状態 */}
-          {diagnosisLoaded && (
+          {diagnosisLoaded && showPeriodontalDiagnosis && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-[#2563EB]"><IconTooth /></span>

@@ -131,10 +131,10 @@ function IconClock() {
 }
 
 const navItems: { label: string; icon: React.ReactNode; href?: string; active?: boolean; dividerAfter?: boolean; navKey?: PatientNavKey }[] = [
-  { label: 'ホーム',         icon: <IconHome />,      href: '/home' },
+  { label: 'ホーム',         icon: <IconHome />,      href: '/home', navKey: 'home' },
   { label: 'クリニック紹介', icon: <IconClinic />,   active: true, navKey: 'clinicInfo' },
-  { label: '予約・受診履歴', icon: <IconCalendar /> },
-  { label: '診療情報',        icon: <IconFile />,    dividerAfter: true },
+  { label: '予約・受診履歴', icon: <IconCalendar />, navKey: 'reservation' },
+  { label: '診療情報',        icon: <IconFile />,    dividerAfter: true, navKey: 'medicalRecord' },
   { label: 'お薬の受け取り',  icon: <IconPill />,     href: '/medication', navKey: 'medication', dividerAfter: true },
   { label: '定期購入',        icon: <IconRefresh />,  href: '/subscription', navKey: 'subscription' },
   { label: 'おすすめ商品',   icon: <IconBag />,      href: '/shop', navKey: 'shop' },

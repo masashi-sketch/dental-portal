@@ -9,8 +9,21 @@ import type { Clinic, ClinicTerms, SalesRepWithMaster } from '@/lib/supabase/typ
 
 type ClinicWithStaff = Clinic & { staff: SalesRepWithMaster | null };
 
-const NAV_TOGGLE_ITEMS: { key: 'navShowClinicInfo' | 'navShowMedication' | 'navShowSubscription' | 'navShowShop' | 'navShowQa'; label: string }[] = [
+type NavToggleKey =
+  | 'navShowHome'
+  | 'navShowClinicInfo'
+  | 'navShowReservation'
+  | 'navShowMedicalRecord'
+  | 'navShowMedication'
+  | 'navShowSubscription'
+  | 'navShowShop'
+  | 'navShowQa';
+
+const NAV_TOGGLE_ITEMS: { key: NavToggleKey; label: string }[] = [
+  { key: 'navShowHome', label: 'ホーム' },
   { key: 'navShowClinicInfo', label: 'クリニック紹介' },
+  { key: 'navShowReservation', label: '予約・受診履歴' },
+  { key: 'navShowMedicalRecord', label: '診療情報' },
   { key: 'navShowMedication', label: 'お薬の受け取り' },
   { key: 'navShowSubscription', label: '定期購入' },
   { key: 'navShowShop', label: 'おすすめ商品' },
@@ -28,14 +41,19 @@ export default function AdminSettingsPage() {
   const [clinic, setClinic] = useState<ClinicWithStaff | null>(null);
   const [brandingForm, setBrandingForm] = useState({ displayName: '', patientBackgroundUrl: '' });
   const [brandingSaving, setBrandingSaving] = useState(false);
-  const [navForm, setNavForm] = useState({
+  const [navForm, setNavForm] = useState<Record<NavToggleKey, boolean>>({
+    navShowHome: true,
     navShowClinicInfo: true,
+    navShowReservation: true,
+    navShowMedicalRecord: true,
     navShowMedication: true,
     navShowSubscription: true,
     navShowShop: true,
     navShowQa: true,
   });
   const [navSaving, setNavSaving] = useState(false);
+  const [showPeriodontalDiagnosis, setShowPeriodontalDiagnosis] = useState(true);
+  const [periodontalSaving, setPeriodontalSaving] = useState(false);
 
   useEffect(() => {
     if (sessionStatus === 'loading' || !isClinicRole) return;
@@ -55,12 +73,16 @@ export default function AdminSettingsPage() {
             patientBackgroundUrl: data.clinic.patient_background_url ?? '',
           });
           setNavForm({
+            navShowHome: data.clinic.nav_show_home,
             navShowClinicInfo: data.clinic.nav_show_clinic_info,
+            navShowReservation: data.clinic.nav_show_reservation,
+            navShowMedicalRecord: data.clinic.nav_show_medical_record,
             navShowMedication: data.clinic.nav_show_medication,
             navShowSubscription: data.clinic.nav_show_subscription,
             navShowShop: data.clinic.nav_show_shop,
             navShowQa: data.clinic.nav_show_qa,
           });
+          setShowPeriodontalDiagnosis(data.clinic.show_periodontal_diagnosis);
         }
       })
       .catch(() => {});
@@ -83,6 +105,17 @@ export default function AdminSettingsPage() {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
+  const handleToggleNav = (key: NavToggleKey, checked: boolean) => {
+    if (!checked) {
+      const otherKeysChecked = NAV_TOGGLE_ITEMS.some(({ key: k }) => k !== key && navForm[k]);
+      if (!otherKeysChecked) {
+        showToast('患者ポータルのメニューは、少なくとも1つ表示にする必要があります');
+        return;
+      }
+    }
+    setNavForm({ ...navForm, [key]: checked });
+  };
+
   const handleSaveBranding = async () => {
     setBrandingSaving(true);
     try {
@@ -102,6 +135,28 @@ export default function AdminSettingsPage() {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     } finally {
       setBrandingSaving(false);
+    }
+  };
+
+  const handleSavePeriodontal = async () => {
+    setPeriodontalSaving(true);
+    try {
+      const res = await fetch('/api/admin/clinic-info', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ showPeriodontalDiagnosis }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? '保存に失敗しました');
+      }
+      const { clinic } = await res.json();
+      setClinic(clinic);
+      showToast('歯周病表示の設定を保存しました');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'エラーが発生しました');
+    } finally {
+      setPeriodontalSaving(false);
     }
   };
 
@@ -269,9 +324,34 @@ export default function AdminSettingsPage() {
 
                 {clinic && (
                   <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+                    <p className="text-sm font-bold text-slate-700 mb-1">歯周病表示</p>
+                    <p className="text-xs text-slate-400 mb-4">
+                      オンにすると、患者様ポータルの「お薬の受け取り」画面に歯周病の診断結果が表示されます。オフにすると患者様には表示されなくなり、医院用ポータルでの新規診断の入力もできなくなります（登録済みの履歴は残ります）。
+                    </p>
+                    <label className="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showPeriodontalDiagnosis}
+                        onChange={(e) => setShowPeriodontalDiagnosis(e.target.checked)}
+                        className="w-4 h-4 accent-sky-500"
+                      />
+                      歯周病の診断結果を患者様ポータルに表示する
+                    </label>
+                    <button
+                      onClick={handleSavePeriodontal}
+                      disabled={periodontalSaving}
+                      className="mt-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white text-base font-bold px-6 py-3 rounded-xl transition-colors cursor-pointer"
+                    >
+                      {periodontalSaving ? '保存中...' : '保存する'}
+                    </button>
+                  </div>
+                )}
+
+                {clinic && (
+                  <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm">
                     <p className="text-sm font-bold text-slate-700 mb-1">患者ポータルの表示設定</p>
                     <p className="text-xs text-slate-400 mb-4">
-                      患者様ポータルのメニューに表示する項目を選べます。チェックを外すと、患者様には表示されなくなります（「ホーム」は常に表示されます）。
+                      患者様ポータルのメニューに表示する項目を選べます。チェックを外すと、患者様には表示されなくなります（少なくとも1つは表示のままにする必要があります）。
                     </p>
                     <div className="flex flex-col gap-2.5">
                       {NAV_TOGGLE_ITEMS.map(({ key, label }) => (
@@ -279,7 +359,7 @@ export default function AdminSettingsPage() {
                           <input
                             type="checkbox"
                             checked={navForm[key]}
-                            onChange={(e) => setNavForm({ ...navForm, [key]: e.target.checked })}
+                            onChange={(e) => handleToggleNav(key, e.target.checked)}
                             className="w-4 h-4 accent-sky-500"
                           />
                           {label}

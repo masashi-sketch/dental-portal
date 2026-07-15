@@ -18,10 +18,15 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!data) return NextResponse.json({ displayName: null, backgroundUrl: null, nav: DEFAULT_NAV_VISIBILITY });
+  if (!data) {
+    return NextResponse.json({ displayName: null, backgroundUrl: null, nav: DEFAULT_NAV_VISIBILITY, showPeriodontalDiagnosis: true });
+  }
 
   const nav: NavVisibility = {
+    home: data.nav_show_home,
     clinicInfo: data.nav_show_clinic_info,
+    reservation: data.nav_show_reservation,
+    medicalRecord: data.nav_show_medical_record,
     medication: data.nav_show_medication,
     subscription: data.nav_show_subscription,
     shop: data.nav_show_shop,
@@ -32,5 +37,6 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     displayName: data.display_name ?? data.name,
     backgroundUrl: data.patient_background_url,
     nav,
+    showPeriodontalDiagnosis: data.show_periodontal_diagnosis,
   });
 }
