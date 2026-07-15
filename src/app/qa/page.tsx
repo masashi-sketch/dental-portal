@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
+import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 
 function IconBell() {
   return (
@@ -265,6 +266,7 @@ const categoryColors: Record<string, string> = {
 
 export default function QAPage() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { clinicName } = usePatientClinicBranding();
   const [activeCategory, setActiveCategory] = useState<string>('すべて');
   const [openIds, setOpenIds] = useState<number[]>([]);
 
@@ -298,7 +300,7 @@ export default function QAPage() {
                 <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
             </div>
-            <span className="text-gray-900 font-bold text-lg tracking-tight">テストデンタル歯科</span>
+            <span className="text-gray-900 font-bold text-lg tracking-tight">{clinicName ?? 'デンタルポータル'}</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-7 text-sm text-gray-600">
@@ -502,9 +504,9 @@ export default function QAPage() {
                 <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
             </div>
-            <span className="text-white font-semibold">テストデンタル歯科</span>
+            <span className="text-white font-semibold">{clinicName ?? 'デンタルポータル'}</span>
           </div>
-          <div className="text-gray-500 text-xs">© 2026 テストデンタル歯科. All Rights Reserved.</div>
+          <div className="text-gray-500 text-xs">© 2026 {clinicName ?? 'デンタルポータル'}. All Rights Reserved.</div>
           <div className="flex items-center gap-5 flex-wrap justify-center">
             <a href="#" className="hover:text-white transition-colors">プライバシーポリシー</a>
             <a href="#" className="hover:text-white transition-colors">特定商取引法</a>

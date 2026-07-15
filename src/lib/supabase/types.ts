@@ -117,6 +117,8 @@ export type Clinic = {
   nutritionist: number;
   childcare: number;
   main_referrer: string | null;
+  display_name: string | null;
+  patient_background_url: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -176,7 +178,10 @@ export const CLINIC_TERMS_COLUMNS =
   'customer_code, commission_rate, wholesale_rate, payment_terms_site, payment_method, contract_started_at, contract_renewal_at, updated_at, updated_by';
 
 export const CLINIC_COLUMNS =
-  'customer_code, name, area, staff_id, status, chairs, address, tel, contact_person, contract_since, patient_type, clinic_type, waiting_room, counseling_room, closed_day, full_time_dr, part_time_dr, hygienist, receptionist, assistant, technician, nurse, nutritionist, childcare, main_referrer, created_at, updated_at';
+  'customer_code, name, area, staff_id, status, chairs, address, tel, contact_person, contract_since, patient_type, clinic_type, waiting_room, counseling_room, closed_day, full_time_dr, part_time_dr, hygienist, receptionist, assistant, technician, nurse, nutritionist, childcare, main_referrer, display_name, patient_background_url, created_at, updated_at';
+
+// クリニックのブランディング（表示名・背景画像URL）のみ。公開エンドポイントで使う。
+export const CLINIC_BRANDING_COLUMNS = 'customer_code, name, display_name, patient_background_url';
 
 export const CLINIC_ORDER_COLUMNS =
   'id, customer_code, order_date, product_name, quantity, amount, status, created_at';

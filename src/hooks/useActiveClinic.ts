@@ -29,7 +29,7 @@ export function useActiveClinic() {
     fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(code)}`)
       .then((res) => (res.ok ? res.json() : { clinic: null }))
       .then((data) => {
-        setClinicName(data.clinic?.name ?? null);
+        setClinicName(data.clinic?.display_name ?? data.clinic?.name ?? null);
         setSalesRep(data.clinic?.staff ?? null);
       })
       .catch(() => {

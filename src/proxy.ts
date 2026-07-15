@@ -13,11 +13,15 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   const isApiAuth = pathname.startsWith("/api/auth");
   const isClinicLoginPath = pathname.startsWith("/clinic-login");
   const isPatientLoginPath = pathname === "/";
+  // クリニックのブランディング（表示名・背景画像URL）だけを返す公開エンドポイント。
+  // 患者ポータルのログイン画面（未認証）から呼ぶため認証不要。
+  const isPublicClinicBrandingPath = pathname.startsWith("/api/clinics/");
 
   if (isApiAuth) return NextResponse.next();
   if (isAuthPath) return NextResponse.next();
   if (isClinicLoginPath) return NextResponse.next();
   if (isPatientLoginPath) return NextResponse.next();
+  if (isPublicClinicBrandingPath) return NextResponse.next();
 
   const role = req.auth?.user?.role;
   const isPatientPortalPath = PATIENT_PORTAL_PATHS.some(

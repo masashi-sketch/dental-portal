@@ -35,3 +35,32 @@ export async function resolveEffectivePatientId(
 
   return null;
 }
+
+// ブランディング表示用に「今どの得意先として見るか」を解決する。
+// patient/clinicロールはセッションのcustomerCodeをそのまま使う
+// （clinicは自院プレビュー制限が既にあるため安全）。bgjはdemo-patient-idの
+// プレビュー対象患者から得意先コードを引く（bgjは他院患者もプレビュー可能なため）。
+export async function resolveEffectiveCustomerCode(
+  supabase: SupabaseClient,
+  session: Session | null,
+): Promise<string | null> {
+  if (!session?.user) return null;
+
+  if (session.user.role === 'patient' || session.user.role === 'clinic') {
+    return session.user.customerCode;
+  }
+
+  if (session.user.role === 'bgj') {
+    const cookieStore = await cookies();
+    const previewId = cookieStore.get('demo-patient-id')?.value ?? null;
+    if (!previewId) return null;
+    const { data } = await supabase
+      .from('patients')
+      .select('customer_code')
+      .eq('id', previewId)
+      .maybeSingle<{ customer_code: string }>();
+    return data?.customer_code ?? null;
+  }
+
+  return null;
+}

@@ -68,6 +68,8 @@ const FIELD_MAP: Record<string, string> = {
   nutritionist: 'nutritionist',
   childcare: 'childcare',
   mainReferrer: 'main_referrer',
+  displayName: 'display_name',
+  patientBackgroundUrl: 'patient_background_url',
 };
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
@@ -79,10 +81,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { code } = await params;
   const body = await request.json();
 
+  const NULLABLE_IF_EMPTY = new Set(['staffId', 'displayName', 'patientBackgroundUrl']);
   const update: Record<string, unknown> = {};
   for (const [key, column] of Object.entries(FIELD_MAP)) {
     if (body?.[key] === undefined) continue;
-    update[column] = key === 'staffId' ? body[key] || null : body[key];
+    update[column] = NULLABLE_IF_EMPTY.has(key) ? body[key] || null : body[key];
   }
 
   const supabase = getSupabaseServerClient();

@@ -147,6 +147,8 @@ create table public.clinics (
   nutritionist    int not null default 0,
   childcare       int not null default 0,
   main_referrer   text,                              -- 主な紹介者
+  display_name            text,                      -- 医院・患者ポータルの表示名（未設定ならnameを使う。医院自身も編集可）
+  patient_background_url  text,                       -- 患者ポータルのログイン画面背景画像URL（未設定なら標準画像）
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );

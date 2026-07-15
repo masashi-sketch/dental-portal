@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { signOut } from 'next-auth/react';
 import BottomNav from '../components/BottomNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
+import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 
 function IconMenu() {
   return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
@@ -154,6 +155,7 @@ const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス',
 
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { clinicName } = usePatientClinicBranding();
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'おはようございます' : hour < 18 ? 'こんにちは' : 'こんばんは';
@@ -177,7 +179,7 @@ export default function HomePage() {
                 <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
             </div>
-            <span className="text-gray-900 font-bold text-lg tracking-tight">テストデンタル歯科</span>
+            <span className="text-gray-900 font-bold text-lg tracking-tight">{clinicName ?? 'デンタルポータル'}</span>
           </div>
           <nav className="hidden md:flex items-center gap-7 text-sm text-gray-600">
             {headerNavLinks.map((label) => (
@@ -322,9 +324,9 @@ export default function HomePage() {
             <div className="w-6 h-6 bg-[#2563EB] rounded-md flex items-center justify-center">
               <svg width="13" height="13" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
             </div>
-            <span className="text-white font-semibold">テストデンタル歯科</span>
+            <span className="text-white font-semibold">{clinicName ?? 'デンタルポータル'}</span>
           </div>
-          <div className="text-gray-500 text-xs">© 2026 テストデンタル歯科. All Rights Reserved.</div>
+          <div className="text-gray-500 text-xs">© 2026 {clinicName ?? 'デンタルポータル'}. All Rights Reserved.</div>
           <div className="flex items-center gap-5 flex-wrap justify-center">
             <a href="#" className="hover:text-white transition-colors">プライバシーポリシー</a>
             <a href="#" className="hover:text-white transition-colors">特定商取引法</a>

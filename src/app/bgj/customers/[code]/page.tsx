@@ -35,6 +35,8 @@ type ClinicFormState = {
   nutritionist: string;
   childcare: string;
   mainReferrer: string;
+  displayName: string;
+  patientBackgroundUrl: string;
 };
 
 function clinicToForm(c: ClinicWithStaff): ClinicFormState {
@@ -63,6 +65,8 @@ function clinicToForm(c: ClinicWithStaff): ClinicFormState {
     nutritionist: String(c.nutritionist),
     childcare: String(c.childcare),
     mainReferrer: c.main_referrer ?? "",
+    displayName: c.display_name ?? "",
+    patientBackgroundUrl: c.patient_background_url ?? "",
   };
 }
 
@@ -463,10 +467,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                     ["電話番号", clinic.tel || "—"],
                     ["担当者", clinic.contact_person || "—"],
                     ["取引開始日", clinic.contract_since || "—"],
+                    ["ポータル表示名", clinic.display_name || "（未設定・医院名を表示）"],
+                    ["患者ポータル背景画像URL", clinic.patient_background_url || "（未設定・標準画像を使用）"],
                   ].map(([label, value]) => (
                     <div key={label}>
                       <p className="text-xs text-slate-400 mb-0.5">{label}</p>
-                      <p className="text-sm text-slate-800 font-semibold">{value}</p>
+                      <p className="text-sm text-slate-800 font-semibold break-all">{value}</p>
                     </div>
                   ))}
                   <div>
@@ -531,6 +537,18 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                       <option value="休眠">休眠</option>
                       <option value="解約リスク">解約リスク</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">ポータル表示名（医院自身も設定可）</label>
+                    <input value={clinicForm.displayName} onChange={(e) => setClinicForm({ ...clinicForm, displayName: e.target.value })}
+                      placeholder={clinic.name}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者ポータル背景画像URL（医院自身も設定可）</label>
+                    <input value={clinicForm.patientBackgroundUrl} onChange={(e) => setClinicForm({ ...clinicForm, patientBackgroundUrl: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
                   </div>
                 </div>
               )}

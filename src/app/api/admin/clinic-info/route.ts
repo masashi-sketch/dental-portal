@@ -47,3 +47,31 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({ clinic: { ...data, staff } });
 }
+
+// クリニック自身によるブランディング（表示名・背景画像URL）の自己編集専用。
+// role==='clinic' のセッションのみ許可し、常に自分のcustomerCodeの行だけを更新する
+// （bodyのcustomerCodeは一切信用しない）。BGJ側の代理編集は /api/bgj/clinics/[code] を使う。
+export async function PATCH(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== 'clinic' || !session.user.customerCode) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const { displayName, patientBackgroundUrl } = body ?? {};
+
+  const update: Record<string, unknown> = {};
+  if (displayName !== undefined) update.display_name = displayName || null;
+  if (patientBackgroundUrl !== undefined) update.patient_background_url = patientBackgroundUrl || null;
+
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('clinics')
+    .update(update)
+    .eq('customer_code', session.user.customerCode)
+    .select(CLINIC_COLUMNS)
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ clinic: data });
+}

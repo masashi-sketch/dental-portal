@@ -22,6 +22,8 @@ export default function AdminSettingsPage() {
   const [terms, setTerms] = useState<ClinicTerms | null>(null);
   const [termsLoading, setTermsLoading] = useState(false);
   const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [brandingForm, setBrandingForm] = useState({ displayName: '', patientBackgroundUrl: '' });
+  const [brandingSaving, setBrandingSaving] = useState(false);
 
   useEffect(() => {
     if (sessionStatus === 'loading') return;
@@ -48,7 +50,15 @@ export default function AdminSettingsPage() {
     if (!isClinicRole || !savedCode) return;
     fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(savedCode)}`)
       .then((res) => (res.ok ? res.json() : { clinic: null }))
-      .then((data) => { if (data.clinic) setClinics([data.clinic]); })
+      .then((data) => {
+        if (data.clinic) {
+          setClinics([data.clinic]);
+          setBrandingForm({
+            displayName: data.clinic.display_name ?? '',
+            patientBackgroundUrl: data.clinic.patient_background_url ?? '',
+          });
+        }
+      })
       .catch(() => {});
   }, [isClinicRole, savedCode]);
 
@@ -77,6 +87,28 @@ export default function AdminSettingsPage() {
     document.cookie = `${COOKIE_NAME}=${encodeURIComponent(selectedCode)}; path=/; max-age=31536000; SameSite=Lax`;
     setSavedCode(selectedCode);
     showToast('この医院ポータルに紐づく得意先を設定しました');
+  };
+
+  const handleSaveBranding = async () => {
+    setBrandingSaving(true);
+    try {
+      const res = await fetch('/api/admin/clinic-info', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(brandingForm),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? '保存に失敗しました');
+      }
+      const { clinic } = await res.json();
+      setClinics([clinic]);
+      showToast('ブランディング設定を保存しました');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'エラーが発生しました');
+    } finally {
+      setBrandingSaving(false);
+    }
   };
 
   const savedClinic = clinics.find((c) => c.customer_code === savedCode);
@@ -135,6 +167,46 @@ export default function AdminSettingsPage() {
               ) : (
                 <p className="text-slate-400 text-sm">取引条件はまだ設定されていません。BGJポータル側での設定をお待ちください。</p>
               )}
+            </div>
+          )}
+
+          {isClinicRole && savedClinic && (
+            <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm mb-5">
+              <p className="text-sm font-bold text-slate-700 mb-1">ブランディング設定</p>
+              <p className="text-xs text-slate-400 mb-4">
+                患者様ポータル・医院用ポータルに表示される名称と、患者様ポータルのログイン画面の背景画像を設定できます。
+              </p>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1 block">表示名</label>
+                  <input
+                    type="text"
+                    value={brandingForm.displayName}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, displayName: e.target.value })}
+                    placeholder={savedClinic.name}
+                    className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">未入力の場合は「{savedClinic.name}」がそのまま表示されます。</p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様ポータルの背景画像URL</label>
+                  <input
+                    type="text"
+                    value={brandingForm.patientBackgroundUrl}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, patientBackgroundUrl: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">未入力の場合は標準の背景画像が使われます。</p>
+                </div>
+              </div>
+              <button
+                onClick={handleSaveBranding}
+                disabled={brandingSaving}
+                className="mt-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white text-base font-bold px-6 py-3 rounded-xl transition-colors cursor-pointer"
+              >
+                {brandingSaving ? '保存中...' : '保存する'}
+              </button>
             </div>
           )}
 

@@ -1,12 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import Link from 'next/link';
+
+const DEFAULT_CLINIC_NAME = 'デンタルポータル';
+const DEFAULT_BACKGROUND = '/patient-login-bg.jpg';
+const LAST_CLINIC_COOKIE = 'patient-last-clinic';
 
 function setPortalCookie() {
   document.cookie = 'portal-selected=true; path=/; SameSite=Lax';
+}
+
+function readLastClinicCode(): string | null {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${LAST_CLINIC_COOKIE}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 export default function PatientLoginPage() {
@@ -14,7 +23,21 @@ export default function PatientLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [clinicName, setClinicName] = useState(DEFAULT_CLINIC_NAME);
+  const [backgroundUrl, setBackgroundUrl] = useState(DEFAULT_BACKGROUND);
   const router = useRouter();
+
+  useEffect(() => {
+    const code = readLastClinicCode();
+    if (!code) return;
+    fetch(`/api/clinics/${encodeURIComponent(code)}/branding`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.displayName) setClinicName(data.displayName);
+        if (data?.backgroundUrl) setBackgroundUrl(data.backgroundUrl);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleLogin = async () => {
     if (!userId.trim() || !password.trim()) {
@@ -30,20 +53,24 @@ export default function PatientLoginPage() {
       redirect: false,
     });
 
-    setLoading(false);
     if (!result || result.error) {
+      setLoading(false);
       setError('ログインIDまたはパスワードが正しくありません。');
       return;
     }
 
     setPortalCookie();
+    const session = await getSession();
+    if (session?.user?.customerCode) {
+      document.cookie = `${LAST_CLINIC_COOKIE}=${encodeURIComponent(session.user.customerCode)}; path=/; max-age=31536000; SameSite=Lax`;
+    }
     router.push('/home');
   };
 
   return (
     <div
       className="min-h-screen flex flex-col relative overflow-hidden"
-      style={{ backgroundImage: 'url(/patient-login-bg.jpg)', backgroundSize: 'cover', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat' }}
+      style={{ backgroundImage: `url(${backgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat' }}
     >
       <div className="absolute inset-0 bg-gray-900/50" />
 
@@ -55,7 +82,7 @@ export default function PatientLoginPage() {
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
           </div>
-          <span className="text-white font-bold text-2xl sm:text-4xl md:text-6xl tracking-tight">テストデンタル歯科</span>
+          <span className="text-white font-bold text-2xl sm:text-4xl md:text-6xl tracking-tight">{clinicName}</span>
         </div>
       </header>
 
@@ -130,7 +157,7 @@ export default function PatientLoginPage() {
       {/* フッター */}
       <footer className="relative z-10 bg-gray-900/60 text-gray-400">
         <div className="px-6 py-4 text-center text-xs">
-          © 2026 テストデンタル歯科. All Rights Reserved.
+          © 2026 {clinicName}. All Rights Reserved.
         </div>
       </footer>
     </div>
