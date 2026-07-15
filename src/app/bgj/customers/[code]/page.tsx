@@ -152,6 +152,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
       const { clinic } = await clinicRes.json();
       setClinic(clinic);
       if (clinic) setClinicForm(clinicToForm(clinic));
+      // 新規ログイン発行フォームの担当者名は、未入力なら担当営業の名前を初期値にする
+      if (clinic?.staff?.name) {
+        setNewLoginForm((f) => (f.name ? f : { ...f, name: clinic.staff.name }));
+      }
       if (ordersRes.ok) setOrders((await ordersRes.json()).orders ?? []);
       if (visitsRes.ok) setVisits((await visitsRes.json()).visits ?? []);
     } catch (e) {
@@ -299,7 +303,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   };
 
   const handleCreateLogin = async () => {
-    if (!newLoginForm.loginId.trim() || !newLoginForm.password.trim()) return;
+    if (!newLoginForm.loginId.trim() || !newLoginForm.password.trim()) {
+      showToast("ログインIDと初期パスワードを入力してください");
+      return;
+    }
     setCreatingLogin(true);
     try {
       const res = await fetch(`/api/bgj/clinics/${code}/user`, {
