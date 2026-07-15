@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
-  if (!session?.user?.email) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -61,7 +61,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
-  if (!session?.user?.email) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       grade_code: gradeCode,
       diagnosed_at: diagnosedAt || undefined,
       memo: memo || null,
-      created_by: session.user.email,
+      created_by: session.user.email ?? `clinic:${session.user.customerCode}`,
     })
     .select(PERIODONTAL_DIAGNOSIS_COLUMNS)
     .single();

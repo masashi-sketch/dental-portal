@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 // クリニックログインからは/api/bgj/*にアクセスできないため、こちらを使う。
 export async function GET(request: NextRequest) {
   const session = await auth();
-  if (!session?.user?.email) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
