@@ -297,8 +297,11 @@ create trigger trg_clinic_users_updated_at
   for each row execute function public.set_updated_at_generic();
 
 -- ============================================================
--- 10. RLS：ポリシーを一切定義せず有効化するのみ。
+-- 10. RLS：原則ポリシーを一切定義せず有効化するのみ。
 --    anon/authenticated からは読み書き一切不可。service_role キーのみアクセス可能。
+--    ※ patients / periodontal_diagnoses / periodontal_stages / periodontal_grades の
+--      4テーブルのみ、フェーズ3b（ハイブリッドJWT方式）で例外的にポリシーを持つ。
+--      詳細は11節を参照。それ以外のテーブルはこの原則のまま。
 -- ============================================================
 alter table public.periodontal_stages     enable row level security;
 alter table public.periodontal_grades     enable row level security;
@@ -312,3 +315,37 @@ alter table public.patients               enable row level security;
 alter table public.periodontal_diagnoses  enable row level security;
 alter table public.clinic_terms           enable row level security;
 alter table public.clinic_users           enable row level security;
+
+-- ============================================================
+-- 11. フェーズ3b：患者ポータルの歯周病診断読み取り経路のみ、
+--    service_roleではなくNextAuthセッション由来のJWT（anonキー相当）で
+--    Postgresに接続し、本物のRLSポリシーでDBレベルの多層防御を効かせる。
+--    詳細: src/lib/auth/scopedSupabaseClient.ts
+--    （他のテーブルはservice_role限定のまま。3a監査でアプリ層の認可は
+--    確認済みのため対象外。将来必要になれば同じ手法で拡張できる）
+-- ============================================================
+create policy "authenticated can read stages" on public.periodontal_stages
+  for select using (true);
+create policy "authenticated can read grades" on public.periodontal_grades
+  for select using (true);
+
+create policy "scoped read on patients" on public.patients
+  for select using (
+    (auth.jwt() ->> 'app_role') = 'bgj'
+    or customer_code = (auth.jwt() ->> 'customer_code')
+    or id = ((auth.jwt() ->> 'patient_id')::uuid)
+  );
+
+-- password_hashは列単位でも見せない（RLSに加えた多層防御）
+revoke select on public.patients from authenticated, anon;
+grant select (id, customer_code, patient_no, name, login_id, status, registered_at, created_at, updated_at)
+  on public.patients to authenticated;
+
+create policy "scoped read on diagnoses" on public.periodontal_diagnoses
+  for select using (
+    (auth.jwt() ->> 'app_role') = 'bgj'
+    or patient_id = ((auth.jwt() ->> 'patient_id')::uuid)
+    or patient_id in (
+      select id from public.patients where customer_code = (auth.jwt() ->> 'customer_code')
+    )
+  );

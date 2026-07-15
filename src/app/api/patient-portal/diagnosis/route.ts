@@ -1,20 +1,25 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getScopedSupabaseClient } from '@/lib/auth/scopedSupabaseClient';
 import { resolveEffectivePatientId } from '@/lib/auth/patientScope';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const session = await auth();
-  const supabase = getSupabaseServerClient();
-  const patientId = await resolveEffectivePatientId(supabase, session);
+  const serviceClient = getSupabaseServerClient();
+  const patientId = await resolveEffectivePatientId(serviceClient, session);
 
-  if (!patientId) {
+  if (!patientId || !session) {
     return NextResponse.json({ diagnosis: null });
   }
 
-  const { data: diagnosisRows, error: diagnosisError } = await supabase
+  // 診断データ本体はDBレベルのRLSも効くscopedクライアントで取得する
+  // （アプリ側のスコープ判定に万一誤りがあっても、DBが他人の診断を返さない）
+  const scoped = getScopedSupabaseClient(session);
+
+  const { data: diagnosisRows, error: diagnosisError } = await scoped
     .from('periodontal_diagnoses')
     .select('stage_code, grade_code, diagnosed_at, memo')
     .eq('patient_id', patientId)
@@ -32,8 +37,8 @@ export async function GET() {
   }
 
   const [{ data: stage }, { data: grade }] = await Promise.all([
-    supabase.from('periodontal_stages').select('code, label, name, description').eq('code', latest.stage_code).single(),
-    supabase.from('periodontal_grades').select('code, label, name, description').eq('code', latest.grade_code).single(),
+    scoped.from('periodontal_stages').select('code, label, name, description').eq('code', latest.stage_code).single(),
+    scoped.from('periodontal_grades').select('code, label, name, description').eq('code', latest.grade_code).single(),
   ]);
 
   return NextResponse.json({
