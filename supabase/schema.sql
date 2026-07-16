@@ -147,29 +147,11 @@ create table public.clinics (
   nutritionist    int not null default 0,
   childcare       int not null default 0,
   main_referrer   text,                              -- 主な紹介者
-  display_name            text,                      -- 医院・患者ポータルの表示名（未設定ならnameを使う。医院自身も編集可）
-  patient_background_url  text,                       -- 患者ポータルのログイン画面背景画像URL（未設定なら標準画像）
-  -- 患者ポータルの「クリニック紹介」画面に表示する診療時間・アクセス情報（患者向け公開情報。
-  -- BGJ内部管理用のaddress/tel/closed_dayとは別に、医院自身またはBGJ代理編集で設定する）。
-  clinic_hours_weekday     text,                      -- 例：「9:00〜18:00」
-  clinic_hours_saturday    text,
-  clinic_closed_day        text,                      -- 例：「水・日・祝日」
-  clinic_phone             text,
-  clinic_address           text,
-  clinic_nearest_station   text,
-  clinic_parking           text,
-  -- 患者ポータルのサイドバー・ボトムナビ各項目の表示/非表示（クリニック情報＞医院設定情報で編集可、全てデフォルトtrue）。
-  -- 「ホーム」はトグル対象外で常に表示。アプリ側で「少なくとも1つはtrue」を強制する（DBレベルの制約は設けていない）。
-  nav_show_clinic_info     boolean not null default true,
-  nav_show_medical_record  boolean not null default true,
-  nav_show_medication      boolean not null default true,
-  nav_show_subscription    boolean not null default true,
-  nav_show_shop            boolean not null default true,
-  nav_show_qa              boolean not null default true,
-  -- 歯周病の診断結果を患者ポータルに表示するか（オフの場合、医院用ポータルでの新規診断入力も不可にする）。
-  show_periodontal_diagnosis boolean not null default true,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
+  -- display_name/patient_background_url/clinic_hours_*/clinic_phone/clinic_address/
+  -- clinic_nearest_station/clinic_parking/nav_show_*/show_periodontal_diagnosisは
+  -- clinic_patient_settings・clinic_intro_infoテーブルへ移行済み（4b節参照。DROP COLUMN済み）。
 );
 
 create or replace function public.set_clinics_updated_at()
@@ -183,6 +165,51 @@ $$;
 create trigger trg_clinics_updated_at
   before update on public.clinics
   for each row execute function public.set_clinics_updated_at();
+
+-- ============================================================
+-- 4b. clinicsから切り出したブランディング・患者ナビ設定・クリニック紹介情報。
+--     目的はパフォーマンスではなく、BGJ編集可／医院自身編集可／患者公開という
+--     境界をテーブル単位で明示すること。customer_codeを主キー・clinicsへの
+--     外部キーとする1:1関係（clinic_termsと同じ設計）。
+-- ============================================================
+create table public.clinic_patient_settings (
+  customer_code              text primary key references public.clinics (customer_code) on delete cascade,
+  display_name                text,                      -- 医院・患者ポータルの表示名（未設定ならclinics.nameを使う。医院自身も編集可）
+  patient_background_url      text,                       -- 患者ポータルのログイン画面背景画像URL（未設定なら標準画像）
+  -- 患者ポータルのサイドバー・ボトムナビ各項目の表示/非表示（クリニック情報＞医院設定情報で編集可、全てデフォルトtrue）。
+  -- 「ホーム」はトグル対象外で常に表示。アプリ側で「少なくとも1つはtrue」を強制する（DBレベルの制約は設けていない）。
+  nav_show_clinic_info         boolean not null default true,
+  nav_show_medical_record      boolean not null default true,
+  nav_show_medication          boolean not null default true,
+  nav_show_subscription        boolean not null default true,
+  nav_show_shop                boolean not null default true,
+  nav_show_qa                  boolean not null default true,
+  -- 歯周病の診断結果を患者ポータルに表示するか（オフの場合、医院用ポータルでの新規診断入力も不可にする）。
+  show_periodontal_diagnosis   boolean not null default true,
+  updated_at                   timestamptz not null default now()
+);
+
+create trigger trg_clinic_patient_settings_updated_at
+  before update on public.clinic_patient_settings
+  for each row execute function public.set_updated_at_generic();
+
+create table public.clinic_intro_info (
+  customer_code            text primary key references public.clinics (customer_code) on delete cascade,
+  -- 患者ポータルの「クリニック紹介」画面に表示する診療時間・アクセス情報（患者向け公開情報。
+  -- BGJ内部管理用のclinics.address/tel/closed_dayとは別に、医院自身またはBGJ代理編集で設定する）。
+  clinic_hours_weekday      text,                      -- 例：「9:00〜18:00」
+  clinic_hours_saturday     text,
+  clinic_closed_day         text,                      -- 例：「水・日・祝日」
+  clinic_phone              text,
+  clinic_address            text,
+  clinic_nearest_station    text,
+  clinic_parking            text,
+  updated_at                timestamptz not null default now()
+);
+
+create trigger trg_clinic_intro_info_updated_at
+  before update on public.clinic_intro_info
+  for each row execute function public.set_updated_at_generic();
 
 -- ============================================================
 -- 4. 得意先（医院）の注文履歴
@@ -372,6 +399,8 @@ alter table public.staff_roles            enable row level security;
 alter table public.staff_areas            enable row level security;
 alter table public.sales_reps             enable row level security;
 alter table public.clinics                enable row level security;
+alter table public.clinic_patient_settings enable row level security;
+alter table public.clinic_intro_info      enable row level security;
 alter table public.clinic_orders          enable row level security;
 alter table public.clinic_visits          enable row level security;
 alter table public.patients               enable row level security;

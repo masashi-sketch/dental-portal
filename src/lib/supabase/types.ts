@@ -117,15 +117,16 @@ export type Clinic = {
   nutritionist: number;
   childcare: number;
   main_referrer: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// 患者ポータルに反映する設定（表示名・背景画像URL・ナビ表示切替・歯周病表示切替）。
+// clinic_patient_settingsテーブル（1:1、customer_codeが主キー）。
+export type ClinicPatientSettings = {
+  customer_code: string;
   display_name: string | null;
   patient_background_url: string | null;
-  clinic_hours_weekday: string | null;
-  clinic_hours_saturday: string | null;
-  clinic_closed_day: string | null;
-  clinic_phone: string | null;
-  clinic_address: string | null;
-  clinic_nearest_station: string | null;
-  clinic_parking: string | null;
   nav_show_clinic_info: boolean;
   nav_show_medical_record: boolean;
   nav_show_medication: boolean;
@@ -133,7 +134,20 @@ export type Clinic = {
   nav_show_shop: boolean;
   nav_show_qa: boolean;
   show_periodontal_diagnosis: boolean;
-  created_at: string;
+  updated_at: string;
+};
+
+// 患者ポータルの「クリニック紹介」画面（診療時間・アクセス）。
+// clinic_intro_infoテーブル（1:1、customer_codeが主キー）。
+export type ClinicIntroInfo = {
+  customer_code: string;
+  clinic_hours_weekday: string | null;
+  clinic_hours_saturday: string | null;
+  clinic_closed_day: string | null;
+  clinic_phone: string | null;
+  clinic_address: string | null;
+  clinic_nearest_station: string | null;
+  clinic_parking: string | null;
   updated_at: string;
 };
 
@@ -217,15 +231,16 @@ export const CLINIC_TERMS_COLUMNS =
   'customer_code, commission_rate, wholesale_rate, payment_terms_site, payment_method, contract_started_at, contract_renewal_at, updated_at, updated_by';
 
 export const CLINIC_COLUMNS =
-  'customer_code, name, area, staff_id, status, chairs, address, tel, contact_person, contract_since, patient_type, clinic_type, waiting_room, counseling_room, closed_day, full_time_dr, part_time_dr, hygienist, receptionist, assistant, technician, nurse, nutritionist, childcare, main_referrer, display_name, patient_background_url, clinic_hours_weekday, clinic_hours_saturday, clinic_closed_day, clinic_phone, clinic_address, clinic_nearest_station, clinic_parking, nav_show_clinic_info, nav_show_medical_record, nav_show_medication, nav_show_subscription, nav_show_shop, nav_show_qa, show_periodontal_diagnosis, created_at, updated_at';
+  'customer_code, name, area, staff_id, status, chairs, address, tel, contact_person, contract_since, patient_type, clinic_type, waiting_room, counseling_room, closed_day, full_time_dr, part_time_dr, hygienist, receptionist, assistant, technician, nurse, nutritionist, childcare, main_referrer, created_at, updated_at';
 
-// 患者ポータルに反映する設定（表示名・背景画像URL・ナビ表示切替）のみ。公開エンドポイントでも使う。
+// clinic_patient_settingsテーブル（ブランディング・患者ナビ表示切替・歯周病表示切替）の列。
+// 公開エンドポイントでも使う。
 export const CLINIC_PATIENT_SETTINGS_COLUMNS =
-  'customer_code, name, display_name, patient_background_url, nav_show_clinic_info, nav_show_medical_record, nav_show_medication, nav_show_subscription, nav_show_shop, nav_show_qa, show_periodontal_diagnosis';
+  'customer_code, display_name, patient_background_url, nav_show_clinic_info, nav_show_medical_record, nav_show_medication, nav_show_subscription, nav_show_shop, nav_show_qa, show_periodontal_diagnosis';
 
-// 患者ポータルの「クリニック紹介」画面（診療時間・アクセス）に反映する設定のみ。
+// clinic_intro_infoテーブル（患者ポータルの「クリニック紹介」診療時間・アクセス）の列。
 export const CLINIC_INTRO_INFO_COLUMNS =
-  'customer_code, name, clinic_hours_weekday, clinic_hours_saturday, clinic_closed_day, clinic_phone, clinic_address, clinic_nearest_station, clinic_parking';
+  'customer_code, clinic_hours_weekday, clinic_hours_saturday, clinic_closed_day, clinic_phone, clinic_address, clinic_nearest_station, clinic_parking';
 
 export const CLINIC_STAFF_COLUMNS =
   'id, customer_code, role_label, name, credentials, description, photo_url, sort_order, created_at, updated_at';

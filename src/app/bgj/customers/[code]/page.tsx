@@ -7,9 +7,9 @@ import SalesRepAvatar from "@/components/SalesRepAvatar";
 import ClinicStaffManager from "@/components/ClinicStaffManager";
 import ClinicQaManager from "@/components/ClinicQaManager";
 import { useToast } from "@/hooks/useToast";
-import type { Clinic, ClinicOrder, ClinicStatus, ClinicUserPublic, ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
+import type { Clinic, ClinicIntroInfo, ClinicOrder, ClinicPatientSettings, ClinicStatus, ClinicUserPublic, ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
 
-type ClinicWithStaff = Clinic & { staff: SalesRepWithMaster | null };
+type ClinicWithStaff = Clinic & ClinicPatientSettings & ClinicIntroInfo & { staff: SalesRepWithMaster | null };
 
 const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "訪問記録", "ログイン管理", "クリニック紹介", "Q&A"];
 

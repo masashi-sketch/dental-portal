@@ -19,7 +19,7 @@ export async function GET() {
   }
 
   const [{ data: info, error: infoError }, { data: staff, error: staffError }] = await Promise.all([
-    supabase.from('clinics').select(CLINIC_INTRO_INFO_COLUMNS).eq('customer_code', customerCode).maybeSingle(),
+    supabase.from('clinic_intro_info').select(CLINIC_INTRO_INFO_COLUMNS).eq('customer_code', customerCode).maybeSingle(),
     supabase.from('clinic_staff').select(CLINIC_STAFF_COLUMNS).eq('customer_code', customerCode).order('sort_order', { ascending: true }).limit(100),
   ]);
 

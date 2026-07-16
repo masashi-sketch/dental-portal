@@ -2,9 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { requireBgjSession } from '@/lib/auth/clinicScope';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { CLINIC_COLUMNS, SALES_REP_COLUMNS, STAFF_AREA_COLUMNS, STAFF_ROLE_COLUMNS } from '@/lib/supabase/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+  CLINIC_COLUMNS,
+  CLINIC_INTRO_INFO_COLUMNS,
+  CLINIC_PATIENT_SETTINGS_COLUMNS,
+  SALES_REP_COLUMNS,
+  STAFF_AREA_COLUMNS,
+  STAFF_ROLE_COLUMNS,
+} from '@/lib/supabase/types';
 
 export const dynamic = 'force-dynamic';
+
+// clinics（コア情報）・clinic_patient_settings（ブランディング・ナビ表示切替・
+// 歯周病表示切替）・clinic_intro_info（診療時間・アクセス）を並列取得し、
+// 呼び出し側には従来通り1つのフラットなclinicオブジェクトとして返す。
+async function fetchMergedClinic(supabase: SupabaseClient, code: string) {
+  const [{ data, error }, { data: settings }, { data: intro }] = await Promise.all([
+    supabase.from('clinics').select(CLINIC_COLUMNS).eq('customer_code', code).maybeSingle(),
+    supabase.from('clinic_patient_settings').select(CLINIC_PATIENT_SETTINGS_COLUMNS).eq('customer_code', code).maybeSingle(),
+    supabase.from('clinic_intro_info').select(CLINIC_INTRO_INFO_COLUMNS).eq('customer_code', code).maybeSingle(),
+  ]);
+
+  if (error) return { data: null, error };
+  if (!data) return { data: null, error: null };
+
+  return { data: { ...data, ...settings, ...intro }, error: null };
+}
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const session = await auth();
@@ -14,14 +38,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   const { code } = await params;
   const supabase = getSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('clinics')
-    .select(CLINIC_COLUMNS)
-    .eq('customer_code', code)
-    .maybeSingle();
+  const { data, error } = await fetchMergedClinic(supabase, code);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
   if (!data) return NextResponse.json({ clinic: null });
 
   let staff = null;
@@ -43,7 +62,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   return NextResponse.json({ clinic: { ...data, staff } });
 }
 
-const FIELD_MAP: Record<string, string> = {
+const CORE_FIELD_MAP: Record<string, string> = {
   name: 'name',
   area: 'area',
   staffId: 'staff_id',
@@ -68,8 +87,14 @@ const FIELD_MAP: Record<string, string> = {
   nutritionist: 'nutritionist',
   childcare: 'childcare',
   mainReferrer: 'main_referrer',
+};
+
+const SETTINGS_FIELD_MAP: Record<string, string> = {
   displayName: 'display_name',
   patientBackgroundUrl: 'patient_background_url',
+};
+
+const INTRO_FIELD_MAP: Record<string, string> = {
   clinicHoursWeekday: 'clinic_hours_weekday',
   clinicHoursSaturday: 'clinic_hours_saturday',
   clinicClosedDay: 'clinic_closed_day',
@@ -78,6 +103,21 @@ const FIELD_MAP: Record<string, string> = {
   clinicNearestStation: 'clinic_nearest_station',
   clinicParking: 'clinic_parking',
 };
+
+const NULLABLE_IF_EMPTY = new Set([
+  'staffId', 'displayName', 'patientBackgroundUrl',
+  'clinicHoursWeekday', 'clinicHoursSaturday', 'clinicClosedDay',
+  'clinicPhone', 'clinicAddress', 'clinicNearestStation', 'clinicParking',
+]);
+
+function buildUpdate(body: Record<string, unknown>, fieldMap: Record<string, string>): Record<string, unknown> {
+  const update: Record<string, unknown> = {};
+  for (const [key, column] of Object.entries(fieldMap)) {
+    if (body?.[key] === undefined) continue;
+    update[column] = NULLABLE_IF_EMPTY.has(key) ? body[key] || null : body[key];
+  }
+  return update;
+}
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const session = await auth();
@@ -88,25 +128,29 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { code } = await params;
   const body = await request.json();
 
-  const NULLABLE_IF_EMPTY = new Set([
-    'staffId', 'displayName', 'patientBackgroundUrl',
-    'clinicHoursWeekday', 'clinicHoursSaturday', 'clinicClosedDay',
-    'clinicPhone', 'clinicAddress', 'clinicNearestStation', 'clinicParking',
-  ]);
-  const update: Record<string, unknown> = {};
-  for (const [key, column] of Object.entries(FIELD_MAP)) {
-    if (body?.[key] === undefined) continue;
-    update[column] = NULLABLE_IF_EMPTY.has(key) ? body[key] || null : body[key];
-  }
+  const coreUpdate = buildUpdate(body, CORE_FIELD_MAP);
+  const settingsUpdate = buildUpdate(body, SETTINGS_FIELD_MAP);
+  const introUpdate = buildUpdate(body, INTRO_FIELD_MAP);
 
   const supabase = getSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('clinics')
-    .update(update)
-    .eq('customer_code', code)
-    .select(CLINIC_COLUMNS)
-    .single();
 
+  const [coreResult, settingsResult, introResult] = await Promise.all([
+    Object.keys(coreUpdate).length > 0
+      ? supabase.from('clinics').update(coreUpdate).eq('customer_code', code).select('customer_code').single()
+      : Promise.resolve({ error: null }),
+    Object.keys(settingsUpdate).length > 0
+      ? supabase.from('clinic_patient_settings').upsert({ customer_code: code, ...settingsUpdate }, { onConflict: 'customer_code' }).select('customer_code').single()
+      : Promise.resolve({ error: null }),
+    Object.keys(introUpdate).length > 0
+      ? supabase.from('clinic_intro_info').upsert({ customer_code: code, ...introUpdate }, { onConflict: 'customer_code' }).select('customer_code').single()
+      : Promise.resolve({ error: null }),
+  ]);
+
+  if (coreResult.error) return NextResponse.json({ error: coreResult.error.message }, { status: 500 });
+  if (settingsResult.error) return NextResponse.json({ error: settingsResult.error.message }, { status: 500 });
+  if (introResult.error) return NextResponse.json({ error: introResult.error.message }, { status: 500 });
+
+  const { data, error } = await fetchMergedClinic(supabase, code);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ clinic: data });
 }

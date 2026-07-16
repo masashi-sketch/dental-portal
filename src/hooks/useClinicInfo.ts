@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import type { Clinic, SalesRepWithMaster } from '@/lib/supabase/types';
+import type { Clinic, ClinicIntroInfo, ClinicPatientSettings, SalesRepWithMaster } from '@/lib/supabase/types';
 
-export type ClinicWithStaff = Clinic & { staff: SalesRepWithMaster | null };
+// APIレスポンスはclinics・clinic_patient_settings・clinic_intro_infoを
+// フラットにマージした1つのオブジェクトを返すため、型もそれに合わせて合成する。
+export type ClinicWithStaff = Clinic & ClinicPatientSettings & ClinicIntroInfo & { staff: SalesRepWithMaster | null };
 
 // admin/clinic-info/contract, config, clinic-intro の3ページが個別に持っていた
 // 「クリニックロールのcustomerCodeを解決し、自院のclinic-infoを取得する」処理の共通化。

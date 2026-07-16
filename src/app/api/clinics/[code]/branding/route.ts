@@ -11,30 +11,29 @@ export const dynamic = 'force-dynamic';
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const supabase = getSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('clinics')
-    .select(CLINIC_PATIENT_SETTINGS_COLUMNS)
-    .eq('customer_code', code)
-    .maybeSingle();
+  const [{ data: clinic }, { data: settings, error }] = await Promise.all([
+    supabase.from('clinics').select('name').eq('customer_code', code).maybeSingle(),
+    supabase.from('clinic_patient_settings').select(CLINIC_PATIENT_SETTINGS_COLUMNS).eq('customer_code', code).maybeSingle(),
+  ]);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!data) {
+  if (!settings) {
     return NextResponse.json({ displayName: null, backgroundUrl: null, nav: DEFAULT_NAV_VISIBILITY, showPeriodontalDiagnosis: true });
   }
 
   const nav: NavVisibility = {
-    clinicInfo: data.nav_show_clinic_info,
-    medicalRecord: data.nav_show_medical_record,
-    medication: data.nav_show_medication,
-    subscription: data.nav_show_subscription,
-    shop: data.nav_show_shop,
-    qa: data.nav_show_qa,
+    clinicInfo: settings.nav_show_clinic_info,
+    medicalRecord: settings.nav_show_medical_record,
+    medication: settings.nav_show_medication,
+    subscription: settings.nav_show_subscription,
+    shop: settings.nav_show_shop,
+    qa: settings.nav_show_qa,
   };
 
   return NextResponse.json({
-    displayName: data.display_name ?? data.name,
-    backgroundUrl: data.patient_background_url,
+    displayName: settings.display_name ?? clinic?.name ?? null,
+    backgroundUrl: settings.patient_background_url,
     nav,
-    showPeriodontalDiagnosis: data.show_periodontal_diagnosis,
+    showPeriodontalDiagnosis: settings.show_periodontal_diagnosis,
   });
 }
