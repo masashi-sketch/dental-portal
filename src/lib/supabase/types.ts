@@ -25,10 +25,12 @@ export type Patient = {
   registered_at: string;
   created_at: string;
   updated_at: string;
+  failed_login_attempts: number;
+  locked_until: string | null;
 };
 
-// クライアントへ返す用（password_hashを含まない）
-export type PatientPublic = Omit<Patient, 'password_hash'>;
+// クライアントへ返す用（password_hash・ログインロックアウト関連の内部情報を含まない）
+export type PatientPublic = Omit<Patient, 'password_hash' | 'failed_login_attempts' | 'locked_until'>;
 
 export type PeriodontalDiagnosis = {
   id: string;
@@ -207,14 +209,16 @@ export type ClinicUser = {
   status: '有効' | '無効';
   created_at: string;
   updated_at: string;
+  failed_login_attempts: number;
+  locked_until: string | null;
 };
 
-// クライアントへ返す用（password_hashを含まない）
-export type ClinicUserPublic = Omit<ClinicUser, 'password_hash'>;
+// クライアントへ返す用（password_hash・ログインロックアウト関連の内部情報を含まない）
+export type ClinicUserPublic = Omit<ClinicUser, 'password_hash' | 'failed_login_attempts' | 'locked_until'>;
 
 // select('*') を避け、APIルート間で使う列指定をここに集約する。
 export const PATIENT_COLUMNS =
-  'id, customer_code, patient_no, name, login_id, password_hash, status, registered_at, created_at, updated_at';
+  'id, customer_code, patient_no, name, login_id, password_hash, status, registered_at, created_at, updated_at, failed_login_attempts, locked_until';
 
 // クライアントへ返す一覧・詳細用（password_hashを含めない）
 export const PATIENT_PUBLIC_COLUMNS =
@@ -261,7 +265,7 @@ export const STAFF_ROLE_COLUMNS = 'id, name, created_at, updated_at';
 export const STAFF_AREA_COLUMNS = 'id, name, created_at, updated_at';
 
 export const CLINIC_USER_COLUMNS =
-  'id, customer_code, login_id, password_hash, name, status, created_at, updated_at';
+  'id, customer_code, login_id, password_hash, name, status, created_at, updated_at, failed_login_attempts, locked_until';
 
 // クライアントへ返す一覧・詳細用（password_hashを含めない）
 export const CLINIC_USER_PUBLIC_COLUMNS =

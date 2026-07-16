@@ -227,6 +227,24 @@ create table public.clinic_orders (
 
 create index idx_clinic_orders_customer_code on public.clinic_orders (customer_code, order_date desc);
 
+-- 得意先一覧（BGJポータル）の「最終注文日・当月売上」をDB側で集計する。
+-- clinic_ordersを行単位でアプリ側に転送してlimitで打ち切ると、件数がlimitを超えた
+-- 時点で古い得意先の集計が欠落するため、集計自体をPostgres側で完結させる。
+create or replace function public.bgj_clinic_order_summary()
+returns table (customer_code text, last_order_date date, month_sales bigint)
+language sql
+stable
+as $$
+  select
+    customer_code,
+    max(order_date) as last_order_date,
+    coalesce(sum(amount) filter (
+      where date_trunc('month', order_date) = date_trunc('month', current_date)
+    ), 0) as month_sales
+  from public.clinic_orders
+  group by customer_code;
+$$;
+
 -- ============================================================
 -- 5. 得意先（医院）の訪問記録
 -- ============================================================
@@ -258,6 +276,9 @@ create table public.patients (
   registered_at date not null default current_date,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
+  -- ログインの総当たり対策（src/lib/auth/loginLockout.ts）
+  failed_login_attempts int not null default 0,
+  locked_until           timestamptz,
   unique (login_id)
 );
 
@@ -335,7 +356,10 @@ create table public.clinic_users (
   name          text,
   status        text not null default '有効' check (status in ('有効','無効')),
   created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
+  updated_at    timestamptz not null default now(),
+  -- ログインの総当たり対策（src/lib/auth/loginLockout.ts）
+  failed_login_attempts int not null default 0,
+  locked_until           timestamptz
 );
 
 create index idx_clinic_users_customer_code on public.clinic_users (customer_code);

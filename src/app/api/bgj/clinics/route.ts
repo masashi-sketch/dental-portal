@@ -15,39 +15,36 @@ export async function GET() {
   const supabase = getSupabaseServerClient();
   const [
     { data: clinics, error: clinicsError },
-    { data: orders, error: ordersError },
+    { data: orderSummary, error: orderSummaryError },
     { data: salesReps, error: salesRepsError },
     { data: roles, error: rolesError },
     { data: areas, error: areasError },
   ] = await Promise.all([
     supabase.from('clinics').select(CLINIC_COLUMNS).order('customer_code', { ascending: true }).limit(500),
-    supabase
-      .from('clinic_orders')
-      .select('customer_code, order_date, amount')
-      .order('order_date', { ascending: false })
-      .limit(1000),
+    // 得意先ごとの最終注文日・当月売上はPostgres側(bgj_clinic_order_summary)で集計する。
+    // clinic_ordersを行単位でlimit付き取得すると、件数がlimitを超えた時点で
+    // 古い得意先の集計が欠落するため、行取得ではなく集計関数のRPC呼び出しにしている。
+    supabase.rpc<'bgj_clinic_order_summary', { customer_code: string; last_order_date: string | null; month_sales: number }[]>(
+      'bgj_clinic_order_summary'
+    ),
     supabase.from('sales_reps').select(SALES_REP_COLUMNS).limit(200),
     supabase.from('staff_roles').select(STAFF_ROLE_COLUMNS).limit(200),
     supabase.from('staff_areas').select(STAFF_AREA_COLUMNS).limit(200),
   ]);
 
-  if (clinicsError || ordersError || salesRepsError || rolesError || areasError) {
+  if (clinicsError || orderSummaryError || salesRepsError || rolesError || areasError) {
     return NextResponse.json(
-      { error: (clinicsError ?? ordersError ?? salesRepsError ?? rolesError ?? areasError)?.message },
+      { error: (clinicsError ?? orderSummaryError ?? salesRepsError ?? rolesError ?? areasError)?.message },
       { status: 500 }
     );
   }
 
-  const now = new Date();
-  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const monthSalesMap = new Map<string, number>();
   const lastOrderMap = new Map<string, string>();
 
-  for (const o of orders ?? []) {
-    if (!lastOrderMap.has(o.customer_code)) lastOrderMap.set(o.customer_code, o.order_date);
-    if (o.order_date.slice(0, 7) === currentMonthKey) {
-      monthSalesMap.set(o.customer_code, (monthSalesMap.get(o.customer_code) ?? 0) + o.amount);
-    }
+  for (const row of orderSummary ?? []) {
+    if (row.last_order_date) lastOrderMap.set(row.customer_code, row.last_order_date);
+    monthSalesMap.set(row.customer_code, Number(row.month_sales ?? 0));
   }
 
   const roleMap = new Map((roles ?? []).map((r) => [r.id, r]));

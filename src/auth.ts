@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { CLINIC_USER_COLUMNS, PATIENT_COLUMNS } from "@/lib/supabase/types";
 import { verifyPassword } from "@/lib/auth/password";
+import { isLocked, recordFailedLoginAttempt, resetLoginAttempts } from "@/lib/auth/loginLockout";
 import type { ClinicUser, Patient } from "@/lib/supabase/types";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -32,9 +33,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .eq("status", "有効")
           .maybeSingle<ClinicUser>();
         if (!data) return null;
+        if (isLocked(data.locked_until)) return null;
 
         const valid = verifyPassword(password, data.password_hash);
-        if (!valid) return null;
+        if (!valid) {
+          await recordFailedLoginAttempt(supabase, "clinic_users", data.id, data.failed_login_attempts);
+          return null;
+        }
+        if (data.failed_login_attempts > 0 || data.locked_until) {
+          await resetLoginAttempts(supabase, "clinic_users", data.id);
+        }
 
         return {
           id: data.id,
@@ -64,9 +72,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .eq("status", "有効")
           .maybeSingle<Patient>();
         if (!data) return null;
+        if (isLocked(data.locked_until)) return null;
 
         const valid = verifyPassword(password, data.password_hash);
-        if (!valid) return null;
+        if (!valid) {
+          await recordFailedLoginAttempt(supabase, "patients", data.id, data.failed_login_attempts);
+          return null;
+        }
+        if (data.failed_login_attempts > 0 || data.locked_until) {
+          await resetLoginAttempts(supabase, "patients", data.id);
+        }
 
         return {
           id: data.id,
