@@ -2,38 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import AdminSidebar from '../../components/AdminSidebar';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
-import type { Clinic, ClinicTerms, SalesRepWithMaster } from '@/lib/supabase/types';
-
-type ClinicWithStaff = Clinic & { staff: SalesRepWithMaster | null };
+import { useClinicInfo } from '@/hooks/useClinicInfo';
+import type { ClinicTerms } from '@/lib/supabase/types';
 
 export default function AdminClinicContractPage() {
-  const { data: session, status: sessionStatus } = useSession();
-  const isClinicRole = session?.user?.role === 'clinic';
+  const { isClinicRole, customerCode, clinic } = useClinicInfo();
 
-  const [savedCode, setSavedCode] = useState('');
   const [terms, setTerms] = useState<ClinicTerms | null>(null);
   const [termsLoading, setTermsLoading] = useState(false);
-  const [clinic, setClinic] = useState<ClinicWithStaff | null>(null);
 
   useEffect(() => {
-    if (sessionStatus === 'loading' || !isClinicRole) return;
-    // クリニックログインは自分の得意先コードに固定（切替不可）
-    setSavedCode(session!.user.customerCode ?? '');
-  }, [sessionStatus, isClinicRole, session]);
-
-  useEffect(() => {
-    if (!isClinicRole || !savedCode) return;
-    fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(savedCode)}`)
-      .then((res) => (res.ok ? res.json() : { clinic: null }))
-      .then((data) => { if (data.clinic) setClinic(data.clinic); })
-      .catch(() => {});
-  }, [isClinicRole, savedCode]);
-
-  useEffect(() => {
-    if (!isClinicRole || !savedCode) {
+    if (!isClinicRole || !customerCode) {
       setTerms(null);
       return;
     }
@@ -45,7 +26,7 @@ export default function AdminClinicContractPage() {
       .catch(() => { if (!cancelled) setTerms(null); })
       .finally(() => { if (!cancelled) setTermsLoading(false); });
     return () => { cancelled = true; };
-  }, [savedCode, isClinicRole]);
+  }, [customerCode, isClinicRole]);
 
   return (
     <div className="min-h-screen flex bg-sky-50">

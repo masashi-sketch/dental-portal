@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import AdminSidebar from '../components/AdminSidebar';
 import ClinicStaffManager from '@/components/ClinicStaffManager';
+import { useToast } from '@/hooks/useToast';
+import { useClinicInfo } from '@/hooks/useClinicInfo';
 
 const HOURS_FIELDS: { key: keyof HoursForm; label: string; placeholder: string }[] = [
   { key: 'clinicHoursWeekday', label: '平日の診療時間', placeholder: '例）9:00〜18:00' },
@@ -37,41 +38,23 @@ const EMPTY_HOURS_FORM: HoursForm = {
 };
 
 export default function AdminClinicIntroPage() {
-  const { data: session, status: sessionStatus } = useSession();
-  const isClinicRole = session?.user?.role === 'clinic';
-
-  const [savedCode, setSavedCode] = useState('');
-  const [toast, setToast] = useState('');
-  const [loaded, setLoaded] = useState(false);
+  const { isClinicRole, clinic, setClinic, loaded } = useClinicInfo();
+  const { toast, showToast } = useToast();
   const [hoursForm, setHoursForm] = useState<HoursForm>(EMPTY_HOURS_FORM);
   const [saving, setSaving] = useState(false);
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
-
   useEffect(() => {
-    if (sessionStatus === 'loading' || !isClinicRole) return;
-    setSavedCode(session!.user.customerCode ?? '');
-  }, [sessionStatus, isClinicRole, session]);
-
-  useEffect(() => {
-    if (!isClinicRole || !savedCode) return;
-    fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(savedCode)}`)
-      .then((res) => (res.ok ? res.json() : { clinic: null }))
-      .then((data) => {
-        if (data.clinic) {
-          setHoursForm({
-            clinicHoursWeekday: data.clinic.clinic_hours_weekday ?? '',
-            clinicHoursSaturday: data.clinic.clinic_hours_saturday ?? '',
-            clinicClosedDay: data.clinic.clinic_closed_day ?? '',
-            clinicPhone: data.clinic.clinic_phone ?? '',
-            clinicAddress: data.clinic.clinic_address ?? '',
-            clinicNearestStation: data.clinic.clinic_nearest_station ?? '',
-            clinicParking: data.clinic.clinic_parking ?? '',
-          });
-        }
-      })
-      .finally(() => setLoaded(true));
-  }, [isClinicRole, savedCode]);
+    if (!clinic) return;
+    setHoursForm({
+      clinicHoursWeekday: clinic.clinic_hours_weekday ?? '',
+      clinicHoursSaturday: clinic.clinic_hours_saturday ?? '',
+      clinicClosedDay: clinic.clinic_closed_day ?? '',
+      clinicPhone: clinic.clinic_phone ?? '',
+      clinicAddress: clinic.clinic_address ?? '',
+      clinicNearestStation: clinic.clinic_nearest_station ?? '',
+      clinicParking: clinic.clinic_parking ?? '',
+    });
+  }, [clinic]);
 
   const handleSaveHours = async () => {
     setSaving(true);
@@ -85,6 +68,8 @@ export default function AdminClinicIntroPage() {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? '保存に失敗しました');
       }
+      const { clinic: updated } = await res.json();
+      setClinic((prev) => (prev ? { ...prev, ...updated } : prev));
       showToast('診療時間・アクセス情報を保存しました');
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');

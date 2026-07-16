@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import AdminSidebar from '../../components/AdminSidebar';
-import type { Clinic, SalesRepWithMaster } from '@/lib/supabase/types';
-
-type ClinicWithStaff = Clinic & { staff: SalesRepWithMaster | null };
+import { useToast } from '@/hooks/useToast';
+import { useClinicInfo } from '@/hooks/useClinicInfo';
 
 type NavToggleKey =
   | 'navShowClinicInfo'
@@ -26,12 +24,8 @@ const NAV_TOGGLE_ITEMS: { key: NavToggleKey; label: string }[] = [
 ];
 
 export default function AdminClinicConfigPage() {
-  const { data: session, status: sessionStatus } = useSession();
-  const isClinicRole = session?.user?.role === 'clinic';
-
-  const [savedCode, setSavedCode] = useState('');
-  const [toast, setToast] = useState('');
-  const [clinic, setClinic] = useState<ClinicWithStaff | null>(null);
+  const { isClinicRole, clinic, setClinic } = useClinicInfo();
+  const { toast, showToast } = useToast();
   const [brandingForm, setBrandingForm] = useState({ displayName: '', patientBackgroundUrl: '' });
   const [brandingSaving, setBrandingSaving] = useState(false);
   const [navForm, setNavForm] = useState<Record<NavToggleKey, boolean>>({
@@ -47,37 +41,21 @@ export default function AdminClinicConfigPage() {
   const [periodontalSaving, setPeriodontalSaving] = useState(false);
 
   useEffect(() => {
-    if (sessionStatus === 'loading' || !isClinicRole) return;
-    // クリニックログインは自分の得意先コードに固定（切替不可）
-    setSavedCode(session!.user.customerCode ?? '');
-  }, [sessionStatus, isClinicRole, session]);
-
-  useEffect(() => {
-    if (!isClinicRole || !savedCode) return;
-    fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(savedCode)}`)
-      .then((res) => (res.ok ? res.json() : { clinic: null }))
-      .then((data) => {
-        if (data.clinic) {
-          setClinic(data.clinic);
-          setBrandingForm({
-            displayName: data.clinic.display_name ?? '',
-            patientBackgroundUrl: data.clinic.patient_background_url ?? '',
-          });
-          setNavForm({
-            navShowClinicInfo: data.clinic.nav_show_clinic_info,
-            navShowMedicalRecord: data.clinic.nav_show_medical_record,
-            navShowMedication: data.clinic.nav_show_medication,
-            navShowSubscription: data.clinic.nav_show_subscription,
-            navShowShop: data.clinic.nav_show_shop,
-            navShowQa: data.clinic.nav_show_qa,
-          });
-          setShowPeriodontalDiagnosis(data.clinic.show_periodontal_diagnosis);
-        }
-      })
-      .catch(() => {});
-  }, [isClinicRole, savedCode]);
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+    if (!clinic) return;
+    setBrandingForm({
+      displayName: clinic.display_name ?? '',
+      patientBackgroundUrl: clinic.patient_background_url ?? '',
+    });
+    setNavForm({
+      navShowClinicInfo: clinic.nav_show_clinic_info,
+      navShowMedicalRecord: clinic.nav_show_medical_record,
+      navShowMedication: clinic.nav_show_medication,
+      navShowSubscription: clinic.nav_show_subscription,
+      navShowShop: clinic.nav_show_shop,
+      navShowQa: clinic.nav_show_qa,
+    });
+    setShowPeriodontalDiagnosis(clinic.show_periodontal_diagnosis);
+  }, [clinic]);
 
   const handleToggleNav = (key: NavToggleKey, checked: boolean) => {
     if (!checked) {
@@ -102,8 +80,8 @@ export default function AdminClinicConfigPage() {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? '保存に失敗しました');
       }
-      const { clinic } = await res.json();
-      setClinic(clinic);
+      const { clinic: updated } = await res.json();
+      setClinic((prev) => (prev ? { ...prev, ...updated } : prev));
       showToast('ブランディング設定を保存しました');
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
@@ -124,8 +102,8 @@ export default function AdminClinicConfigPage() {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? '保存に失敗しました');
       }
-      const { clinic } = await res.json();
-      setClinic(clinic);
+      const { clinic: updated } = await res.json();
+      setClinic((prev) => (prev ? { ...prev, ...updated } : prev));
       showToast('歯周病表示の設定を保存しました');
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
@@ -146,8 +124,8 @@ export default function AdminClinicConfigPage() {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? '保存に失敗しました');
       }
-      const { clinic } = await res.json();
-      setClinic(clinic);
+      const { clinic: updated } = await res.json();
+      setClinic((prev) => (prev ? { ...prev, ...updated } : prev));
       showToast('患者ポータルの表示設定を保存しました');
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
