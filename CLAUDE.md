@@ -12,7 +12,7 @@
 2. 調査依頼か実装依頼か判断する
 3. Next.jsコード変更なら `node_modules/next/dist/docs/` の関連ガイドを読む（このプロジェクトのNext.jsは一般知識と異なる可能性があるため）
 4. 変更は小さく、1責務に絞る
-5. 必要に応じて `npm run lint` / `npx tsc --noEmit` / `npm run build` を実行する（`npm run test`は未整備。下記「自動テスト方針」参照）
+5. 必要に応じて `npm run lint` / `npx tsc --noEmit` / `npm run test` / `npm run build` を実行する（下記「自動テスト方針」参照）
 6. commit / push 方針を確認する
 7. デプロイは明示指示がある時だけ行う
 
@@ -106,11 +106,12 @@
 ```bash
 npm run lint
 npx tsc --noEmit
+npm run test
 npm run build
 ```
 
 - `npm run build`は、このプロジェクトが動く環境によってはGoogle Fonts（`next/font/google`）のネットワーク取得に失敗し完走しないことがある。その場合は`tsc`と`npm run dev`（`--webpack`）での動作確認を主たる検証とし、その旨を必ず報告する。
-- `npm run test`に相当するテスト基盤は未整備（下記「自動テスト方針」参照）。整備するまでは検証コマンドから除外する。
+- `npm run test`（Vitest）は`src/lib/auth/*.test.ts`等のユニットテストを実行する。CI・pre-commitフックでの自動実行はまだ無いため、コード変更のたびに自分で実行して確認する（下記「自動テスト方針」参照）。
 - ドキュメントのみの変更では、必要に応じて検証を省略してよい。ただし省略したことを報告する。
 
 ## コミット方針
@@ -188,7 +189,7 @@ vercel --prod
 - 同じロジックが2ファイル以上 → `src/hooks/`または`src/lib/`に切り出す
 - 共通化した部品は必ず`src/components/`（UI専用なら`src/components/ui/`を新設）に置き、既存ファイルからimportに置き換える
 
-**現状把握**：トースト通知（`toast`state + `setTimeout`で消す実装）が12ファイルで個別実装されている。次にトースト関連を触る機会があれば、`src/hooks/useToast.ts`（または`src/components/ui/Toast.tsx`）への共通化を優先的に検討する。
+**現状把握**：トースト通知は`src/hooks/useToast.ts`に共通化済み（状態管理のみ共通化、見た目はポータルごとに維持）。新規ページでトーストが必要な場合はこのフックを使う。
 
 # コーディング禁止事項
 
@@ -213,7 +214,8 @@ const { data, error } = await supabase
 ```
 
 - 権限チェック（`usePermission()`相当）はこのプロジェクトには存在しない。認可は「Google OAuthで`@biogaia.jp`にログインできているか」のみで、画面ごとの細かい権限分岐は行っていない。
-- トースト通知の共通hookは未整備。当面は各ページのローカル実装（`useState` + `setTimeout`）を踏襲し、`src/hooks/useToast.ts`を作る際にまとめて置き換える。
+- トースト通知は`src/hooks/useToast.ts`を使う（`const { toast, showToast } = useToast();`）。
+- クリニックの自院情報（`/api/admin/clinic-info`）を扱うページは`src/hooks/useClinicInfo.ts`を使う。取得成功時に編集フォームstateを初期化したい場合は`onLoad`コールバック引数を使う（`useEffect`内で直接`setState`すると`react-hooks/set-state-in-effect`に引っかかるため）。
 
 # 新しい画面を追加するときの手順
 
@@ -268,14 +270,18 @@ DB変更SQLを提示するときは、以下をセットにする。
 
 ## 現状の既知の課題
 
-- `admin/patients`, `admin/patients/[id]`, `admin/clinic-info/contract`, `admin/clinic-info/config`, `bgj/customers/[code]`の各ページは、登録・更新・削除の成功後に**一覧を毎回全件再取得**している（楽観更新はしていない）。データ量が今は小さいため実害はないが、次にこれらのページを触る際は「返却行をstateにマージする」方式への置き換えを検討する。
-- 上記4ページとも`useEffect`内で条件分岐しつつ直接`setState`する初期化パターンを使っており、`npm run lint`で`react-hooks/set-state-in-effect`の指摘が出る（このプロジェクトの既存コード、例:`AdminSidebar.tsx`にも同種の指摘が既にあり、今回のセッションで新規に広げたものではない）。プロジェクト全体に及ぶため、まとまった別作業として対応するのが望ましい。
+- `admin/patients`, `admin/patients/[id]`, `ClinicStaffManager`, `ClinicQaManager`, `bgj/customers/[code]`は、登録・更新・削除成功時にAPIレスポンスの行をローカルstateにマージする楽観的更新方式に統一済み（全件再取得はしない）。新しいCRUD操作を追加する際もこのパターンを踏襲する。
+- `react-hooks/set-state-in-effect` / `react-hooks/static-components`のlint指摘は解消済み（`npm run lint`は0エラー）。マウント時にfetchする関数は「`useCallback`でメモ化 → `useEffect`の依存配列に関数を含める」のパターンに統一し、`.then()`チェーンで書く（`async/await`+`try/catch`で書くと、effectから直接呼んだ場合に指摘が出ることがある）。
+- 患者ポータルの`navItems`配列（qa/medication/clinic/subscription/shop/homeの6ページ）は依然として個別定義のまま（共通化は意図的にスコープ外としている）。
 
 # 自動テスト方針
 
-- このプロジェクトには**テスト基盤（Vitest等）が未整備**。`package.json`に`test`スクリプトは無い。
-- 整備する場合は、Vitest + React Testing Library + jsdomを採用し、Supabaseや外部サービスに直接アクセスせずmock/fakeを使う方針を踏襲する。
-- テスト導入はまとまった作業になるため、着手前にユーザーに確認する（無断で devDependencies を追加しない）。
+- テスト基盤は**Vitest + React Testing Library + jsdom**（`vitest.config.ts`・`vitest.setup.ts`）。`npm run test`（= `npx vitest run`）で実行する。
+- `server-only`パッケージはテスト実行時のみ無害な`empty.js`にエイリアスしている（`vitest.config.ts`の`resolve.alias`）。サーバー専用ファイル（`import 'server-only'`を含む）のテストは、jsdomの`window`と衝突しないようファイル先頭に`// @vitest-environment node`を書く。
+- Supabaseや`next/headers`等の外部依存は直接叩かず、mock/fakeを使う（`src/lib/auth/*.test.ts`を参照）。
+- 現状のカバレッジは`src/lib/auth/`配下（`clinicScope.ts`・`password.ts`・`patientScope.ts`）の認可・認証ロジックのみ。APIルートやUIコンポーネントのテストはまだ無い。
+- **CI（GitHub Actions）やgit pre-commitフックでの自動実行は未設定**。コード変更後は自分で`npm run test`を実行して確認する。
+- 新しいテストを追加する場合は既存の書き方（`vitest`のdescribe/it、上記のmockパターン）を踏襲する。
 
 # 評価観点と次のおすすめ
 
@@ -290,8 +296,8 @@ DB変更SQLを提示するときは、以下をセットにする。
 
 ## 次のおすすめ
 
-1. トースト通知の共通hook化（`useToast`）— 12ファイルの重複を解消
-2. `admin/patients`系ページの楽観更新への置き換え
-3. `react-hooks/set-state-in-effect` / `react-hooks/static-components`のlint指摘をプロジェクト全体で棚卸し・是正
-4. テスト基盤（Vitest）導入の要否をユーザーと確認
-5. 得意先マスタ（BGJポータルの得意先一覧）自体のSupabase移行（現状は`src/lib/clinics.ts`の静的データ）
+1. テストカバレッジの拡大（現状`src/lib/auth/`のみ）。次点候補：`scopedSupabaseClient.ts`、APIルートのハンドラ、患者ナビの可視化ロジック（`src/lib/patientNav.ts`）
+2. 患者ポータル6ページ＋`BottomNav.tsx`の`navItems`重複定義の共通化（意図的にスコープ外にしてきたが、いずれ着手が必要）
+3. `clinics`テーブルの正規化（機能追加のたびに列が増えており、DB設計・クエリ効率の観点で見直しが必要）
+4. 得意先マスタ（BGJポータルの得意先一覧）自体のSupabase移行（現状は`src/lib/clinics.ts`の静的データ）
+5. CI（GitHub Actions）でのlint/tsc/testの自動実行の要否をユーザーと確認
