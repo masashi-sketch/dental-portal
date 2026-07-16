@@ -169,6 +169,7 @@ vercel --prod
   - `patient`：`patient-credentials`（`patients`テーブル、`/`）。自分の`patientId`/`customerCode`に固定。
 - DB：Supabase。サーバー専用クライアント（`src/lib/supabase/server.ts`）のみを使用し、`@supabase/ssr`は導入しない。クライアント（ブラウザ）に秘密鍵を一切露出しない設計。患者の歯周病診断読み取りのみ、`src/lib/auth/scopedSupabaseClient.ts`経由でRLSも効くDBレベルの多層防御を追加済み。
 - 残っているデモ用cookie：`portal-selected`（ポータル種別）、`demo-patient-id`（スタッフが患者ポータルをプレビューするための対象患者ID、`resolveEffectivePatientId`で検証）、`patient-last-clinic`（患者ログイン画面の表示ブランディングだけに使う非機密cookie）。`active-customer-code`（旧・BGJ職員が医院用ポータルで得意先を選択する仕組み）は廃止済み。
+- **エラー監視は`@sentry/nextjs`を導入済み**（`src/instrumentation.ts` / `src/instrumentation-client.ts` / `sentry.server.config.ts` / `sentry.edge.config.ts` / `src/app/global-error.tsx`）。`.env.local`の`NEXT_PUBLIC_SENTRY_DSN`が未設定の間はSentry SDKが自動的に無効化され、何も送信されない（sentry.ioで無料プロジェクトを作成しDSNを設定すると有効化される）。`sendDefaultPii`は無効のまま（Cookie/Authorizationヘッダーは送信しない）で、`src/lib/sentryScrub.ts`のbeforeSendでメール文字列も多層防御的にマスクしている。
 
 # セキュリティ方針
 
@@ -176,6 +177,7 @@ vercel --prod
   - これはユーザーが別プロジェクト（wbs-app）で採用している「RLSを無効化する」方針とは意図的に異なる。このプロジェクトはSupabase Authを使わずNextAuthのみで完結させる設計のため、RLSを有効のまま塞いでおく方が安全と判断している。テーブル追加時にRLS無効化SQLを提示しないこと。
 - `SUPABASE_SERVICE_ROLE_KEY`などの秘密情報は会話・ログに出力しない。`.env.local`は`.gitignore`済み。
 - 新規APIルート（`/api/admin/*`, `/api/bgj/*`, `/api/patient-portal/*`）は原則`@/auth`の`auth()`でセッション確認してから処理する。
+- **ログインの総当たり対策**：`clinic-credentials`・`patient-credentials`は`src/lib/auth/loginLockout.ts`でアカウント単位のロックアウトを行う（5回連続失敗で15分ロック、`patients`/`clinic_users`の`failed_login_attempts`/`locked_until`列で管理）。IPベースのレート制限は未導入（必要になったらVercel/WAF等の有料機能導入を検討し、事前にユーザーへ確認する）。
 
 # 共通部品の方針
 
@@ -284,6 +286,7 @@ DB変更SQLを提示するときは、以下をセットにする。
 - 患者ポータルの`navItems`配列（qa/medication/clinic/subscription/shop/homeの6ページ）は依然として個別定義のまま（共通化は意図的にスコープ外としている）。
 - `src/app/api/periodontal/master/route.ts`はほぼ変化しないマスタデータのため`next/cache`の`unstable_cache`で1時間キャッシュ済み。`auth()`（cookie読み取り）はキャッシュ対象外に置き、認可は毎回そのまま効かせている。同様に「ほぼ変化しないマスタ + 認証必須」なAPIルートを追加する際はこのパターンを踏襲する。
 - recharts（`admin/commission`・`bgj/customers/[code]`・`bgj/dashboard`・`bgj/reports`）は`next/dynamic`（`ssr: false`）で遅延読み込み済み。チャート部分は同ディレクトリの子コンポーネント（例：`CommissionChart.tsx`）に切り出し、データが動的な場合はprops経由で渡す（`SalesHistoryChart.tsx`が例）。新しく重いチャートを追加する場合もこのパターンを踏襲する。
+- **複数得意先を横断集計するAPI（`/api/bgj/clinics`等）は、行単位でlimit付き取得してアプリ側でループ集計してはいけない**。得意先数・履歴件数が増えると`limit`を超えた時点で古い得意先の集計が欠落するバグになる（実際に`clinic_orders`の`last_order_date`/`month_sales`集計で発生し、Postgres関数`public.bgj_clinic_order_summary()`に置き換えて修正済み）。同様の「全得意先を横断する集計」を追加する場合は、Postgres側の集計関数（`group by`）をRPCで呼び出す設計にする。
 
 # 自動テスト方針
 
@@ -312,3 +315,4 @@ DB変更SQLを提示するときは、以下をセットにする。
 3. CI（GitHub Actions、`.github/workflows/ci.yml`）導入済み。push/pull_request時にlint/tsc/testを自動実行する。pre-commitフック（husky等）の追加は未実施・要否は都度確認
 4. レスポンス改善：`periodontal/master`のキャッシュ化・recharts4ページの遅延読み込みは完了。次点候補はクライアント側フェッチのキャッシュ層（SWR/React Query）導入（今回は意図的にスコープ外）
 5. UI一貫性：`src/components/ui/`のButton/Card/LoadingState/ConfirmDialogをadmin・bgj全ページに適用済み。次点候補は患者ポータルへの適用要否の検討（現状は意図的にスコープ外）
+6. 本番リリース（想定300クリニック・4,000ユーザー）に向けて、`bgj_clinic_order_summary`によるDB集計バグ修正・ログインの総当たり対策（アカウント単位ロックアウト）・Sentry導入（DSN未設定時は無効化）が完了。残タスク：(a) Sentryの`NEXT_PUBLIC_SENTRY_DSN`をsentry.ioで発行して設定する、(b) Supabase/Vercelのプラン見直し（帯域・接続数・バックアップ要件の整理、ユーザー確認要）、(c) BGJダッシュボード/レポート画面を中心とした簡易負荷試験
