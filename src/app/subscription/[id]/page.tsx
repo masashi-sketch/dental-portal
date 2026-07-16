@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import BottomNav from '../../components/BottomNav';
+import PatientSidebarNav, { IconHome, IconLogout } from '@/components/PatientSidebarNav';
+import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import { subProducts } from '../data';
 
 function IconBell() {
@@ -18,35 +20,11 @@ function IconMenu() {
 function IconXClose() {
   return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
 }
-function IconClinic() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>;
-}
-function IconCalendar() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>;
-}
-function IconFile() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8" /></svg>;
-}
-function IconRefresh() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>;
-}
-function IconBag() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>;
-}
-function IconQA() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
-}
-function IconLogout() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
-}
 function IconArrowLeft() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>;
 }
 function IconCheck() {
   return <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>;
-}
-function IconHome() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>;
 }
 
 /* ── サプリメント商品画像（小） ── */
@@ -72,16 +50,6 @@ function SupplementImageSm({ type }: { type: string }) {
   );
 }
 
-const navItems = [
-  { label: 'ホーム',         icon: <IconHome />,     href: '/home' },
-  { label: 'クリニック紹介', icon: <IconClinic />,  href: '/clinic' },
-  { label: '予約・受診履歴', icon: <IconCalendar />, href: '#' },
-  { label: '診療情報',       icon: <IconFile />,     href: '#', dividerAfter: true },
-  { label: '定期購入',       icon: <IconRefresh />,  href: '/subscription', active: true },
-  { label: 'おすすめ商品',  icon: <IconBag />,      href: '/shop' },
-  { label: 'Q & A',          icon: <IconQA />,       href: '/qa' },
-];
-
 const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
 type Period = '6ヶ月' | '3ヶ月';
@@ -96,6 +64,7 @@ export default function SubscriptionOrderPage() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [period, setPeriod] = useState<Period | null>(null);
   const [delivery, setDelivery] = useState<Delivery | null>(null);
+  const { clinicName, navVisibility } = usePatientClinicBranding();
 
   if (!product) {
     return (
@@ -136,7 +105,7 @@ export default function SubscriptionOrderPage() {
                 <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
             </div>
-            <span className="text-gray-900 font-bold text-lg tracking-tight">テストデンタル歯科</span>
+            <span className="text-gray-900 font-bold text-lg tracking-tight">{clinicName ?? 'デンタルポータル'}</span>
           </div>
           <nav className="hidden md:flex items-center gap-7 text-sm text-gray-600">
             {headerNavLinks.map((label) => (
@@ -161,7 +130,7 @@ export default function SubscriptionOrderPage() {
       </header>
 
       {/* ボトムナビ（モバイル） */}
-      <BottomNav active="subscription" />
+      <BottomNav active="subscription" navVisibility={navVisibility} />
 
       {/* ボディ */}
       <div className="flex flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 gap-6 sm:gap-8">
@@ -169,25 +138,12 @@ export default function SubscriptionOrderPage() {
         {/* サイドバー */}
         <aside className="hidden md:block w-52 shrink-0">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
-            <nav className="flex flex-col gap-0.5">
-              {navItems.map((item) => (
-                <div key={item.label}>
-                  <Link href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
-                      item.active ? 'bg-[#EFF6FF] text-[#2563EB] font-semibold' : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className={item.active ? 'text-[#2563EB]' : 'text-gray-400'}>{item.icon}</span>
-                    {item.label}
-                  </Link>
-                  {item.dividerAfter && <div className="my-2 h-px bg-gray-100" />}
-                </div>
-              ))}
+            <PatientSidebarNav active="subscription" navVisibility={navVisibility}>
               <div className="my-2 h-px bg-gray-100" />
               <Link href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors">
                 <span className="text-gray-400"><IconLogout /></span>ログアウト
               </Link>
-            </nav>
+            </PatientSidebarNav>
           </div>
         </aside>
 
@@ -407,7 +363,7 @@ export default function SubscriptionOrderPage() {
                       <p className="text-sm text-gray-500">次回ご来院時に受け取れます。送料が不要です。</p>
                       <div className="mt-3 bg-gray-50 rounded-xl px-4 py-3 text-xs text-gray-600">
                         <p className="font-semibold mb-1">受け取り先</p>
-                        <p>テストデンタル歯科</p>
+                        <p>{clinicName ?? 'デンタルポータル'}</p>
                         <p>〒100-0000　東京都中央区銀座1-1-1　銀座ビル3F</p>
                       </div>
                       <span className="inline-block mt-2 text-xs text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full font-medium">
@@ -459,7 +415,7 @@ export default function SubscriptionOrderPage() {
                 <div className="divide-y divide-gray-50 mt-1">
                   {[
                     { label: 'コース',       value: `${period}コース` },
-                    { label: 'お届け先',     value: delivery === '自宅' ? 'ご自宅（登録住所）' : '医院（テストデンタル歯科）' },
+                    { label: 'お届け先',     value: delivery === '自宅' ? 'ご自宅（登録住所）' : `医院（${clinicName ?? 'デンタルポータル'}）` },
                     { label: '割引',         value: period === '6ヶ月' ? '10% OFF' : '5% OFF' },
                     { label: '月額（税込）', value: `¥${monthlyPrice.toLocaleString()}` },
                     { label: '合計（税込）', value: `¥${totalPrice.toLocaleString()}（${months}ヶ月分）` },
@@ -506,7 +462,7 @@ export default function SubscriptionOrderPage() {
                 {product.name}の定期購入（{period}コース）を受け付けました。
               </p>
               <p className="text-gray-500 text-sm leading-relaxed mb-8">
-                お届け先：{delivery === '自宅' ? 'ご自宅（登録住所）' : '医院（テストデンタル歯科）'}
+                お届け先：{delivery === '自宅' ? 'ご自宅（登録住所）' : `医院（${clinicName ?? 'デンタルポータル'}）`}
               </p>
 
               <div className="bg-gray-50 rounded-2xl p-5 w-full max-w-sm text-left mb-8">
@@ -551,9 +507,9 @@ export default function SubscriptionOrderPage() {
             <div className="w-6 h-6 bg-[#2563EB] rounded-md flex items-center justify-center">
               <svg width="13" height="13" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
             </div>
-            <span className="text-white font-semibold">テストデンタル歯科</span>
+            <span className="text-white font-semibold">{clinicName ?? 'デンタルポータル'}</span>
           </div>
-          <div className="text-gray-500 text-xs">© 2026 テストデンタル歯科. All Rights Reserved.</div>
+          <div className="text-gray-500 text-xs">© 2026 {clinicName ?? 'デンタルポータル'}. All Rights Reserved.</div>
           <div className="flex items-center gap-5 flex-wrap justify-center">
             <a href="#" className="hover:text-white transition-colors">プライバシーポリシー</a>
             <a href="#" className="hover:text-white transition-colors">特定商取引法</a>

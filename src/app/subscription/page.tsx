@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import BottomNav from '../components/BottomNav';
+import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
-import { isPatientNavKeyVisible, type PatientNavKey } from '@/lib/patientNav';
 import { subProducts } from './data';
 
 function IconBell() {
@@ -20,27 +20,6 @@ function IconMenu() {
 function IconX() {
   return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
 }
-function IconClinic() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>;
-}
-function IconFile() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8" /></svg>;
-}
-function IconRefresh() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>;
-}
-function IconBag() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>;
-}
-function IconQA() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
-}
-function IconPill() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7Z" /><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" strokeOpacity="0.5" /></svg>;
-}
-function IconLogout() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
-}
 function IconCheck() {
   return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>;
 }
@@ -52,9 +31,6 @@ function IconShield() {
 }
 function IconTruck() {
   return <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>;
-}
-function IconHome() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>;
 }
 function IconStar() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>;
@@ -135,16 +111,6 @@ function SupplementImage({ type, size = 'md' }: { type: string; size?: 'sm' | 'm
   );
 }
 
-const navItems: { label: string; icon: React.ReactNode; href: string; active?: boolean; dividerAfter?: boolean; navKey?: PatientNavKey }[] = [
-  { label: 'ホーム',         icon: <IconHome />,     href: '/home' },
-  { label: 'クリニック紹介', icon: <IconClinic />,  href: '/clinic', navKey: 'clinicInfo' },
-  { label: '診療情報',       icon: <IconFile />,     href: '#', dividerAfter: true, navKey: 'medicalRecord' },
-  { label: 'サプリメントの受け取り', icon: <IconPill />,     href: '/medication', navKey: 'medication', dividerAfter: true },
-  { label: '定期購入',       icon: <IconRefresh />,  href: '/subscription', navKey: 'subscription', active: true },
-  { label: 'おすすめ商品',  icon: <IconBag />,      href: '/shop', navKey: 'shop' },
-  { label: 'Q & A',          icon: <IconQA />,       href: '/qa', navKey: 'qa' },
-];
-
 const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
 const benefits = [
@@ -210,25 +176,12 @@ export default function SubscriptionPage() {
         {/* サイドバー */}
         <aside className="hidden md:block w-52 shrink-0">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
-            <nav className="flex flex-col gap-0.5">
-              {navItems.filter((item) => isPatientNavKeyVisible(item.navKey, navVisibility)).map((item) => (
-                <div key={item.label}>
-                  <Link href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
-                      item.active ? 'bg-[#EFF6FF] text-[#2563EB] font-semibold' : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className={item.active ? 'text-[#2563EB]' : 'text-gray-400'}>{item.icon}</span>
-                    {item.label}
-                  </Link>
-                  {item.dividerAfter && <div className="my-2 h-px bg-gray-100" />}
-                </div>
-              ))}
+            <PatientSidebarNav active="subscription" navVisibility={navVisibility}>
               <div className="my-2 h-px bg-gray-100" />
               <Link href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors">
                 <span className="text-gray-400"><IconLogout /></span>ログアウト
               </Link>
-            </nav>
+            </PatientSidebarNav>
           </div>
         </aside>
 
