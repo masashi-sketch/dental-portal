@@ -193,7 +193,7 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
 
                 {!periodontalEnabled && (
                   <p className="text-xs text-slate-400 bg-slate-50 rounded-lg px-3 py-2 mb-4">
-                    「医院設定」の歯周病表示がオフのため、新規診断の入力はできません。オンにすると入力できるようになります。
+                    「医院設定情報」の歯周病表示がオフのため、新規診断の入力はできません。オンにすると入力できるようになります。
                   </p>
                 )}
 

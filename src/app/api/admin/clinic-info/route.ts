@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ clinic: { ...data, staff } });
 }
 
-// クリニック自身によるブランディング（表示名・背景画像URL）の自己編集専用。
+// クリニック自身によるブランディング（表示名・背景画像URL）・クリニック紹介の
+// 診療時間・アクセス情報・患者ポータル表示設定・歯周病表示の自己編集専用。
 // role==='clinic' のセッションのみ許可し、常に自分のcustomerCodeの行だけを更新する
 // （bodyのcustomerCodeは一切信用しない）。BGJ側の代理編集は /api/bgj/clinics/[code] を使う。
 export async function PATCH(request: NextRequest) {
@@ -61,9 +62,14 @@ export async function PATCH(request: NextRequest) {
   const {
     displayName,
     patientBackgroundUrl,
-    navShowHome,
+    clinicHoursWeekday,
+    clinicHoursSaturday,
+    clinicClosedDay,
+    clinicPhone,
+    clinicAddress,
+    clinicNearestStation,
+    clinicParking,
     navShowClinicInfo,
-    navShowReservation,
     navShowMedicalRecord,
     navShowMedication,
     navShowSubscription,
@@ -75,9 +81,14 @@ export async function PATCH(request: NextRequest) {
   const update: Record<string, unknown> = {};
   if (displayName !== undefined) update.display_name = displayName || null;
   if (patientBackgroundUrl !== undefined) update.patient_background_url = patientBackgroundUrl || null;
-  if (navShowHome !== undefined) update.nav_show_home = navShowHome;
+  if (clinicHoursWeekday !== undefined) update.clinic_hours_weekday = clinicHoursWeekday || null;
+  if (clinicHoursSaturday !== undefined) update.clinic_hours_saturday = clinicHoursSaturday || null;
+  if (clinicClosedDay !== undefined) update.clinic_closed_day = clinicClosedDay || null;
+  if (clinicPhone !== undefined) update.clinic_phone = clinicPhone || null;
+  if (clinicAddress !== undefined) update.clinic_address = clinicAddress || null;
+  if (clinicNearestStation !== undefined) update.clinic_nearest_station = clinicNearestStation || null;
+  if (clinicParking !== undefined) update.clinic_parking = clinicParking || null;
   if (navShowClinicInfo !== undefined) update.nav_show_clinic_info = navShowClinicInfo;
-  if (navShowReservation !== undefined) update.nav_show_reservation = navShowReservation;
   if (navShowMedicalRecord !== undefined) update.nav_show_medical_record = navShowMedicalRecord;
   if (navShowMedication !== undefined) update.nav_show_medication = navShowMedication;
   if (navShowSubscription !== undefined) update.nav_show_subscription = navShowSubscription;
@@ -88,9 +99,7 @@ export async function PATCH(request: NextRequest) {
   const supabase = getSupabaseServerClient();
 
   const navColumns = [
-    'nav_show_home',
     'nav_show_clinic_info',
-    'nav_show_reservation',
     'nav_show_medical_record',
     'nav_show_medication',
     'nav_show_subscription',

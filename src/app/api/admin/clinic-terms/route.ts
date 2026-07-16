@@ -6,7 +6,7 @@ import { resolveScopedCustomerCode } from '@/lib/auth/clinicScope';
 
 export const dynamic = 'force-dynamic';
 
-// 医院用ポータル（/admin/settings）向けの取引条件参照専用API（読み取りのみ）。
+// 医院用ポータル（/admin/clinic-info/contract）向けの取引条件参照専用API（読み取りのみ）。
 // クリニックログインからは/api/bgj/*にアクセスできないため、こちらを使う。
 export async function GET(request: NextRequest) {
   const session = await auth();

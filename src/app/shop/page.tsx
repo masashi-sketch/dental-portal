@@ -51,9 +51,6 @@ function IconHome() {
 function IconClinic() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>;
 }
-function IconCalendar() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>;
-}
 function IconFile() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8" /></svg>;
 }
@@ -249,11 +246,10 @@ const products: Product[] = [
 const categories = ['すべて', 'サプリメント', 'ヨーグルト', '歯ブラシ', 'オーラルケア'] as const;
 
 const navItems: { label: string; icon: React.ReactNode; href: string; active?: boolean; dividerAfter?: boolean; navKey?: PatientNavKey }[] = [
-  { label: 'ホーム',         icon: <IconHome />,     href: '/home', navKey: 'home' },
+  { label: 'ホーム',         icon: <IconHome />,     href: '/home' },
   { label: 'クリニック紹介', icon: <IconClinic />,  href: '/clinic', navKey: 'clinicInfo' },
-  { label: '予約・受診履歴', icon: <IconCalendar />, href: '#', navKey: 'reservation' },
   { label: '診療情報',       icon: <IconFile />,     href: '#', dividerAfter: true, navKey: 'medicalRecord' },
-  { label: 'お薬の受け取り', icon: <IconPill />,     href: '/medication', navKey: 'medication', dividerAfter: true },
+  { label: 'サプリメントの受け取り', icon: <IconPill />,     href: '/medication', navKey: 'medication', dividerAfter: true },
   { label: '定期購入',       icon: <IconRefresh />,  href: '/subscription', navKey: 'subscription' },
   { label: 'おすすめ商品',  icon: <IconBag />,      href: '/shop', navKey: 'shop', active: true },
   { label: 'Q & A',          icon: <IconQA />,       href: '/qa', navKey: 'qa' },

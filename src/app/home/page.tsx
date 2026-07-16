@@ -29,9 +29,6 @@ function IconLogout() {
 function IconClinic() {
   return <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>;
 }
-function IconCalendar() {
-  return <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>;
-}
 function IconFile() {
   return <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8" /></svg>;
 }
@@ -65,18 +62,6 @@ const navCards: { label: string; desc: string; href: string; icon: React.ReactNo
     navKey: 'clinicInfo',
   },
   {
-    label: '予約・受診履歴',
-    desc: '予約確認・変更・キャンセル',
-    href: '#',
-    icon: <IconCalendar />,
-    bg: 'bg-indigo-50',
-    iconBg: 'bg-indigo-500',
-    text: 'text-indigo-600',
-    border: 'border-indigo-100',
-    arrow: 'text-indigo-300',
-    navKey: 'reservation',
-  },
-  {
     label: '診療情報',
     desc: '診療記録・投薬・検査結果',
     href: '#',
@@ -89,8 +74,8 @@ const navCards: { label: string; desc: string; href: string; icon: React.ReactNo
     navKey: 'medicalRecord',
   },
   {
-    label: 'お薬の受け取り',
-    desc: '処方内容・受け取り状況の確認',
+    label: 'サプリメントの受け取り',
+    desc: 'ご注文内容・受け取り状況の確認',
     href: '/medication',
     icon: <IconPill />,
     bg: 'bg-sky-50',
@@ -141,7 +126,6 @@ const navCards: { label: string; desc: string; href: string; icon: React.ReactNo
 /* サイドバー用（デスクトップ） */
 function IconHomeSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>; }
 function IconClinicSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>; }
-function IconCalendarSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>; }
 function IconFileSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8" /></svg>; }
 function IconRefreshSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>; }
 function IconBagSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>; }
@@ -149,11 +133,10 @@ function IconQASm() { return <svg width="16" height="16" fill="none" stroke="cur
 function IconPillSm() { return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7Z" /><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" strokeOpacity="0.5" /></svg>; }
 
 const sideNavItems: { label: string; icon: React.ReactNode; href: string; active?: boolean; dividerAfter?: boolean; navKey?: PatientNavKey }[] = [
-  { label: 'ホーム',         icon: <IconHomeSm />,     href: '/home', active: true, navKey: 'home' },
+  { label: 'ホーム',         icon: <IconHomeSm />,     href: '/home', active: true },
   { label: 'クリニック紹介', icon: <IconClinicSm />,  href: '/clinic', navKey: 'clinicInfo' },
-  { label: '予約・受診履歴', icon: <IconCalendarSm />, href: '#', navKey: 'reservation' },
   { label: '診療情報',       icon: <IconFileSm />,     href: '#', dividerAfter: true, navKey: 'medicalRecord' },
-  { label: 'お薬の受け取り', icon: <IconPillSm />,     href: '/medication', dividerAfter: true, navKey: 'medication' },
+  { label: 'サプリメントの受け取り', icon: <IconPillSm />,     href: '/medication', dividerAfter: true, navKey: 'medication' },
   { label: '定期購入',       icon: <IconRefreshSm />,  href: '/subscription', navKey: 'subscription' },
   { label: 'おすすめ商品',  icon: <IconBagSm />,      href: '/shop', navKey: 'shop' },
   { label: 'Q & A',          icon: <IconQASm />,       href: '/qa', navKey: 'qa' },

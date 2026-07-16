@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import { isPatientNavKeyVisible, type PatientNavKey } from '@/lib/patientNav';
+import type { ClinicQa } from '@/lib/supabase/types';
 
 function IconBell() {
   return (
@@ -52,13 +53,6 @@ function IconClinic() {
     <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
       <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  );
-}
-function IconCalendar() {
-  return (
-    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-      <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
     </svg>
   );
 }
@@ -120,11 +114,10 @@ function IconChevron({ open }: { open: boolean }) {
 }
 
 const navItems: { label: string; icon: React.ReactNode; href: string; active?: boolean; dividerAfter?: boolean; navKey?: PatientNavKey }[] = [
-  { label: 'ホーム',         icon: <IconHome />,      href: '/home', navKey: 'home' },
+  { label: 'ホーム',         icon: <IconHome />,      href: '/home' },
   { label: 'クリニック紹介', icon: <IconClinic />,   href: '/clinic', navKey: 'clinicInfo' },
-  { label: '予約・受診履歴', icon: <IconCalendar />,  href: '#', navKey: 'reservation' },
   { label: '診療情報',       icon: <IconFile />,      href: '#', dividerAfter: true, navKey: 'medicalRecord' },
-  { label: 'お薬の受け取り', icon: <IconPill />,      href: '/medication', navKey: 'medication', dividerAfter: true },
+  { label: 'サプリメントの受け取り', icon: <IconPill />,      href: '/medication', navKey: 'medication', dividerAfter: true },
   { label: '定期購入',       icon: <IconRefresh />,   href: '/subscription', navKey: 'subscription' },
   { label: 'おすすめ商品',  icon: <IconBag />,       href: '/shop', navKey: 'shop' },
   { label: 'Q & A',          icon: <IconQA />,        href: '/qa', navKey: 'qa', active: true },
@@ -132,149 +125,44 @@ const navItems: { label: string; icon: React.ReactNode; href: string; active?: b
 
 const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
-const categories = ['すべて', '予約・診療', '費用・保険', '予防・メンテナンス', '子どもの歯科', 'サービス'] as const;
-
-const qaList = [
-  {
-    id: 1,
-    category: '予約・診療',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 2,
-    category: '予約・診療',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 3,
-    category: '予約・診療',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 4,
-    category: '予約・診療',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 5,
-    category: '予約・診療',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 6,
-    category: '費用・保険',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 7,
-    category: '費用・保険',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 8,
-    category: '費用・保険',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 9,
-    category: '費用・保険',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 10,
-    category: '予防・メンテナンス',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 11,
-    category: '予防・メンテナンス',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 12,
-    category: '予防・メンテナンス',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 13,
-    category: '予防・メンテナンス',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 14,
-    category: '子どもの歯科',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 15,
-    category: '子どもの歯科',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 16,
-    category: '子どもの歯科',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 17,
-    category: '子どもの歯科',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 18,
-    category: 'サービス',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 19,
-    category: 'サービス',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
-  {
-    id: 20,
-    category: 'サービス',
-    q: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    a: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-  },
+// DBのカテゴリには色情報を持たせていないため、登場順で巡回して割り当てる。
+const CATEGORY_COLOR_PALETTE = [
+  'bg-blue-50 text-blue-600',
+  'bg-emerald-50 text-emerald-600',
+  'bg-amber-50 text-amber-600',
+  'bg-pink-50 text-pink-600',
+  'bg-violet-50 text-violet-600',
+  'bg-cyan-50 text-cyan-600',
 ];
-
-const categoryColors: Record<string, string> = {
-  '予約・診療':      'bg-blue-50 text-blue-600',
-  '費用・保険':      'bg-emerald-50 text-emerald-600',
-  '予防・メンテナンス': 'bg-amber-50 text-amber-600',
-  '子どもの歯科':   'bg-pink-50 text-pink-600',
-  'サービス':        'bg-violet-50 text-violet-600',
-};
 
 export default function QAPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { clinicName, navVisibility } = usePatientClinicBranding();
   const [activeCategory, setActiveCategory] = useState<string>('すべて');
-  const [openIds, setOpenIds] = useState<number[]>([]);
+  const [openIds, setOpenIds] = useState<string[]>([]);
+  const [qaList, setQaList] = useState<ClinicQa[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
-  const toggle = (id: number) => {
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/patient-portal/qa')
+      .then((res) => (res.ok ? res.json() : { qa: [] }))
+      .then((data) => { if (!cancelled) setQaList(data.qa ?? []); })
+      .catch(() => { if (!cancelled) setQaList([]); })
+      .finally(() => { if (!cancelled) setLoaded(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const toggle = (id: string) => {
     setOpenIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
+  };
+
+  const categories = ['すべて', ...Array.from(new Set(qaList.map((q) => q.category)))];
+  const categoryColor = (category: string) => {
+    const idx = categories.indexOf(category) - 1;
+    return CATEGORY_COLOR_PALETTE[idx % CATEGORY_COLOR_PALETTE.length] ?? CATEGORY_COLOR_PALETTE[0];
   };
 
   const filtered =
@@ -417,6 +305,11 @@ export default function QAPage() {
 
           {/* アコーディオンQ&A */}
           <div className="flex flex-col gap-2">
+            {loaded && qaList.length === 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center text-sm text-gray-400">
+                Q&amp;Aはまだ登録されていません。
+              </div>
+            )}
             {filtered.map((item) => {
               const isOpen = openIds.includes(item.id);
               return (
@@ -432,9 +325,9 @@ export default function QAPage() {
                       Q
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm sm:text-base font-semibold text-gray-800 leading-snug break-all">{item.q}</p>
+                      <p className="text-sm sm:text-base font-semibold text-gray-800 leading-snug break-all">{item.question}</p>
                       {!isOpen && (
-                        <span className={`inline-block mt-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${categoryColors[item.category]}`}>
+                        <span className={`inline-block mt-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${categoryColor(item.category)}`}>
                           {item.category}
                         </span>
                       )}
@@ -451,8 +344,8 @@ export default function QAPage() {
                           A
                         </span>
                         <div className="flex-1">
-                          <p className="text-sm text-gray-600 leading-relaxed break-all">{item.a}</p>
-                          <span className={`inline-block mt-3 text-[11px] font-medium px-2 py-0.5 rounded-full ${categoryColors[item.category]}`}>
+                          <p className="text-sm text-gray-600 leading-relaxed break-all">{item.answer}</p>
+                          <span className={`inline-block mt-3 text-[11px] font-medium px-2 py-0.5 rounded-full ${categoryColor(item.category)}`}>
                             {item.category}
                           </span>
                         </div>

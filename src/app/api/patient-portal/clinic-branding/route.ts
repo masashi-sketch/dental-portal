@@ -30,9 +30,7 @@ export async function GET() {
   }
 
   const nav: NavVisibility = {
-    home: data.nav_show_home,
     clinicInfo: data.nav_show_clinic_info,
-    reservation: data.nav_show_reservation,
     medicalRecord: data.nav_show_medical_record,
     medication: data.nav_show_medication,
     subscription: data.nav_show_subscription,

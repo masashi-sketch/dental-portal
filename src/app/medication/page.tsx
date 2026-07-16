@@ -33,9 +33,6 @@ function IconHome() {
 function IconClinic() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>;
 }
-function IconCalendar() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>;
-}
 function IconFile() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8" /></svg>;
 }
@@ -67,7 +64,7 @@ function IconTooth() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 2C8 2 5 4.5 5 8.5c0 3 1 5 1.5 8 .3 1.6.7 3.5 2 3.5 1.5 0 1.5-3 2-5 .3-1.2.7-1.5 1.5-1.5s1.2.3 1.5 1.5c.5 2 .5 5 2 5 1.3 0 1.7-1.9 2-3.5.5-3 1.5-5 1.5-8C19 4.5 16 2 12 2Z" /></svg>;
 }
 
-/* ── 処方薬アイコン ── */
+/* ── サプリメントアイコン ── */
 function MedicineImage({ type, size = 'md' }: { type: string; size?: 'sm' | 'md' | 'lg' }) {
   const sizeMap = { sm: 52, md: 72, lg: 96 };
   const s = sizeMap[size];
@@ -132,11 +129,10 @@ function MedicineImage({ type, size = 'md' }: { type: string; size?: 'sm' | 'md'
 }
 
 const navItems: { label: string; icon: React.ReactNode; href: string; active?: boolean; dividerAfter?: boolean; navKey?: PatientNavKey }[] = [
-  { label: 'ホーム',         icon: <IconHome />,     href: '/home', navKey: 'home' },
+  { label: 'ホーム',         icon: <IconHome />,     href: '/home' },
   { label: 'クリニック紹介', icon: <IconClinic />,  href: '/clinic', navKey: 'clinicInfo' },
-  { label: '予約・受診履歴', icon: <IconCalendar />, href: '#', navKey: 'reservation' },
   { label: '診療情報',       icon: <IconFile />,     href: '#', navKey: 'medicalRecord' },
-  { label: 'お薬の受け取り', icon: <IconPill />,     href: '/medication', navKey: 'medication', active: true, dividerAfter: true },
+  { label: 'サプリメントの受け取り', icon: <IconPill />,     href: '/medication', navKey: 'medication', active: true, dividerAfter: true },
   { label: '定期購入',       icon: <IconRefresh />,  href: '/subscription', navKey: 'subscription' },
   { label: 'おすすめ商品',  icon: <IconBag />,      href: '/shop', navKey: 'shop' },
   { label: 'Q & A',          icon: <IconQA />,       href: '/qa', navKey: 'qa' },
@@ -145,10 +141,10 @@ const navItems: { label: string; icon: React.ReactNode; href: string; active?: b
 const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
 const steps = [
-  { label: '処方箋受付', desc: '医院からの処方情報を受付' },
-  { label: '調剤中', desc: '薬剤師が調剤を行っています' },
+  { label: 'ご注文受付', desc: '医院からのご注文情報を受付' },
+  { label: '準備中', desc: 'スタッフが商品の準備を行っています' },
   { label: '準備完了', desc: '受け取り可能になりました' },
-  { label: 'お受け取り完了', desc: 'お薬をお渡し済みです' },
+  { label: 'お受け取り完了', desc: 'サプリメントをお渡し済みです' },
 ];
 const currentStep = 2; // 0-indexed：準備完了の段階
 
@@ -243,19 +239,19 @@ export default function MedicationPage() {
         {/* メインコンテンツ */}
         <main className="flex-1 flex flex-col gap-6 min-w-0">
 
-          {/* 処方箋情報カード */}
+          {/* ご注文情報カード */}
           <div className="bg-gradient-to-r from-[#2563EB] to-[#60a5fa] rounded-2xl p-5 sm:p-6 text-white">
             <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-3">
-              処方箋情報
+              ご注文情報
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
               <div>
-                <p className="text-blue-100 text-xs mb-1">処方日</p>
+                <p className="text-blue-100 text-xs mb-1">注文日</p>
                 <p className="font-semibold">◯月◯日（◯）</p>
               </div>
               <div>
-                <p className="text-blue-100 text-xs mb-1">処方医</p>
-                <p className="font-semibold">◯◯　◯◯ 医師</p>
+                <p className="text-blue-100 text-xs mb-1">担当スタッフ</p>
+                <p className="font-semibold">◯◯　◯◯</p>
               </div>
               <div>
                 <p className="text-blue-100 text-xs mb-1">次回受診予定</p>
@@ -294,7 +290,7 @@ export default function MedicationPage() {
                   </p>
                   <p className="text-[11px] text-gray-400 mb-3">前回診断日：{diagnosis.diagnosedAt}</p>
                   <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 leading-relaxed">
-                    医院にて定期的に経過を確認しています。今回の処方内容は、この診断結果に基づいています。
+                    医院にて定期的に経過を確認しています。今回のご案内内容は、この診断結果に基づいています。
                   </p>
                 </>
               ) : (
@@ -307,7 +303,7 @@ export default function MedicationPage() {
 
           {/* 受け取りステータス */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
-            <p className="text-sm font-bold text-gray-900 mb-5">お薬の受け取り状況</p>
+            <p className="text-sm font-bold text-gray-900 mb-5">サプリメントの受け取り状況</p>
             <div className="flex items-start">
               {steps.map((step, i) => (
                 <div key={step.label} className="flex-1 flex flex-col items-center text-center relative">
@@ -334,10 +330,10 @@ export default function MedicationPage() {
             </div>
           </div>
 
-          {/* 処方内容一覧 */}
+          {/* ご注文内容一覧 */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-base font-bold text-gray-900">今回の処方内容</p>
+              <p className="text-base font-bold text-gray-900">今回のご注文内容</p>
               <span className="text-xs text-gray-400">{medications.length}品目</span>
             </div>
             <div className="flex flex-col gap-4">
@@ -418,11 +414,11 @@ export default function MedicationPage() {
 
           {/* 注意事項 */}
           <div className="bg-gray-50 rounded-2xl border border-gray-200 p-5 text-xs text-gray-500 leading-relaxed">
-            <p className="font-semibold text-gray-700 mb-2">お薬に関するご注意</p>
+            <p className="font-semibold text-gray-700 mb-2">サプリメントに関するご注意</p>
             <ul className="flex flex-col gap-1.5 list-disc list-inside">
-              <li>用法・用量を守り、自己判断で服用を中止・変更しないでください。</li>
-              <li>副作用や体調の変化を感じた場合は、速やかに医師・薬剤師にご相談ください。</li>
-              <li>お薬手帳をお持ちの方は、次回受診時にご持参ください。</li>
+              <li>用法・用量を守り、自己判断で摂取を中止・変更しないでください。</li>
+              <li>体調の変化を感じた場合は、速やかに医師・スタッフにご相談ください。</li>
+              <li>他に服用中のサプリメントやお薬がある場合は、次回受診時に医院へお伝えください。</li>
               <li>直射日光・高温多湿を避けて保管してください。</li>
             </ul>
           </div>

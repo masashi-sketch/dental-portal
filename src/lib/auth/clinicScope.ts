@@ -36,3 +36,20 @@ export async function isPatientInScope(
     .maybeSingle<{ customer_code: string }>();
   return data?.customer_code === session.user.customerCode;
 }
+
+// customer_code列を持つ任意のテーブル（clinic_staff・clinic_qa等）のid経由アクセスで、
+// クリニックログインが他院の行にアクセスしていないかを検証する。BGJ職員は常にtrue。
+export async function isClinicResourceInScope(
+  supabase: SupabaseClient,
+  table: string,
+  id: string,
+  session: Session,
+): Promise<boolean> {
+  if (session.user.role !== 'clinic') return true;
+  const { data } = await supabase
+    .from(table)
+    .select('customer_code')
+    .eq('id', id)
+    .maybeSingle<{ customer_code: string }>();
+  return data?.customer_code === session.user.customerCode;
+}

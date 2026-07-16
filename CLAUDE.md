@@ -268,7 +268,7 @@ DB変更SQLを提示するときは、以下をセットにする。
 
 ## 現状の既知の課題
 
-- `admin/patients`, `admin/patients/[id]`, `admin/settings`, `bgj/customers/[code]`の各ページは、登録・更新・削除の成功後に**一覧を毎回全件再取得**している（楽観更新はしていない）。データ量が今は小さいため実害はないが、次にこれらのページを触る際は「返却行をstateにマージする」方式への置き換えを検討する。
+- `admin/patients`, `admin/patients/[id]`, `admin/clinic-info/contract`, `admin/clinic-info/config`, `bgj/customers/[code]`の各ページは、登録・更新・削除の成功後に**一覧を毎回全件再取得**している（楽観更新はしていない）。データ量が今は小さいため実害はないが、次にこれらのページを触る際は「返却行をstateにマージする」方式への置き換えを検討する。
 - 上記4ページとも`useEffect`内で条件分岐しつつ直接`setState`する初期化パターンを使っており、`npm run lint`で`react-hooks/set-state-in-effect`の指摘が出る（このプロジェクトの既存コード、例:`AdminSidebar.tsx`にも同種の指摘が既にあり、今回のセッションで新規に広げたものではない）。プロジェクト全体に及ぶため、まとまった別作業として対応するのが望ましい。
 
 # 自動テスト方針

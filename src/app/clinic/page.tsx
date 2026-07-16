@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import { isPatientNavKeyVisible, type PatientNavKey } from '@/lib/patientNav';
+import type { ClinicStaff } from '@/lib/supabase/types';
 
 /* ── アイコン ── */
 function IconBell() {
@@ -61,13 +62,6 @@ function IconClinic() {
   );
 }
 
-function IconCalendar() {
-  return (
-    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-      <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-    </svg>
-  );
-}
 function IconFile() {
   return (
     <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -131,11 +125,10 @@ function IconClock() {
 }
 
 const navItems: { label: string; icon: React.ReactNode; href?: string; active?: boolean; dividerAfter?: boolean; navKey?: PatientNavKey }[] = [
-  { label: 'ホーム',         icon: <IconHome />,      href: '/home', navKey: 'home' },
+  { label: 'ホーム',         icon: <IconHome />,      href: '/home' },
   { label: 'クリニック紹介', icon: <IconClinic />,   active: true, navKey: 'clinicInfo' },
-  { label: '予約・受診履歴', icon: <IconCalendar />, navKey: 'reservation' },
   { label: '診療情報',        icon: <IconFile />,    dividerAfter: true, navKey: 'medicalRecord' },
-  { label: 'お薬の受け取り',  icon: <IconPill />,     href: '/medication', navKey: 'medication', dividerAfter: true },
+  { label: 'サプリメントの受け取り',  icon: <IconPill />,     href: '/medication', navKey: 'medication', dividerAfter: true },
   { label: '定期購入',        icon: <IconRefresh />,  href: '/subscription', navKey: 'subscription' },
   { label: 'おすすめ商品',   icon: <IconBag />,      href: '/shop', navKey: 'shop' },
   { label: 'Q & A',           icon: <IconQA />,       href: '/qa', navKey: 'qa' },
@@ -143,49 +136,50 @@ const navItems: { label: string; icon: React.ReactNode; href?: string; active?: 
 
 const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
-const staffList = [
-  {
-    tab: '院長',
-    name: '◯◯　◯◯',
-    badge: '院長',
-    credentials: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    description: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    gradientFrom: '#2563EB',
-    gradientTo: '#60a5fa',
-    label: '院長',
-    activeTab: 'bg-[#2563EB] text-white',
-    inactiveTab: 'bg-[#EFF6FF] text-[#2563EB] hover:bg-[#dbeafe]',
-  },
-  {
-    tab: '歯科衛生士',
-    name: '◯◯　◯◯',
-    badge: '歯科衛生士',
-    credentials: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    description: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    gradientFrom: '#0891b2',
-    gradientTo: '#67e8f9',
-    label: '衛生士',
-    activeTab: 'bg-[#0891b2] text-white',
-    inactiveTab: 'bg-[#ECFEFF] text-[#0891b2] hover:bg-[#cffafe]',
-  },
-  {
-    tab: '受付',
-    name: '◯◯　◯◯',
-    badge: '受付',
-    credentials: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    description: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯',
-    gradientFrom: '#7c3aed',
-    gradientTo: '#c4b5fd',
-    label: '受付',
-    activeTab: 'bg-[#7c3aed] text-white',
-    inactiveTab: 'bg-[#F5F3FF] text-[#7c3aed] hover:bg-[#ede9fe]',
-  },
-];
+// DBにはスタッフの色情報を持たせていないため、登録順で巡回して割り当てる。
+const STAFF_COLOR_PALETTE = [
+  { gradientFrom: '#2563EB', gradientTo: '#60a5fa', activeTab: 'bg-[#2563EB] text-white', inactiveTab: 'bg-[#EFF6FF] text-[#2563EB] hover:bg-[#dbeafe]' },
+  { gradientFrom: '#0891b2', gradientTo: '#67e8f9', activeTab: 'bg-[#0891b2] text-white', inactiveTab: 'bg-[#ECFEFF] text-[#0891b2] hover:bg-[#cffafe]' },
+  { gradientFrom: '#7c3aed', gradientTo: '#c4b5fd', activeTab: 'bg-[#7c3aed] text-white', inactiveTab: 'bg-[#F5F3FF] text-[#7c3aed] hover:bg-[#ede9fe]' },
+] as const;
+
+type ClinicIntroInfo = {
+  clinic_hours_weekday: string | null;
+  clinic_hours_saturday: string | null;
+  clinic_closed_day: string | null;
+  clinic_phone: string | null;
+  clinic_address: string | null;
+  clinic_nearest_station: string | null;
+  clinic_parking: string | null;
+} | null;
 
 export default function ClinicPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { clinicName, navVisibility } = usePatientClinicBranding();
   const [activeTab, setActiveTab] = useState(0);
+  const [staffList, setStaffList] = useState<ClinicStaff[]>([]);
+  const [introInfo, setIntroInfo] = useState<ClinicIntroInfo>(null);
+  const [introLoaded, setIntroLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/patient-portal/clinic-intro')
+      .then((res) => (res.ok ? res.json() : { info: null, staff: [] }))
+      .then((data) => {
+        if (cancelled) return;
+        setIntroInfo(data.info ?? null);
+        setStaffList(data.staff ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) { setIntroInfo(null); setStaffList([]); }
+      })
+      .finally(() => { if (!cancelled) setIntroLoaded(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const activeStaff = staffList[activeTab];
+  const activeColor = STAFF_COLOR_PALETTE[activeTab % STAFF_COLOR_PALETTE.length];
+  const mapAddress = introInfo?.clinic_address || '広島県廿日市市宮内郵便局';
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 pb-20 md:pb-0">
@@ -281,44 +275,52 @@ export default function ClinicPage() {
         <main className="flex-1 flex flex-col gap-5 min-w-0">
 
           {/* スタッフ紹介カード（タブ切り替え） */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            {/* タブ */}
-            <div className="flex gap-2 p-3 bg-gray-50 border-b border-gray-100">
-              {staffList.map((staff, i) => (
-                <button
-                  key={staff.tab}
-                  onClick={() => setActiveTab(i)}
-                  className={`flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm ${
-                    activeTab === i ? staff.activeTab : staff.inactiveTab
-                  }`}
-                >
-                  {staff.tab}
-                </button>
-              ))}
+          {introLoaded && staffList.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center text-sm text-gray-400">
+              スタッフ紹介はまだ登録されていません。
             </div>
-            {/* コンテンツ */}
-            <div className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-6">
-              <div className="flex justify-center sm:justify-start shrink-0">
-                <div
-                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex flex-col items-center justify-center shadow-sm gap-0.5"
-                  style={{ background: `linear-gradient(to bottom right, ${staffList[activeTab].gradientFrom}, ${staffList[activeTab].gradientTo})` }}
-                >
-                  <svg width="32" height="32" fill="none" stroke="white" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                  </svg>
-                  <span className="text-white text-[10px] font-medium opacity-80">{staffList[activeTab].label}</span>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              {/* タブ */}
+              <div className="flex gap-2 p-3 bg-gray-50 border-b border-gray-100">
+                {staffList.map((staff, i) => (
+                  <button
+                    key={staff.id}
+                    onClick={() => setActiveTab(i)}
+                    className={`flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm ${
+                      activeTab === i ? STAFF_COLOR_PALETTE[i % STAFF_COLOR_PALETTE.length].activeTab : STAFF_COLOR_PALETTE[i % STAFF_COLOR_PALETTE.length].inactiveTab
+                    }`}
+                  >
+                    {staff.role_label}
+                  </button>
+                ))}
+              </div>
+              {/* コンテンツ */}
+              {activeStaff && (
+                <div className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-6">
+                  <div className="flex justify-center sm:justify-start shrink-0">
+                    <div
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex flex-col items-center justify-center shadow-sm gap-0.5"
+                      style={{ background: `linear-gradient(to bottom right, ${activeColor.gradientFrom}, ${activeColor.gradientTo})` }}
+                    >
+                      <svg width="32" height="32" fill="none" stroke="white" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                      </svg>
+                      <span className="text-white text-[10px] font-medium opacity-80">{activeStaff.role_label}</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <span className="inline-block bg-[#EFF6FF] text-[#2563EB] text-xs font-semibold px-3 py-0.5 rounded-full mb-2">
+                      {activeStaff.role_label}
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{activeStaff.name}</h2>
+                    {activeStaff.credentials && <p className="text-[#2563EB] text-xs mb-3 break-all">{activeStaff.credentials}</p>}
+                    {activeStaff.description && <p className="text-gray-500 text-sm leading-relaxed break-all">{activeStaff.description}</p>}
+                  </div>
                 </div>
-              </div>
-              <div className="flex-1 text-center sm:text-left">
-                <span className="inline-block bg-[#EFF6FF] text-[#2563EB] text-xs font-semibold px-3 py-0.5 rounded-full mb-2">
-                  {staffList[activeTab].badge}
-                </span>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{staffList[activeTab].name}</h2>
-                <p className="text-[#2563EB] text-xs mb-3 break-all">{staffList[activeTab].credentials}</p>
-                <p className="text-gray-500 text-sm leading-relaxed break-all">{staffList[activeTab].description}</p>
-              </div>
+              )}
             </div>
-          </div>
+          )}
 
           {/* 診療情報 ＋ アクセス */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -347,10 +349,10 @@ export default function ClinicPage() {
               </div>
               <div className="border-t border-gray-50 pt-4 space-y-2 text-xs sm:text-sm">
                 {[
-                  ['月・火・水・金', '9:00〜18:00'],
-                  ['土曜日',        '9:00〜13:00'],
-                  ['休診日',        '水・日・祝日'],
-                  ['電話番号',      '◯◯-◯◯◯◯-◯◯◯◯'],
+                  ['平日', introInfo?.clinic_hours_weekday || '未設定'],
+                  ['土曜日', introInfo?.clinic_hours_saturday || '未設定'],
+                  ['休診日', introInfo?.clinic_closed_day || '未設定'],
+                  ['電話番号', introInfo?.clinic_phone || '未設定'],
                 ].map(([label, value]) => (
                   <div key={label} className="flex gap-4">
                     <span className="text-gray-400 w-24 shrink-0">{label}</span>
@@ -367,9 +369,9 @@ export default function ClinicPage() {
               </div>
               <div className="space-y-3 text-xs sm:text-sm">
                 {[
-                  ['住所',   '〒◯◯◯-◯◯◯◯ ◯◯県◯◯市◯◯'],
-                  ['最寄駅', '◯◯線「◯◯駅」徒歩◯分'],
-                  ['駐車場', '◯◯◯◯◯◯◯◯'],
+                  ['住所', introInfo?.clinic_address || '未設定'],
+                  ['最寄駅', introInfo?.clinic_nearest_station || '未設定'],
+                  ['駐車場', introInfo?.clinic_parking || '未設定'],
                 ].map(([label, value]) => (
                   <div key={label} className="flex gap-4">
                     <span className="text-gray-400 w-14 sm:w-16 shrink-0">{label}</span>
@@ -379,14 +381,14 @@ export default function ClinicPage() {
               </div>
               <div className="mt-4 rounded-xl overflow-hidden border border-gray-100">
                 <iframe
-                  src="https://maps.google.com/maps?q=広島県廿日市市宮内郵便局&output=embed&hl=ja&z=16"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(mapAddress)}&output=embed&hl=ja&z=16`}
                   width="100%"
                   height="220"
                   style={{ border: 0 }}
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="広島県廿日市市宮内郵便局 地図"
+                  title={`${mapAddress} 地図`}
                 />
               </div>
             </div>

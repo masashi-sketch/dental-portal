@@ -70,6 +70,13 @@ const FIELD_MAP: Record<string, string> = {
   mainReferrer: 'main_referrer',
   displayName: 'display_name',
   patientBackgroundUrl: 'patient_background_url',
+  clinicHoursWeekday: 'clinic_hours_weekday',
+  clinicHoursSaturday: 'clinic_hours_saturday',
+  clinicClosedDay: 'clinic_closed_day',
+  clinicPhone: 'clinic_phone',
+  clinicAddress: 'clinic_address',
+  clinicNearestStation: 'clinic_nearest_station',
+  clinicParking: 'clinic_parking',
 };
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
@@ -81,7 +88,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { code } = await params;
   const body = await request.json();
 
-  const NULLABLE_IF_EMPTY = new Set(['staffId', 'displayName', 'patientBackgroundUrl']);
+  const NULLABLE_IF_EMPTY = new Set([
+    'staffId', 'displayName', 'patientBackgroundUrl',
+    'clinicHoursWeekday', 'clinicHoursSaturday', 'clinicClosedDay',
+    'clinicPhone', 'clinicAddress', 'clinicNearestStation', 'clinicParking',
+  ]);
   const update: Record<string, unknown> = {};
   for (const [key, column] of Object.entries(FIELD_MAP)) {
     if (body?.[key] === undefined) continue;

@@ -7,7 +7,7 @@ import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { useActiveClinic } from '@/hooks/useActiveClinic';
 import type { SalesRepWithMaster } from '@/lib/supabase/types';
 
-export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'settings';
+export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'clinicContract' | 'clinicConfig' | 'clinicIntro' | 'clinicQa';
 
 // モック：未読件数と最終更新日時
 const CONTENT_UNREAD: Partial<Record<AdminPage, { updatedAt: string; count: number }>> = {
@@ -63,17 +63,45 @@ function IconClose() {
 function IconSettings() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;
 }
+function IconChevronRight() {
+  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>;
+}
+function IconClinicInfo() {
+  return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>;
+}
+function IconQA() {
+  return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
+}
 
-const navItems: { key: AdminPage; label: string; href: string; icon: React.ReactNode; dividerBefore?: boolean }[] = [
-  { key: 'dashboard',  label: 'ダッシュボード',   href: '/admin/dashboard',   icon: <IconDashboard /> },
-  { key: 'news',       label: 'お知らせ管理',     href: '/admin/news',        icon: <IconBell /> },
-  { key: 'patients',   label: '患者様管理',       href: '/admin/patients',    icon: <IconUsers /> },
-  { key: 'commission', label: 'コミッション管理', href: '/admin/commission',  icon: <IconCommission />, dividerBefore: true },
-  { key: 'orders',     label: '定期購入管理',     href: '/admin/orders',      icon: <IconRefresh /> },
-  { key: 'products',   label: '商品管理',         href: '/admin/products',    icon: <IconBag /> },
-  { key: 'campaign',   label: 'キャンペーン情報', href: '/admin/campaign',    icon: <IconCampaign />,   dividerBefore: true },
-  { key: 'biogaia',    label: 'バイオガイア通信', href: '/admin/biogaia',     icon: <IconNewsletter /> },
-  { key: 'settings',   label: '医院設定',         href: '/admin/settings',    icon: <IconSettings />,   dividerBefore: true },
+type LinkNavItem = { type: 'link'; key: AdminPage; label: string; href: string; icon: React.ReactNode; dividerBefore?: boolean };
+type GroupNavItem = {
+  type: 'group';
+  label: string;
+  icon: React.ReactNode;
+  dividerBefore?: boolean;
+  children: { key: AdminPage; label: string; href: string }[];
+};
+
+const navItems: (LinkNavItem | GroupNavItem)[] = [
+  { type: 'link',  key: 'dashboard',  label: 'ダッシュボード',   href: '/admin/dashboard',   icon: <IconDashboard /> },
+  { type: 'link',  key: 'commission', label: 'コミッション管理', href: '/admin/commission',  icon: <IconCommission /> },
+  { type: 'link',  key: 'patients',   label: '患者様管理',       href: '/admin/patients',    icon: <IconUsers /> },
+  {
+    type: 'group',
+    label: 'クリニック情報',
+    icon: <IconSettings />,
+    children: [
+      { key: 'clinicContract', label: '医院契約情報', href: '/admin/clinic-info/contract' },
+      { key: 'clinicConfig',   label: '医院設定情報', href: '/admin/clinic-info/config' },
+    ],
+  },
+  { type: 'link',  key: 'news',       label: 'お知らせ管理',     href: '/admin/news',        icon: <IconBell />, dividerBefore: true },
+  { type: 'link',  key: 'clinicIntro', label: 'クリニック紹介',  href: '/admin/clinic-intro', icon: <IconClinicInfo /> },
+  { type: 'link',  key: 'clinicQa',   label: 'Q & A',            href: '/admin/qa',          icon: <IconQA /> },
+  { type: 'link',  key: 'orders',     label: '定期購入管理',     href: '/admin/orders',      icon: <IconRefresh /> },
+  { type: 'link',  key: 'products',   label: '商品管理',         href: '/admin/products',    icon: <IconBag /> },
+  { type: 'link',  key: 'campaign',   label: 'キャンペーン情報', href: '/admin/campaign',    icon: <IconCampaign />,   dividerBefore: true },
+  { type: 'link',  key: 'biogaia',    label: 'バイオガイア通信', href: '/admin/biogaia',     icon: <IconNewsletter /> },
 ];
 
 const externalLinks = [
@@ -81,6 +109,59 @@ const externalLinks = [
   { label: 'Biogaia学術情報',   href: 'https://reuteri-lab.jp/post/research', icon: <IconResearch /> },
   { label: 'こどもヘルスラボ', href: 'https://childhealth.jp/?srsltid=AfmBOorq5Na8WlWqf7GTOwMNK1Y1Urk_EgwCL0extO5FY_N_gE8SUtkw', icon: <IconChildHealth /> },
 ];
+
+function GroupNavRow({
+  item,
+  active,
+  onNavClick,
+}: {
+  item: GroupNavItem;
+  active: AdminPage;
+  onNavClick?: () => void;
+}) {
+  const groupActive = item.children.some((c) => c.key === active);
+  const [expanded, setExpanded] = useState(groupActive);
+
+  return (
+    <div>
+      {item.dividerBefore && (
+        <div className="my-2 border-t-4 border-sky-800/70" />
+      )}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className={`flex items-center gap-3 w-full px-3 py-3 rounded-xl text-lg font-medium transition-colors ${
+          groupActive ? 'text-sky-100' : 'text-sky-100/80 hover:bg-sky-800/50 hover:text-white'
+        }`}
+      >
+        <span className={`shrink-0 ${groupActive ? 'text-sky-300' : 'text-sky-300/70'}`}>{item.icon}</span>
+        <span className="flex-1 leading-snug text-left">{item.label}</span>
+        <span className={`shrink-0 text-sky-300/70 transition-transform ${expanded ? 'rotate-90' : ''}`}>
+          <IconChevronRight />
+        </span>
+      </button>
+      {expanded && (
+        <div className="flex flex-col gap-0.5 pl-4">
+          {item.children.map((child) => (
+            <Link
+              key={child.key}
+              href={child.href}
+              onClick={onNavClick}
+              className={`flex items-center gap-2 pl-6 pr-3 py-2.5 rounded-xl text-base font-medium transition-colors ${
+                active === child.key
+                  ? 'bg-sky-400/20 text-sky-100'
+                  : 'text-sky-100/70 hover:bg-sky-800/50 hover:text-white'
+              }`}
+            >
+              <span className="flex-1 leading-snug">{child.label}</span>
+              {active === child.key && <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function NavItems({
   active,
@@ -95,6 +176,10 @@ function NavItems({
     <>
       <p className="text-sky-300/60 text-xs font-semibold tracking-widest px-3 pb-2">MENU</p>
       {navItems.map((item) => {
+        if (item.type === 'group') {
+          return <GroupNavRow key={item.label} item={item} active={active} onNavClick={onNavClick} />;
+        }
+
         const count = unreadCounts.get(item.key) ?? 0;
         return (
           <div key={item.key}>
@@ -172,7 +257,7 @@ function SalesRepCard({ salesRep, loaded }: { salesRep: SalesRepWithMaster | nul
       <div className="shadow-xl rounded-xl overflow-hidden">
         <div className="bg-sky-800/60 border border-teal-500/40 rounded-xl overflow-hidden p-4 text-center">
           <p className="text-teal-200 text-xs font-bold tracking-widest mb-2">── 営業担当 ──</p>
-          <p className="text-sky-200/70 text-xs leading-relaxed">医院設定で得意先を選択すると、担当者が表示されます</p>
+          <p className="text-sky-200/70 text-xs leading-relaxed">クリニックとしてログインすると、担当者が表示されます</p>
         </div>
       </div>
     );

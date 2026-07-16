@@ -4,11 +4,13 @@ import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
+import ClinicStaffManager from "@/components/ClinicStaffManager";
+import ClinicQaManager from "@/components/ClinicQaManager";
 import type { Clinic, ClinicOrder, ClinicStatus, ClinicUserPublic, ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
 
 type ClinicWithStaff = Clinic & { staff: SalesRepWithMaster | null };
 
-const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "訪問記録", "ログイン管理"];
+const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "訪問記録", "ログイン管理", "クリニック紹介", "Q&A"];
 
 type ClinicFormState = {
   name: string;
@@ -37,6 +39,13 @@ type ClinicFormState = {
   mainReferrer: string;
   displayName: string;
   patientBackgroundUrl: string;
+  clinicHoursWeekday: string;
+  clinicHoursSaturday: string;
+  clinicClosedDay: string;
+  clinicPhone: string;
+  clinicAddress: string;
+  clinicNearestStation: string;
+  clinicParking: string;
 };
 
 function clinicToForm(c: ClinicWithStaff): ClinicFormState {
@@ -67,6 +76,13 @@ function clinicToForm(c: ClinicWithStaff): ClinicFormState {
     mainReferrer: c.main_referrer ?? "",
     displayName: c.display_name ?? "",
     patientBackgroundUrl: c.patient_background_url ?? "",
+    clinicHoursWeekday: c.clinic_hours_weekday ?? "",
+    clinicHoursSaturday: c.clinic_hours_saturday ?? "",
+    clinicClosedDay: c.clinic_closed_day ?? "",
+    clinicPhone: c.clinic_phone ?? "",
+    clinicAddress: c.clinic_address ?? "",
+    clinicNearestStation: c.clinic_nearest_station ?? "",
+    clinicParking: c.clinic_parking ?? "",
   };
 }
 
@@ -476,6 +492,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                     ["取引開始日", clinic.contract_since || "—"],
                     ["ポータル表示名", clinic.display_name || "（未設定・医院名を表示）"],
                     ["患者ポータル背景画像URL", clinic.patient_background_url || "（未設定・標準画像を使用）"],
+                    ["患者様向け・平日診療時間", clinic.clinic_hours_weekday || "（未設定）"],
+                    ["患者様向け・土曜診療時間", clinic.clinic_hours_saturday || "（未設定）"],
+                    ["患者様向け・休診日", clinic.clinic_closed_day || "（未設定）"],
+                    ["患者様向け・電話番号", clinic.clinic_phone || "（未設定）"],
+                    ["患者様向け・住所", clinic.clinic_address || "（未設定）"],
+                    ["患者様向け・最寄駅", clinic.clinic_nearest_station || "（未設定）"],
+                    ["患者様向け・駐車場", clinic.clinic_parking || "（未設定）"],
                   ].map(([label, value]) => (
                     <div key={label}>
                       <p className="text-xs text-slate-400 mb-0.5">{label}</p>
@@ -555,6 +578,48 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                     <label className="text-xs font-semibold text-slate-500 mb-1 block">患者ポータル背景画像URL（医院自身も設定可）</label>
                     <input value={clinicForm.patientBackgroundUrl} onChange={(e) => setClinicForm({ ...clinicForm, patientBackgroundUrl: e.target.value })}
                       placeholder="https://..."
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・平日診療時間（医院自身も設定可）</label>
+                    <input value={clinicForm.clinicHoursWeekday} onChange={(e) => setClinicForm({ ...clinicForm, clinicHoursWeekday: e.target.value })}
+                      placeholder="例）9:00〜18:00"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・土曜診療時間（医院自身も設定可）</label>
+                    <input value={clinicForm.clinicHoursSaturday} onChange={(e) => setClinicForm({ ...clinicForm, clinicHoursSaturday: e.target.value })}
+                      placeholder="例）9:00〜13:00"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・休診日（医院自身も設定可）</label>
+                    <input value={clinicForm.clinicClosedDay} onChange={(e) => setClinicForm({ ...clinicForm, clinicClosedDay: e.target.value })}
+                      placeholder="例）水・日・祝日"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・電話番号（医院自身も設定可）</label>
+                    <input value={clinicForm.clinicPhone} onChange={(e) => setClinicForm({ ...clinicForm, clinicPhone: e.target.value })}
+                      placeholder="例）00-0000-0000"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・住所（医院自身も設定可）</label>
+                    <input value={clinicForm.clinicAddress} onChange={(e) => setClinicForm({ ...clinicForm, clinicAddress: e.target.value })}
+                      placeholder="例）〒000-0000 ◯◯県◯◯市◯◯"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・最寄駅（医院自身も設定可）</label>
+                    <input value={clinicForm.clinicNearestStation} onChange={(e) => setClinicForm({ ...clinicForm, clinicNearestStation: e.target.value })}
+                      placeholder="例）◯◯線「◯◯駅」徒歩◯分"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・駐車場（医院自身も設定可）</label>
+                    <input value={clinicForm.clinicParking} onChange={(e) => setClinicForm({ ...clinicForm, clinicParking: e.target.value })}
+                      placeholder="例）専用駐車場3台あり"
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
                   </div>
                 </div>
@@ -871,6 +936,26 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                   {creatingLogin ? "発行中..." : "発行する"}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* クリニック紹介（代理編集） */}
+          {activeTab === "クリニック紹介" && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <p className="text-xs text-slate-400 mb-4">
+                患者様ポータルの「クリニック紹介」画面に表示するスタッフ紹介を、医院様に代わって編集できます。診療時間・アクセス情報は「基本情報」タブから編集してください。
+              </p>
+              <ClinicStaffManager customerCode={code} theme="violet" />
+            </div>
+          )}
+
+          {/* Q&A（代理編集） */}
+          {activeTab === "Q&A" && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <p className="text-xs text-slate-400 mb-4">
+                患者様ポータルの「Q&A」画面に表示する質問・回答を、医院様に代わって編集できます。
+              </p>
+              <ClinicQaManager customerCode={code} theme="violet" />
             </div>
           )}
         </>

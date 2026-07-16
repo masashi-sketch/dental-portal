@@ -1,7 +1,5 @@
 export type NavVisibility = {
-  home: boolean;
   clinicInfo: boolean;
-  reservation: boolean;
   medicalRecord: boolean;
   medication: boolean;
   subscription: boolean;
@@ -10,9 +8,7 @@ export type NavVisibility = {
 };
 
 export const DEFAULT_NAV_VISIBILITY: NavVisibility = {
-  home: true,
   clinicInfo: true,
-  reservation: true,
   medicalRecord: true,
   medication: true,
   subscription: true,
@@ -22,7 +18,7 @@ export const DEFAULT_NAV_VISIBILITY: NavVisibility = {
 
 export type PatientNavKey = keyof NavVisibility;
 
-// サイドバー・ボトムナビの項目はすべてnavKeyを持ち、トグル対象になる。
+// ホームはnavKey未指定（常に表示）。それ以外のサイドバー・ボトムナビ項目はnavKeyを持ち、トグル対象になる。
 export function isPatientNavKeyVisible(
   key: PatientNavKey | undefined,
   visibility: NavVisibility,

@@ -118,7 +118,7 @@ create trigger trg_sales_reps_updated_at
 -- 4. 得意先（医院）マスタ。得意先コードをKEYとする。
 --    将来Salesforceと連携する想定のため、得意先コードは
 --    Salesforce側のID形式を見据えた「英大文字1文字+数字6桁」（例：A000001）とする。
---    BGJポータルで登録・編集し、医院用ポータル（医院設定）・患者マスタ・
+--    BGJポータルで登録・編集し、医院用ポータル（クリニック情報）・患者マスタ・
 --    取引条件から参照される。
 -- ============================================================
 create table public.clinics (
@@ -149,11 +149,18 @@ create table public.clinics (
   main_referrer   text,                              -- 主な紹介者
   display_name            text,                      -- 医院・患者ポータルの表示名（未設定ならnameを使う。医院自身も編集可）
   patient_background_url  text,                       -- 患者ポータルのログイン画面背景画像URL（未設定なら標準画像）
-  -- 患者ポータルのサイドバー・ボトムナビ各項目の表示/非表示（医院設定画面で編集可、全てデフォルトtrue）。
-  -- アプリ側で「少なくとも1つはtrue」を強制する（DBレベルの制約は設けていない）。
-  nav_show_home            boolean not null default true,
+  -- 患者ポータルの「クリニック紹介」画面に表示する診療時間・アクセス情報（患者向け公開情報。
+  -- BGJ内部管理用のaddress/tel/closed_dayとは別に、医院自身またはBGJ代理編集で設定する）。
+  clinic_hours_weekday     text,                      -- 例：「9:00〜18:00」
+  clinic_hours_saturday    text,
+  clinic_closed_day        text,                      -- 例：「水・日・祝日」
+  clinic_phone             text,
+  clinic_address           text,
+  clinic_nearest_station   text,
+  clinic_parking           text,
+  -- 患者ポータルのサイドバー・ボトムナビ各項目の表示/非表示（クリニック情報＞医院設定情報で編集可、全てデフォルトtrue）。
+  -- 「ホーム」はトグル対象外で常に表示。アプリ側で「少なくとも1つはtrue」を強制する（DBレベルの制約は設けていない）。
   nav_show_clinic_info     boolean not null default true,
-  nav_show_reservation     boolean not null default true,
   nav_show_medical_record  boolean not null default true,
   nav_show_medication      boolean not null default true,
   nav_show_subscription    boolean not null default true,
@@ -262,7 +269,7 @@ create index idx_diagnoses_patient_latest
 -- ============================================================
 -- 8. 得意先（医院）ごとの取引条件（コミッション率・仕切値率・支払条件・契約情報）
 --    得意先コードをKEYとして持つ。BGJポータルで入力し、医院用ポータルの
---    「医院設定」で参照表示する。得意先マスタへの実FK。
+--    「クリニック情報＞医院契約情報」で参照表示する。得意先マスタへの実FK。
 -- ============================================================
 create table public.clinic_terms (
   customer_code       text primary key references public.clinics (customer_code) on delete cascade,
@@ -311,6 +318,48 @@ create trigger trg_clinic_users_updated_at
   for each row execute function public.set_updated_at_generic();
 
 -- ============================================================
+-- 9.5. 患者ポータルの「クリニック紹介」スタッフ紹介・「Q&A」
+--    医院自身、またはBGJポータル（/bgj/customers/[code]）からの代理編集どちらも可能。
+--    表示順はsort_orderで管理する（アプリ側で上下ボタンによる並び替えを提供）。
+-- ============================================================
+create table public.clinic_staff (
+  id            uuid primary key default gen_random_uuid(),
+  customer_code text not null references public.clinics (customer_code) on delete cascade,
+  role_label    text not null,                        -- 例：院長・歯科衛生士・受付
+  name          text not null,
+  credentials   text,                                 -- 資格・経歴
+  description   text,
+  photo_url     text,
+  sort_order    int not null default 0,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index idx_clinic_staff_customer_code on public.clinic_staff (customer_code, sort_order);
+
+create trigger trg_clinic_staff_updated_at
+  before update on public.clinic_staff
+  for each row execute function public.set_updated_at_generic();
+
+create table public.clinic_qa (
+  id            uuid primary key default gen_random_uuid(),
+  customer_code text not null references public.clinics (customer_code) on delete cascade,
+  category      text not null,                        -- 患者ポータルのカテゴリタブは登録データから自動生成
+  question      text not null,
+  answer        text not null,
+  sort_order    int not null default 0,
+  status        text not null default '公開' check (status in ('公開','下書き')),
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index idx_clinic_qa_customer_code on public.clinic_qa (customer_code, sort_order);
+
+create trigger trg_clinic_qa_updated_at
+  before update on public.clinic_qa
+  for each row execute function public.set_updated_at_generic();
+
+-- ============================================================
 -- 10. RLS：原則ポリシーを一切定義せず有効化するのみ。
 --    anon/authenticated からは読み書き一切不可。service_role キーのみアクセス可能。
 --    ※ patients / periodontal_diagnoses / periodontal_stages / periodontal_grades の
@@ -329,6 +378,8 @@ alter table public.patients               enable row level security;
 alter table public.periodontal_diagnoses  enable row level security;
 alter table public.clinic_terms           enable row level security;
 alter table public.clinic_users           enable row level security;
+alter table public.clinic_staff           enable row level security;
+alter table public.clinic_qa              enable row level security;
 
 -- ============================================================
 -- 11. フェーズ3b：患者ポータルの歯周病診断読み取り経路のみ、
