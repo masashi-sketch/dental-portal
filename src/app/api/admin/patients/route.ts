@@ -35,19 +35,21 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { name, loginId, password, status } = body ?? {};
+  const { name, password, status } = body ?? {};
   const customerCode = resolveScopedCustomerCode(session, body?.customerCode ?? null);
-  if (!customerCode || !name || !loginId || !password) {
+  if (!customerCode || !name || !password) {
     return NextResponse.json({ error: '必須項目が不足しています。' }, { status: 400 });
   }
 
+  // login_idは手入力を認めず、patients.login_id（'BU' + 6桁のseq_no連番、
+  // schema.sql参照）に自動採番させる。挿入時にこの列を指定するとPostgresが
+  // エラーにするため、ここでは一切渡さない。
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from('patients')
     .insert({
       customer_code: customerCode,
       name,
-      login_id: loginId,
       password_hash: hashPassword(password),
       status: status ?? '有効',
     })

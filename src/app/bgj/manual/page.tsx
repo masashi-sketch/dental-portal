@@ -173,7 +173,7 @@ vercel --prod          # 本番デプロイ`}</Code>
                         <strong className="text-red-600">重要：</strong>URLの`[signup_slug]`は得意先コードとは無関係なランダム文字列（`generateSignupSlug()`、PINと同時に再発行）。得意先コードは連番で推測可能なため、URLには一切使わない（単純なハッシュ化では全パターン先回り計算で逆引きされるため不十分、という判断）。
                       </p>
                       <p>
-                        患者様の登録項目（氏名・ログインID・パスワード）を追加・変更する場合は、上記2つの登録ページと送信先APIを必ず連動して更新すること（各ファイル冒頭にもこの方針をコメントで残している）。
+                        患者様の登録項目（氏名・パスワード）を追加・変更する場合は、上記2つの登録ページと送信先APIを必ず連動して更新すること（各ファイル冒頭にもこの方針をコメントで残している）。ログインIDは手入力させず、全クリニック共通の連番（「BU」+6桁、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patients.login_id</code>の生成列）をDB側で自動採番する（詳細はシステム手順「6. ログインIDの自動採番」参照）。
                       </p>
                       <p>
                         QR・PINの発行/再発行は、BGJ側（得意先詳細＞接続情報タブ）・医院側（クリニック情報＞QR設定、および患者様管理のQRモーダル）のどちらからも行え、実体は同じ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_patient_settings</code>の1行なので双方向に反映される。QRの見た目・PDFファイル名にはPIN発行日時（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">yyyymmddhhmmss</code>）を埋め込み、再発行のたびにQRが変わるようにしている。
@@ -182,6 +182,33 @@ vercel --prod          # 本番デプロイ`}</Code>
                         <strong>ハマりどころ：</strong>このプロジェクトのNext.js 16では<code className="bg-white px-1.5 py-0.5 rounded text-xs">middleware.ts</code>が<code className="bg-white px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>という名前に変わっている。ほぼ全パスを認証必須にする関所として動くため、
                         <strong>新しい公開（認証不要）ページ・APIを追加したら、必ず<code className="bg-white px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>の許可リストにも追加すること。</strong>
                         実際に<code className="bg-white px-1.5 py-0.5 rounded text-xs">/join/[signup_slug]</code>を追加した際にこれを見落とし、QRからスマホでアクセスすると本番でログイン画面にリダイレクトされる不具合が発生した（あわせて、既存の<code className="bg-white px-1.5 py-0.5 rounded text-xs">/bgj-login</code>も同じ理由で許可リスト漏れだったため修正済み）。
+                      </p>
+                    </>
+                  ),
+                },
+                {
+                  label: "6. ログインIDの自動採番",
+                  content: (
+                    <>
+                      <p>
+                        患者様のログインIDは、発行経路（医院/BGJの手動発行・QR自己登録のどちらか）によらず、全クリニック共通の連番（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">BU</code>+6桁、例：<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">BU000001</code>）で自動採番する。手入力は一切できない。
+                      </p>
+                      <p>
+                        実装は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patients.login_id</code>を「生成列（generated always as ... stored）」にすることで実現している。既存の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient_no</code>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`'T-' || lpad(seq_no,5,'0')`}</code>）と全く同じ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">seq_no</code>（自動採番の識別子）から算出するため、採番ロジックが増えるのではなく、既存の仕組みに相乗りする形。
+                      </p>
+                      <Code>{`-- 既存のlogin_idは履歴として残しつつ、新しいlogin_idを自動採番に置き換える
+alter table public.patients rename column login_id to login_id_legacy;
+alter table public.patients drop constraint if exists patients_login_id_key;
+
+alter table public.patients
+  add column login_id text generated always as ('BU' || lpad(seq_no::text, 6, '0')) stored;
+alter table public.patients
+  add constraint patients_login_id_key unique (login_id);`}</Code>
+                      <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
+                        <strong>重要：</strong>このSQLを実行すると、<strong>既存の患者様全員のログインIDが新しい値（BU000001〜）に変わる</strong>（パスワードは変わらない）。既存のログインIDは<code className="bg-white px-1.5 py-0.5 rounded text-xs">login_id_legacy</code>列に残るので確認・切り戻しの参考にできるが、実際のログインには使えなくなる。実行前に、影響を受ける患者様への新しいIDの案内が必要。
+                      </p>
+                      <p>
+                        生成列はINSERT/UPDATE時に明示的な値を渡すとPostgresがエラーにするため、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/admin/patients</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/join/[slug]</code>のどちらも<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">login_id</code>を一切渡さずINSERTし、返ってきた行から採番結果を読む。新しい登録経路を追加する場合もこのパターンを踏襲すること。
                       </p>
                     </>
                   ),
@@ -247,7 +274,7 @@ vercel --prod          # 本番デプロイ`}</Code>
                     </Steps>
                     <Steps title="患者様のIDを発行する">
                       <li>サイドバーの「患者様管理」を開きます。</li>
-                      <li>「＋患者IDを発行」から、患者様のお名前・ログインID・初期パスワードを入力して登録します。</li>
+                      <li>「＋患者IDを発行」から、患者様のお名前・初期パスワードを入力して登録します（ログインIDは全クリニック共通の連番で自動的に発行され、手入力はできません）。</li>
                       <li>発行された患者番号・ログインID・パスワードを、患者様にお渡しください。</li>
                     </Steps>
                     <Steps title="歯周病の診断結果を登録する">
@@ -351,8 +378,9 @@ vercel --prod          # 本番デプロイ`}</Code>
                             <Steps title="患者様ご自身での登録手順">
                               <li>窓口に掲示されたQRコードを、ご自身のスマホのカメラで読み取ります。</li>
                               <li>開いた画面で、窓口でお伝えした受付PINを入力します。</li>
-                              <li>お名前・希望のログインID・パスワードを入力し、「登録する」を押すと完了です。</li>
-                              <li>そのまま表示される「ログイン画面へ」から、設定したログインID・パスワードでログインできます。</li>
+                              <li>お名前・パスワードを入力し、「登録する」を押すと完了です。</li>
+                              <li>完了画面に、その場で発行された「あなたのログインID」（BU＋6桁の数字）が表示されます。次回以降のログインに必要なので必ず控えてください。</li>
+                              <li>そのまま表示される「ログイン画面へ」から、発行されたログインIDと設定したパスワードでログインできます。</li>
                             </Steps>
                           ),
                         },

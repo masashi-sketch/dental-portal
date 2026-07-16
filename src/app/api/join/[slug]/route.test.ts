@@ -1,8 +1,9 @@
 // @vitest-environment node
 // 認証不要（患者様ご自身のスマホからQR経由でアクセスする）公開エンドポイント。
-// signup_slugでクリニックを解決すること・受付PINによる本人確認・総当たり対策・
-// ログインID重複時の挙動を検証する。得意先コード（customer_code）はURL・
-// リクエストボディのいずれにも含まれない。
+// signup_slugでクリニックを解決すること・受付PINによる本人確認・総当たり対策を
+// 検証する。得意先コード（customer_code）はURL・リクエストボディのいずれにも
+// 含まれない。ログインIDは手入力させず、DB側の自動採番（'BU'+6桁、生成列）に
+// 委ねるため、リクエストボディにも含めない。
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
@@ -42,9 +43,14 @@ vi.mock('@/lib/supabase/server', () => ({
       }
       if (table === 'patients') {
         return {
-          insert: async (row: Record<string, unknown>) => {
+          insert: (row: Record<string, unknown>) => {
             insertSpy(row);
-            return { error: insertError };
+            return {
+              select: () => ({
+                single: async () =>
+                  insertError ? { data: null, error: insertError } : { data: { login_id: 'BU000123' }, error: null },
+              }),
+            };
           },
         };
       }
@@ -63,7 +69,7 @@ function joinRequest(body: Record<string, unknown>) {
 }
 
 const params = Promise.resolve({ slug: 'abc123' });
-const validBody = { pin: '123456', name: '山田太郎', loginId: 'yamada01', password: 'password123' };
+const validBody = { pin: '123456', name: '山田太郎', password: 'password123' };
 
 describe('GET/POST /api/join/[slug]', () => {
   beforeEach(() => {
@@ -138,22 +144,23 @@ describe('GET/POST /api/join/[slug]', () => {
     expect(insertSpy).not.toHaveBeenCalled();
   });
 
-  it('POST: PINが正しければ患者を新規登録し、失敗回数をリセットする', async () => {
+  it('POST: PINが正しければ患者を新規登録し、失敗回数をリセットする。DBが自動採番したログインIDを返す', async () => {
     settingsRow = { customer_code: 'A000001', display_name: null, patient_background_url: null, signup_pin: '123456', signup_pin_failed_attempts: 2, signup_pin_locked_until: null };
     const res = await POST(joinRequest(validBody), { params });
+    const body = await res.json();
     expect(res.status).toBe(201);
+    expect(body.loginId).toBe('BU000123');
     expect(insertSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ customer_code: 'A000001', name: '山田太郎', login_id: 'yamada01', status: '有効' }),
+      expect.objectContaining({ customer_code: 'A000001', name: '山田太郎', status: '有効' }),
     );
+    expect(insertSpy.mock.calls[0][0]).not.toHaveProperty('login_id');
     expect(updateSpy).toHaveBeenCalledWith({ signup_pin_failed_attempts: 0, signup_pin_locked_until: null });
   });
 
-  it('POST: ログインIDが重複していれば409で分かりやすいメッセージを返す', async () => {
+  it('POST: 登録に失敗すれば500', async () => {
     settingsRow = { customer_code: 'A000001', display_name: null, patient_background_url: null, signup_pin: '123456', signup_pin_failed_attempts: 0, signup_pin_locked_until: null };
-    insertError = { code: '23505', message: 'duplicate key value violates unique constraint' };
+    insertError = { code: '23505', message: 'some db error' };
     const res = await POST(joinRequest(validBody), { params });
-    const body = await res.json();
-    expect(res.status).toBe(409);
-    expect(body.error).toContain('既に使われています');
+    expect(res.status).toBe(500);
   });
 });

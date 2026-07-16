@@ -48,9 +48,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const body = await request.json();
-  const { pin, name, loginId, password } = body ?? {};
+  const { pin, name, password } = body ?? {};
 
-  if (!pin || !name || !loginId || !password) {
+  if (!pin || !name || !password) {
     return NextResponse.json({ error: '必須項目が不足しています。' }, { status: 400 });
   }
   if (typeof password !== 'string' || password.length < 8) {
@@ -75,17 +75,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
   await resetSignupPinAttempts(supabase, customerCode);
 
-  const { error } = await supabase.from('patients').insert({
-    customer_code: customerCode,
-    name,
-    login_id: loginId,
-    password_hash: hashPassword(password),
-    status: '有効',
-  });
+  // login_idは手入力を認めず、patients.login_id（'BU' + 6桁のseq_no連番、
+  // schema.sql参照）に自動採番させる。挿入時にこの列を指定するとPostgresが
+  // エラーにするため、ここでは一切渡さない。
+  const { data: inserted, error } = await supabase
+    .from('patients')
+    .insert({
+      customer_code: customerCode,
+      name,
+      password_hash: hashPassword(password),
+      status: '有効',
+    })
+    .select('login_id')
+    .single();
 
   if (error) {
-    const message = error.code === '23505' ? 'そのログインIDは既に使われています。別のIDをお試しください。' : error.message;
-    return NextResponse.json({ error: message }, { status: error.code === '23505' ? 409 : 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ ok: true }, { status: 201 });
+  return NextResponse.json({ ok: true, loginId: inserted.login_id }, { status: 201 });
 }

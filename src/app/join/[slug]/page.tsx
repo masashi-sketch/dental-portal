@@ -10,21 +10,23 @@ const DEFAULT_CLINIC_NAME = 'デンタルポータル';
 // パスの[slug]は得意先コードとは無関係なランダム文字列（signup_slug）。
 // 得意先コードは連番で推測可能なため、URL・リクエストのいずれにも含めない。
 //
-// 【重要な運用方針】このフォームの入力項目（氏名・ログインID・パスワード）は、
+// 【重要な運用方針】このフォームの入力項目（氏名・パスワード）は、
 // join/[slug]/mobile・送信先API（src/app/api/join/[slug]/route.ts）と
 // 同じ項目に揃えている。患者様の登録項目を追加・変更する場合は、この3ファイルを
-// 必ず連動して更新すること。
+// 必ず連動して更新すること。ログインIDは手入力させない（全クリニック共通の連番を
+// DB側で自動採番、schema.sqlのpatients.login_id参照）。登録完了後、発行された
+// 値を画面に表示する。
 export default function PatientJoinPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const [clinicName, setClinicName] = useState(DEFAULT_CLINIC_NAME);
   const [pin, setPin] = useState('');
   const [name, setName] = useState('');
-  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
+  const [assignedLoginId, setAssignedLoginId] = useState<string | null>(null);
+  const [idCopied, setIdCopied] = useState(false);
 
   useEffect(() => {
     fetch(`/api/join/${encodeURIComponent(slug)}`)
@@ -36,7 +38,7 @@ export default function PatientJoinPage({ params }: { params: Promise<{ slug: st
   }, [slug]);
 
   const handleSubmit = async () => {
-    if (!pin.trim() || !name.trim() || !loginId.trim() || !password) {
+    if (!pin.trim() || !name.trim() || !password) {
       setError('すべての項目を入力してください。');
       return;
     }
@@ -51,14 +53,14 @@ export default function PatientJoinPage({ params }: { params: Promise<{ slug: st
       const res = await fetch(`/api/join/${encodeURIComponent(slug)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: pin.trim(), name: name.trim(), loginId: loginId.trim(), password }),
+        body: JSON.stringify({ pin: pin.trim(), name: name.trim(), password }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? '登録に失敗しました。');
         return;
       }
-      setDone(true);
+      setAssignedLoginId(data.loginId);
     } catch {
       setError('通信エラーが発生しました。');
     } finally {
@@ -81,7 +83,7 @@ export default function PatientJoinPage({ params }: { params: Promise<{ slug: st
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-10">
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sm:p-8">
-          {done ? (
+          {assignedLoginId ? (
             <div className="text-center py-4">
               <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -89,7 +91,20 @@ export default function PatientJoinPage({ params }: { params: Promise<{ slug: st
                 </svg>
               </div>
               <h2 className="text-lg font-bold text-gray-900 mb-1">登録が完了しました</h2>
-              <p className="text-gray-500 text-sm mb-6">設定したログインIDとパスワードでログインしてください。</p>
+              <p className="text-gray-500 text-sm mb-4">こちらがあなたのログインIDです。次回以降のログインに必要ですので、必ず控えてください。</p>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-3">
+                <span className="font-mono text-lg font-bold text-blue-700 tracking-wider">{assignedLoginId}</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(assignedLoginId);
+                    setIdCopied(true);
+                    setTimeout(() => setIdCopied(false), 2000);
+                  }}
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 shrink-0"
+                >
+                  {idCopied ? '✓ コピーしました' : 'コピー'}
+                </button>
+              </div>
               <Link
                 href="/"
                 className="block w-full bg-[#2563EB] text-white py-3 rounded-xl font-semibold hover:bg-[#1d4ed8] transition-colors"
@@ -100,7 +115,7 @@ export default function PatientJoinPage({ params }: { params: Promise<{ slug: st
           ) : (
             <>
               <h2 className="text-xl font-bold text-gray-900 mb-1">患者様ポータルの登録</h2>
-              <p className="text-gray-400 text-sm mb-6">窓口でお伝えした受付PINを入力してください。</p>
+              <p className="text-gray-400 text-sm mb-6">窓口でお伝えした受付PINを入力してください。ログインIDは登録後に自動で発行されます。</p>
 
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-2.5 mb-4">
@@ -127,16 +142,6 @@ export default function PatientJoinPage({ params }: { params: Promise<{ slug: st
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="例）山田 太郎"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors placeholder-gray-300 bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">希望ログインID</label>
-                  <input
-                    type="text"
-                    value={loginId}
-                    onChange={(e) => setLoginId(e.target.value)}
-                    placeholder="半角英数字"
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors placeholder-gray-300 bg-gray-50"
                   />
                 </div>

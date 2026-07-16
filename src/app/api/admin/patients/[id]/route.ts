@@ -38,13 +38,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   const body = await request.json();
-  const { customerCode, name, loginId, password, status } = body ?? {};
+  const { customerCode, name, password, status } = body ?? {};
 
   const update: Record<string, unknown> = {};
   // クリニックログインは自院の患者の得意先コードを他院へ付け替えられないようにする
   if (customerCode !== undefined && session.user.role !== 'clinic') update.customer_code = customerCode;
   if (name !== undefined) update.name = name;
-  if (loginId !== undefined) update.login_id = loginId;
+  // login_idは'BU'+6桁の自動採番（generated column、schema.sql参照）のため
+  // 更新不可。指定を受け付けるとPostgresがエラーにする。
   // パスワードは指定があった場合のみ再ハッシュ化して更新する（空/未指定なら変更しない）
   if (password) update.password_hash = hashPassword(password);
   if (status !== undefined) update.status = status;

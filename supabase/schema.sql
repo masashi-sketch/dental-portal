@@ -285,7 +285,10 @@ create table public.patients (
   seq_no        int generated always as identity,
   patient_no    text generated always as ('T-' || lpad(seq_no::text, 5, '0')) stored,
   name          text not null,
-  login_id      text not null,
+  -- ログインIDは手入力を認めず、全クリニック共通の連番（BU+6桁、patient_noと同じ
+  -- seq_noから算出）を自動採番する。発行経路（医院/BGJの手動発行・患者様のQR自己登録）
+  -- によらず必ずこの1つの採番ロジックを通る（詳細はCLAUDE.md参照）。
+  login_id      text generated always as ('BU' || lpad(seq_no::text, 6, '0')) stored,
   password_hash text not null,
   status        text not null default '有効' check (status in ('有効','無効')),
   registered_at date not null default current_date,

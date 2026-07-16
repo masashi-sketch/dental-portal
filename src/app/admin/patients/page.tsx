@@ -18,12 +18,11 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 type FormState = {
   customerCode: string;
   name: string;
-  loginId: string;
   password: string;
   status: PatientPublic['status'];
 };
 
-const EMPTY_FORM: FormState = { customerCode: '', name: '', loginId: '', password: '', status: '有効' };
+const EMPTY_FORM: FormState = { customerCode: '', name: '', password: '', status: '有効' };
 
 export default function AdminPatientsPage() {
   const { data: session } = useSession();
@@ -75,12 +74,12 @@ export default function AdminPatientsPage() {
 
   const openEdit = (p: PatientPublic) => {
     setEditItem(p);
-    setForm({ customerCode: p.customer_code, name: p.name, loginId: p.login_id, password: '', status: p.status });
+    setForm({ customerCode: p.customer_code, name: p.name, password: '', status: p.status });
     setShowForm(true);
   };
 
   const handleSave = async () => {
-    if (!form.customerCode.trim() || !form.name.trim() || !form.loginId.trim()) return;
+    if (!form.customerCode.trim() || !form.name.trim()) return;
     if (!editItem && !form.password.trim()) return;
     try {
       if (editItem) {
@@ -90,7 +89,6 @@ export default function AdminPatientsPage() {
           body: JSON.stringify({
             customerCode: form.customerCode,
             name: form.name,
-            loginId: form.loginId,
             ...(form.password.trim() ? { password: form.password } : {}),
             status: form.status,
           }),
@@ -109,7 +107,6 @@ export default function AdminPatientsPage() {
           body: JSON.stringify({
             customerCode: form.customerCode,
             name: form.name,
-            loginId: form.loginId,
             password: form.password,
             status: form.status,
           }),
@@ -120,7 +117,7 @@ export default function AdminPatientsPage() {
         }
         const { patient } = await res.json();
         setPatients((prev) => [patient, ...prev]);
-        showToast(`患者ID ${patient.patient_no} を発行しました`);
+        showToast(`患者ID ${patient.patient_no}（ログインID: ${patient.login_id}）を発行しました`);
       }
       setShowForm(false);
     } catch (e) {
@@ -293,9 +290,12 @@ export default function AdminPatientsPage() {
               </div>
               <div>
                 <label className="text-slate-700 text-base mb-1.5 block font-medium">ログインID</label>
-                <input type="text" value={form.loginId} onChange={(e) => setForm({ ...form, loginId: e.target.value })}
-                  placeholder="例）yamada01"
-                  className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400" />
+                <input type="text" readOnly
+                  value={editItem ? editItem.login_id : '登録後に自動採番されます'}
+                  className="w-full border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none placeholder-slate-400 bg-slate-100 cursor-not-allowed" />
+                <p className="text-xs text-slate-400 mt-1.5">
+                  全クリニック共通の連番（BU000001〜）で自動的に発行されます（変更不可）。
+                </p>
               </div>
               <div>
                 <label className="text-slate-700 text-base mb-1.5 block font-medium">{editItem ? 'パスワード再設定' : '初期パスワード'}</label>
