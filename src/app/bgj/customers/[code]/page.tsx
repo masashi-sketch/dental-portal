@@ -6,6 +6,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import SalesRepAvatar from "@/components/SalesRepAvatar";
 import ClinicStaffManager from "@/components/ClinicStaffManager";
 import ClinicQaManager from "@/components/ClinicQaManager";
+import { useToast } from "@/hooks/useToast";
 import type { Clinic, ClinicOrder, ClinicStatus, ClinicUserPublic, ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
 
 type ClinicWithStaff = Clinic & { staff: SalesRepWithMaster | null };
@@ -110,8 +111,7 @@ const EMPTY_VISIT_FORM: VisitFormState = { visitDate: "", purpose: "", memo: "",
 export default function CustomerDetailPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const [activeTab, setActiveTab] = useState("基本情報");
-  const [toast, setToast] = useState("");
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
+  const { toast, showToast } = useToast();
 
   // 得意先本体
   const [clinic, setClinic] = useState<ClinicWithStaff | null>(null);
@@ -256,9 +256,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "保存に失敗しました");
       }
+      const { clinic: updatedRow } = await res.json();
+      const staff = salesReps.find((s) => s.id === updatedRow.staff_id) ?? null;
+      const merged: ClinicWithStaff = { ...updatedRow, staff };
+      setClinic(merged);
+      setClinicForm(clinicToForm(merged));
       showToast("得意先情報を保存しました");
       setEditingClinic(false);
-      await fetchAll();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -306,11 +310,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "保存に失敗しました");
       }
+      const { visit } = await res.json();
+      setVisits((prev) => [visit, ...prev]);
       showToast("訪問記録を追加しました");
       setShowVisitModal(false);
       setVisitForm(EMPTY_VISIT_FORM);
-      const visitsRes = await fetch(`/api/bgj/clinics/${code}/visits`);
-      if (visitsRes.ok) setVisits((await visitsRes.json()).visits ?? []);
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -334,9 +338,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "作成に失敗しました");
       }
+      const { clinicUser } = await res.json();
+      setClinicUsers((prev) => [clinicUser, ...prev]);
       showToast("ログインを発行しました");
       setNewLoginForm({ loginId: "", password: "", name: "" });
-      await fetchClinicUsers();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -357,10 +362,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "更新に失敗しました");
       }
+      const { clinicUser } = await res.json();
+      setClinicUsers((prev) => prev.map((u) => (u.id === clinicUser.id ? clinicUser : u)));
       showToast("パスワードを再設定しました");
       setResetPasswordId(null);
       setResetPasswordValue("");
-      await fetchClinicUsers();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -380,8 +386,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "更新に失敗しました");
       }
+      const { clinicUser } = await res.json();
+      setClinicUsers((prev) => prev.map((u) => (u.id === clinicUser.id ? clinicUser : u)));
       showToast(user.status === "有効" ? "無効化しました" : "有効化しました");
-      await fetchClinicUsers();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {

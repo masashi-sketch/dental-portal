@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
+import { useToast } from '@/hooks/useToast';
 import type { ClinicStaff } from '@/lib/supabase/types';
 
 const EMPTY_FORM = { roleLabel: '', name: '', credentials: '', description: '', photoUrl: '' };
@@ -34,14 +35,12 @@ export default function ClinicStaffManager({
   const t = THEMES[theme];
   const [staff, setStaff] = useState<ClinicStaff[]>([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState('');
+  const { toast, showToast } = useToast();
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<ClinicStaff | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
   const qs = customerCode ? `?customerCode=${encodeURIComponent(customerCode)}` : '';
 
@@ -88,9 +87,10 @@ export default function ClinicStaffManager({
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? '保存に失敗しました');
       }
+      const { staff: savedStaff } = await res.json();
+      setStaff((prev) => (editItem ? prev.map((s) => (s.id === savedStaff.id ? savedStaff : s)) : [...prev, savedStaff]));
       showToast(editItem ? 'スタッフ情報を更新しました' : 'スタッフを追加しました');
       setShowModal(false);
-      await fetchAll();
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     } finally {
@@ -106,18 +106,22 @@ export default function ClinicStaffManager({
         throw new Error(body?.error ?? '削除に失敗しました');
       }
       setDeleteId(null);
+      setStaff((prev) => prev.filter((s) => s.id !== id));
       showToast('スタッフを削除しました');
-      await fetchAll();
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     }
   };
 
-  const handleMove = async (index: number, direction: -1 | 1) => {
+  const handleMove = (index: number, direction: -1 | 1) => {
     const target = staff[index + direction];
     const current = staff[index];
     if (!target || !current) return;
-    await Promise.all([
+    const nextStaff = [...staff];
+    nextStaff[index] = { ...target, sort_order: current.sort_order };
+    nextStaff[index + direction] = { ...current, sort_order: target.sort_order };
+    setStaff(nextStaff);
+    void Promise.all([
       fetch(`/api/admin/clinic-staff/${current.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -129,7 +133,6 @@ export default function ClinicStaffManager({
         body: JSON.stringify({ sortOrder: current.sort_order }),
       }),
     ]);
-    await fetchAll();
   };
 
   return (

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import AdminSidebar from '../../components/AdminSidebar';
+import { useToast } from '@/hooks/useToast';
 import type { PatientPublic, PeriodontalDiagnosisWithMaster, PeriodontalGrade, PeriodontalStage } from '@/lib/supabase/types';
 
 type DiagnosisForm = {
@@ -25,13 +26,11 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
   const [grades, setGrades] = useState<PeriodontalGrade[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState('');
+  const { toast, showToast } = useToast();
   const [showDiagnosisForm, setShowDiagnosisForm] = useState(false);
   const [diagnosisForm, setDiagnosisForm] = useState<DiagnosisForm>(EMPTY_DIAGNOSIS_FORM);
   const [saving, setSaving] = useState(false);
   const [periodontalEnabled, setPeriodontalEnabled] = useState(true);
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
   const fetchAll = async () => {
     setLoading(true);
@@ -99,9 +98,12 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
         }),
       });
       if (!res.ok) throw new Error('診断の登録に失敗しました');
+      const { diagnosis } = await res.json();
+      const stage = stages.find((s) => s.code === diagnosis.stage_code) ?? null;
+      const grade = grades.find((g) => g.code === diagnosis.grade_code) ?? null;
+      setDiagnoses((prev) => [{ ...diagnosis, stage, grade }, ...prev]);
       showToast('歯周病診断を登録しました');
       setShowDiagnosisForm(false);
-      await fetchAll();
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     } finally {

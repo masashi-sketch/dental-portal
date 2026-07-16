@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import AdminSidebar from '../components/AdminSidebar';
+import { useToast } from '@/hooks/useToast';
 import type { PatientPublic } from '@/lib/supabase/types';
 
 function FakeQRCode({ size = 160 }: { size?: number }) {
@@ -63,11 +64,9 @@ export default function AdminPatientsPage() {
   const [editItem, setEditItem] = useState<PatientPublic | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [toast, setToast] = useState('');
+  const { toast, showToast } = useToast();
   const [showQR, setShowQR] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
   const fetchPatients = async () => {
     setLoading(true);
@@ -118,6 +117,8 @@ export default function AdminPatientsPage() {
           const body = await res.json().catch(() => null);
           throw new Error(body?.error ?? '更新に失敗しました');
         }
+        const { patient } = await res.json();
+        setPatients((prev) => prev.map((p) => (p.id === patient.id ? patient : p)));
         showToast('患者情報を更新しました');
       } else {
         const res = await fetch('/api/admin/patients', {
@@ -136,10 +137,10 @@ export default function AdminPatientsPage() {
           throw new Error(body?.error ?? '発行に失敗しました');
         }
         const { patient } = await res.json();
+        setPatients((prev) => [patient, ...prev]);
         showToast(`患者ID ${patient.patient_no} を発行しました`);
       }
       setShowForm(false);
-      await fetchPatients();
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     }
@@ -153,8 +154,8 @@ export default function AdminPatientsPage() {
         throw new Error(body?.error ?? '削除に失敗しました');
       }
       setDeleteId(null);
+      setPatients((prev) => prev.filter((p) => p.id !== id));
       showToast('患者情報を削除しました');
-      await fetchPatients();
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     }
@@ -172,7 +173,8 @@ export default function AdminPatientsPage() {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? '更新に失敗しました');
       }
-      await fetchPatients();
+      const { patient } = await res.json();
+      setPatients((prev) => prev.map((item) => (item.id === patient.id ? patient : item)));
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     }

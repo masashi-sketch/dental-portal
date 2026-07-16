@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/useToast';
 import type { ClinicQa } from '@/lib/supabase/types';
 
 const EMPTY_FORM = { category: '', question: '', answer: '', status: '公開' as ClinicQa['status'] };
@@ -33,14 +34,12 @@ export default function ClinicQaManager({
   const t = THEMES[theme];
   const [qaList, setQaList] = useState<ClinicQa[]>([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState('');
+  const { toast, showToast } = useToast();
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<ClinicQa | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
   const qs = customerCode ? `?customerCode=${encodeURIComponent(customerCode)}` : '';
 
@@ -81,9 +80,10 @@ export default function ClinicQaManager({
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? '保存に失敗しました');
       }
+      const { qa } = await res.json();
+      setQaList((prev) => (editItem ? prev.map((item) => (item.id === qa.id ? qa : item)) : [...prev, qa]));
       showToast(editItem ? 'Q&Aを更新しました' : 'Q&Aを追加しました');
       setShowModal(false);
-      await fetchAll();
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     } finally {
@@ -99,18 +99,22 @@ export default function ClinicQaManager({
         throw new Error(body?.error ?? '削除に失敗しました');
       }
       setDeleteId(null);
+      setQaList((prev) => prev.filter((item) => item.id !== id));
       showToast('Q&Aを削除しました');
-      await fetchAll();
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     }
   };
 
-  const handleMove = async (index: number, direction: -1 | 1) => {
+  const handleMove = (index: number, direction: -1 | 1) => {
     const target = qaList[index + direction];
     const current = qaList[index];
     if (!target || !current) return;
-    await Promise.all([
+    const nextList = [...qaList];
+    nextList[index] = { ...target, sort_order: current.sort_order };
+    nextList[index + direction] = { ...current, sort_order: target.sort_order };
+    setQaList(nextList);
+    void Promise.all([
       fetch(`/api/admin/clinic-qa/${current.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -122,7 +126,6 @@ export default function ClinicQaManager({
         body: JSON.stringify({ sortOrder: current.sort_order }),
       }),
     ]);
-    await fetchAll();
   };
 
   return (
