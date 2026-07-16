@@ -107,6 +107,7 @@ export async function PATCH(request: NextRequest) {
     settingsUpdate.signup_pin = generateSignupPin();
     settingsUpdate.signup_pin_failed_attempts = 0;
     settingsUpdate.signup_pin_locked_until = null;
+    settingsUpdate.signup_pin_issued_at = new Date().toISOString();
   }
 
   const introUpdate: Record<string, unknown> = {};

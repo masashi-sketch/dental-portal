@@ -4,6 +4,7 @@ import { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import nextDynamic from "next/dynamic";
 import { QRCodeSVG } from "qrcode.react";
+import { formatTimestampCompact } from "@/lib/formatTimestamp";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
 import ClinicStaffManager from "@/components/ClinicStaffManager";
 import ClinicQaManager from "@/components/ClinicQaManager";
@@ -157,6 +158,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   // 接続情報（患者様の自己登録用QR + 受付PIN）。originはSSR時に取得できないため、
   // クライアントでのレンダリング時にのみ算出する（set-state-in-effectを避ける）。
   const joinUrl = typeof window !== "undefined" ? `${window.location.origin}/join/${code}` : "";
+  const signupPinIssuedAt = formatTimestampCompact(clinic?.signup_pin_issued_at);
+  // QRの内容にタイムスタンプを含めることで、再発行のたびにQRの見た目自体が変わり、
+  // 窓口に古いQRが貼られたままになっていないか目視でも判別しやすくする。
+  const qrValue = joinUrl && signupPinIssuedAt ? `${joinUrl}?t=${signupPinIssuedAt}` : joinUrl;
 
   const fetchClinicUsers = useCallback(() => {
     fetch(`/api/bgj/clinics/${code}/user`)
@@ -982,16 +987,20 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
               ) : (
                 <div className="flex flex-col sm:flex-row gap-6 mb-4">
                   <div className="border-2 border-slate-100 rounded-2xl p-3 inline-block shadow-sm self-start">
-                    {joinUrl && <QRCodeSVG value={joinUrl} size={160} />}
+                    {qrValue && <QRCodeSVG value={qrValue} size={160} />}
                   </div>
                   <div className="flex flex-col gap-3 flex-1 min-w-0">
                     <div>
                       <p className="text-xs text-slate-400 font-medium mb-1">受付PIN</p>
                       <p className="text-2xl font-bold text-slate-800 font-mono tracking-widest">{clinic.signup_pin}</p>
                     </div>
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium mb-1">発行日時</p>
+                      <p className="text-sm text-slate-600 font-mono">{signupPinIssuedAt || "—"}</p>
+                    </div>
                     <div className="bg-violet-50 border border-violet-200 rounded-xl px-4 py-3">
                       <p className="text-xs text-slate-500 mb-1 font-medium">登録URL（コピーして送付も可）</p>
-                      <p className="text-xs text-violet-700 font-mono break-all">{joinUrl}</p>
+                      <p className="text-xs text-violet-700 font-mono break-all">{qrValue}</p>
                     </div>
                   </div>
                 </div>

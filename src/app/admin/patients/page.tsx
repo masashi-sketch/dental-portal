@@ -7,6 +7,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
+import { formatTimestampCompact } from '@/lib/formatTimestamp';
 import type { PatientPublic } from '@/lib/supabase/types';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -44,6 +45,10 @@ export default function AdminPatientsPage() {
     isClinicRole && session?.user.customerCode && typeof window !== 'undefined'
       ? `${window.location.origin}/join/${session.user.customerCode}`
       : '';
+  const signupPinIssuedAt = formatTimestampCompact(clinic?.signup_pin_issued_at);
+  // QRの内容にタイムスタンプを含めることで、再発行のたびにQRの見た目自体が変わり、
+  // 古いQRが窓口に貼られたままになっていないか目視でも判別しやすくする。
+  const qrValue = joinUrl && signupPinIssuedAt ? `${joinUrl}?t=${signupPinIssuedAt}` : joinUrl;
 
   const handleRegenerateSignupPin = async () => {
     setRegeneratingPin(true);
@@ -364,16 +369,20 @@ export default function AdminPatientsPage() {
               <>
                 <div className="flex justify-center mb-4">
                   <div className="border-2 border-slate-100 rounded-2xl p-3 inline-block shadow-sm">
-                    {joinUrl && <QRCodeSVG value={joinUrl} size={160} />}
+                    {qrValue && <QRCodeSVG value={qrValue} size={160} />}
                   </div>
                 </div>
                 <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-3 text-left">
                   <p className="text-xs text-slate-500 mb-1 font-medium">受付PIN（患者様に口頭でお伝えください）</p>
                   <p className="text-xl font-bold text-sky-700 font-mono tracking-widest">{clinic.signup_pin}</p>
                 </div>
+                <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-3 text-left">
+                  <p className="text-xs text-slate-500 mb-1 font-medium">発行日時</p>
+                  <p className="text-sm text-slate-700 font-mono">{signupPinIssuedAt || '—'}</p>
+                </div>
                 <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-4 text-left">
                   <p className="text-xs text-slate-500 mb-1 font-medium">登録URL（コピーして送付も可）</p>
-                  <p className="text-xs text-sky-700 font-mono break-all">{joinUrl}</p>
+                  <p className="text-xs text-sky-700 font-mono break-all">{qrValue}</p>
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => setShowQR(false)}
@@ -384,7 +393,7 @@ export default function AdminPatientsPage() {
                     theme="sky"
                     fullWidth
                     onClick={() => {
-                      navigator.clipboard.writeText(joinUrl);
+                      navigator.clipboard.writeText(qrValue);
                       setUrlCopied(true);
                       setTimeout(() => setUrlCopied(false), 2000);
                     }}

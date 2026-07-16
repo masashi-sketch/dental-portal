@@ -191,6 +191,9 @@ create table public.clinic_patient_settings (
   signup_pin                   text,
   signup_pin_failed_attempts   int not null default 0,
   signup_pin_locked_until      timestamptz,
+  -- QR・PINを発行（再発行）した日時。updated_atは他の設定変更でも更新されるため、
+  -- 「このQRがいつ発行されたか」を正確に示すために専用カラムを持つ。
+  signup_pin_issued_at         timestamptz,
   updated_at                   timestamptz not null default now()
 );
 
