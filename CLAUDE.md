@@ -181,7 +181,9 @@ vercel --prod
 
 ## 新しいUIを書く前に必ず確認すること
 
-`src/components/`にある既存部品（`Header.tsx` / `Sidebar.tsx` / `Footer.tsx` / `icons.tsx` / `SupplementImage.tsx` / `ProductImage.tsx` / `Providers.tsx`、患者ポータル用`BottomNav.tsx`）を先に使う。なければ新規作成し、同じディレクトリに追加する。
+`src/components/`にある既存部品（`Header.tsx` / `Sidebar.tsx` / `Footer.tsx` / `icons.tsx` / `SupplementImage.tsx` / `ProductImage.tsx` / `Providers.tsx`、患者ポータル用`BottomNav.tsx` / `PatientSidebarNav.tsx`）を先に使う。なければ新規作成し、同じディレクトリに追加する。
+
+患者ポータルのデスクトップ用サイドバー（qa/medication/clinic/subscription/shop/shop/[id]/home）は`src/components/PatientSidebarNav.tsx`に共通化済み。`active`（`'home' | PatientNavKey`）と`navVisibility`をpropsで渡し、ページ固有のフッター（ログアウトリンク等）は`children`として渡す。アイコン（`IconHome`/`IconClinic`/`IconFile`/`IconPill`/`IconRefresh`/`IconBag`/`IconQA`/`IconLogout`）も同ファイルから名前付きexportで再利用できる。
 
 ## 3回以上同じパターンが出たら共通化する
 
@@ -225,7 +227,7 @@ const { data, error } = await supabase
 2. 対応するナビ配列を更新する
    - 医院用ポータル: `src/app/admin/components/AdminSidebar.tsx`の`AdminPage`型と`navItems`
    - BGJポータル: `src/app/bgj/components/BgjSidebar.tsx`の`navItems`
-   - 患者様ポータル: 各ページ内の`navItems`/`sideNavItems`配列（ページごとに重複定義されている。将来的に共通化候補）、モバイルは`src/app/components/BottomNav.tsx`
+   - 患者様ポータル: デスクトップは`src/components/PatientSidebarNav.tsx`のNAV_ITEMS定数、モバイルは`src/app/components/BottomNav.tsx`のitems定数（両方に追加が必要）
 3. Supabaseの新規テーブルが必要な場合は`supabase/schema.sql`に追記し、増分SQLをユーザーに提示する（下記「データベースを変更するときのルール」参照）
 4. 権限テーブルや`/manual`ページはこのプロジェクトに存在しないため対応不要
 
@@ -278,9 +280,9 @@ DB変更SQLを提示するときは、以下をセットにする。
 
 - テスト基盤は**Vitest + React Testing Library + jsdom**（`vitest.config.ts`・`vitest.setup.ts`）。`npm run test`（= `npx vitest run`）で実行する。
 - `server-only`パッケージはテスト実行時のみ無害な`empty.js`にエイリアスしている（`vitest.config.ts`の`resolve.alias`）。サーバー専用ファイル（`import 'server-only'`を含む）のテストは、jsdomの`window`と衝突しないようファイル先頭に`// @vitest-environment node`を書く。
-- Supabaseや`next/headers`等の外部依存は直接叩かず、mock/fakeを使う（`src/lib/auth/*.test.ts`を参照）。
-- 現状のカバレッジは`src/lib/auth/`配下（`clinicScope.ts`・`password.ts`・`patientScope.ts`）の認可・認証ロジックのみ。APIルートやUIコンポーネントのテストはまだ無い。
-- **CI（GitHub Actions）やgit pre-commitフックでの自動実行は未設定**。コード変更後は自分で`npm run test`を実行して確認する。
+- Supabaseや`next/headers`等の外部依存は直接叩かず、mock/fakeを使う（`src/lib/auth/*.test.ts`、`src/app/api/**/*.test.ts`を参照）。APIルートハンドラ（`route.ts`のPATCH/DELETE等）は`@/auth`と`@/lib/supabase/server`を`vi.mock`し、ハンドラ関数を直接呼び出してテストできる（`src/app/api/admin/clinic-staff/[id]/route.test.ts`が雛形）。
+- 現状のカバレッジは`src/lib/auth/`配下（`clinicScope.ts`・`password.ts`・`patientScope.ts`・`scopedSupabaseClient.ts`）・`src/lib/patientNav.ts`の認可・認証・可視化ロジックと、APIルート1本（雛形）。UIコンポーネントのテストはまだ無い。
+- **CI（GitHub Actions、`.github/workflows/ci.yml`）でpush/pull_request時にlint/tsc/testを自動実行する**。git pre-commitフックは未設定。
 - 新しいテストを追加する場合は既存の書き方（`vitest`のdescribe/it、上記のmockパターン）を踏襲する。
 
 # 評価観点と次のおすすめ
@@ -296,8 +298,7 @@ DB変更SQLを提示するときは、以下をセットにする。
 
 ## 次のおすすめ
 
-1. テストカバレッジの拡大（現状`src/lib/auth/`のみ）。次点候補：`scopedSupabaseClient.ts`、APIルートのハンドラ、患者ナビの可視化ロジック（`src/lib/patientNav.ts`）
-2. 患者ポータル6ページ＋`BottomNav.tsx`の`navItems`重複定義の共通化（意図的にスコープ外にしてきたが、いずれ着手が必要）
-3. `clinics`テーブルの正規化（機能追加のたびに列が増えており、DB設計・クエリ効率の観点で見直しが必要）
-4. 得意先マスタ（BGJポータルの得意先一覧）自体のSupabase移行（現状は`src/lib/clinics.ts`の静的データ）
-5. CI（GitHub Actions）でのlint/tsc/testの自動実行の要否をユーザーと確認
+1. テストカバレッジのさらなる拡大。現状`src/lib/auth/`（`clinicScope.ts`・`password.ts`・`patientScope.ts`・`scopedSupabaseClient.ts`）・`src/lib/patientNav.ts`・APIルート1本（`clinic-staff/[id]`、雛形）をカバー済み。次点候補：他のAPIルート、`PatientSidebarNav.tsx`のコンポーネントテスト
+2. 得意先マスタ（BGJポータルの得意先一覧）は既にSupabase移行済み（`src/lib/clinics.ts`は存在しない）。この項目は完了扱い
+3. `clinics`テーブルの正規化は見送り済み。列定数グループ分け（`CLINIC_PATIENT_SETTINGS_COLUMNS`等）で概念的な分離はできているため、実テーブル分割（6本のAPIルートへのJOIN実装追加が必要）は必要性が高まった時点で再検討する
+4. CI（GitHub Actions、`.github/workflows/ci.yml`）を導入済み。push/pull_request時にlint/tsc/testを自動実行する。今後さらにpre-commitフック（husky等）を追加するかは要否をユーザーと確認
