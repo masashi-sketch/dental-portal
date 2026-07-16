@@ -56,8 +56,12 @@ function setPortalCookie() {
 
 function SignInContent() {
   const [selected, setSelected] = useState(PORTALS[0]);
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
+  // セッションが存在していても、選択中のポータルのロールと一致する場合のみ「入る」ボタンにする。
+  // 例えば医院用ポータルにログイン済みのままBGJ用ポータルを選んだ場合は、
+  // 別ロールなので再度Google認証を要求する（役割不一致のまま素通りさせない）。
+  const isAuthenticatedForSelected = status === "authenticated" && session?.user?.role === selected.id;
 
   const handleEnter = () => {
     if (selected.id === "clinic") {
@@ -66,11 +70,11 @@ function SignInContent() {
       return;
     }
     setPortalCookie();
-    if (status === "authenticated") {
-      // すでにGoogle認証済み → 直接ポータルへ
+    if (isAuthenticatedForSelected) {
+      // 選択中のポータルのロールで既にGoogle認証済み → 直接ポータルへ
       router.push(selected.href);
     } else {
-      // 未認証 → Google OAuth
+      // 未認証、または別ロールでログイン済み → Google OAuthをやり直す
       signIn("google", { callbackUrl: selected.href });
     }
   };
@@ -132,7 +136,7 @@ function SignInContent() {
           >
             医院ログイン画面へ →
           </button>
-        ) : status === "authenticated" ? (
+        ) : isAuthenticatedForSelected ? (
           <button
             onClick={handleEnter}
             className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-sky-500 to-teal-500 hover:from-sky-600 hover:to-teal-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md"

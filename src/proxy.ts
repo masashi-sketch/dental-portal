@@ -5,6 +5,12 @@ import type { Session } from "next-auth";
 
 const PATIENT_PORTAL_PATHS = ["/home", "/medication", "/shop", "/subscription", "/qa", "/clinic"];
 
+// "/bgj" が "/bgj-login" のような別ページの文字列に誤って一致しないよう、
+// パス境界（完全一致 or "/"区切り）で判定する。
+function pathIs(pathname: string, base: string): boolean {
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
+
 export default auth((req: NextRequest & { auth: Session | null }) => {
   const isAuthenticated = !!req.auth;
   const { pathname } = req.nextUrl;
@@ -52,16 +58,16 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
 
   // 患者ログインは医院用・BGJポータル領域にアクセス不可
   const isStaffPath =
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/bgj") ||
-    pathname.startsWith("/api/admin") ||
-    pathname.startsWith("/api/bgj");
+    pathIs(pathname, "/admin") ||
+    pathIs(pathname, "/bgj") ||
+    pathIs(pathname, "/api/admin") ||
+    pathIs(pathname, "/api/bgj");
   if (role === "patient" && isStaffPath) {
     return NextResponse.redirect(new URL("/home", req.url));
   }
 
   // 医院スタッフ（clinic-credentialsログイン）はBGJポータル領域にアクセス不可
-  const isBgjPath = pathname.startsWith("/bgj") || pathname.startsWith("/api/bgj");
+  const isBgjPath = pathIs(pathname, "/bgj") || pathIs(pathname, "/api/bgj");
   if (role === "clinic" && isBgjPath) {
     return NextResponse.redirect(new URL("/admin", req.url));
   }
