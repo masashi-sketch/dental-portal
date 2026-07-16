@@ -495,7 +495,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
               </div>
             </div>
             {activeTab === "接続情報" ? (
-              clinic.signup_pin ? (
+              clinic.signup_pin && clinic.signup_slug ? (
                 <Button theme="violet" size="sm" className="shadow-sm" onClick={() => setConfirmingPinRegen(true)}>
                   PIN・QRを再発行する
                 </Button>
