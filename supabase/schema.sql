@@ -186,6 +186,11 @@ create table public.clinic_patient_settings (
   nav_show_qa                  boolean not null default true,
   -- 歯周病の診断結果を患者ポータルに表示するか（オフの場合、医院用ポータルでの新規診断入力も不可にする）。
   show_periodontal_diagnosis   boolean not null default true,
+  -- 患者様の新規ポータル登録（QRコード + 受付PINによる自己登録、/join/[customerCode]）用。
+  -- signup_pinが未設定（null）の間は当該クリニックの自己登録を受け付けない。
+  signup_pin                   text,
+  signup_pin_failed_attempts   int not null default 0,
+  signup_pin_locked_until      timestamptz,
   updated_at                   timestamptz not null default now()
 );
 

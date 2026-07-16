@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { requireBgjSession } from '@/lib/auth/clinicScope';
+import { generateSignupPin } from '@/lib/auth/signupPin';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
@@ -131,6 +132,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const coreUpdate = buildUpdate(body, CORE_FIELD_MAP);
   const settingsUpdate = buildUpdate(body, SETTINGS_FIELD_MAP);
   const introUpdate = buildUpdate(body, INTRO_FIELD_MAP);
+
+  // 患者様の自己登録用（QR + 受付PIN）。再発行のたびに、それまでの
+  // 失敗回数・ロック状態もリセットする。
+  if (body?.regenerateSignupPin) {
+    settingsUpdate.signup_pin = generateSignupPin();
+    settingsUpdate.signup_pin_failed_attempts = 0;
+    settingsUpdate.signup_pin_locked_until = null;
+  }
 
   const supabase = getSupabaseServerClient();
 

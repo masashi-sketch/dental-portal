@@ -10,6 +10,7 @@ import {
   STAFF_ROLE_COLUMNS,
 } from '@/lib/supabase/types';
 import { resolveScopedCustomerCode } from '@/lib/auth/clinicScope';
+import { generateSignupPin } from '@/lib/auth/signupPin';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,6 +101,13 @@ export async function PATCH(request: NextRequest) {
   if (navShowShop !== undefined) settingsUpdate.nav_show_shop = navShowShop;
   if (navShowQa !== undefined) settingsUpdate.nav_show_qa = navShowQa;
   if (showPeriodontalDiagnosis !== undefined) settingsUpdate.show_periodontal_diagnosis = showPeriodontalDiagnosis;
+
+  // 患者様の自己登録用（QR + 受付PIN）。医院自身での再発行も許可する。
+  if (body?.regenerateSignupPin) {
+    settingsUpdate.signup_pin = generateSignupPin();
+    settingsUpdate.signup_pin_failed_attempts = 0;
+    settingsUpdate.signup_pin_locked_until = null;
+  }
 
   const introUpdate: Record<string, unknown> = {};
   if (clinicHoursWeekday !== undefined) introUpdate.clinic_hours_weekday = clinicHoursWeekday || null;

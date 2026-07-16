@@ -3,50 +3,15 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { QRCodeSVG } from 'qrcode.react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
+import { useClinicInfo } from '@/hooks/useClinicInfo';
 import type { PatientPublic } from '@/lib/supabase/types';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import LoadingState from '@/components/ui/LoadingState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-
-function FakeQRCode({ size = 160 }: { size?: number }) {
-  const cell = size / 21;
-  const pattern = [
-    [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,1,0,0,1,0,1,0,0,1,0,0,0,0,0,1],
-    [1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1],
-    [1,0,1,1,1,0,1,0,0,1,0,0,0,0,1,0,1,1,1,0,1],
-    [1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1],
-    [1,0,0,0,0,0,1,0,0,0,0,1,0,0,1,0,0,0,0,0,1],
-    [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1],
-    [0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0],
-    [1,0,1,1,0,1,1,1,0,0,1,0,0,1,1,0,1,0,1,1,0],
-    [0,1,0,0,1,0,0,0,1,0,0,1,0,0,0,1,0,1,0,0,1],
-    [1,1,0,1,0,1,1,0,0,1,1,0,1,1,0,1,0,0,1,1,0],
-    [0,0,1,0,1,0,0,1,0,0,0,1,0,0,1,0,1,0,0,1,0],
-    [1,0,0,1,0,1,1,0,1,1,0,0,1,0,0,1,1,0,1,0,1],
-    [0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,0,1,0,0,1,0],
-    [1,1,1,1,1,1,1,0,0,1,0,1,1,0,1,0,0,1,1,0,1],
-    [1,0,0,0,0,0,1,0,1,0,0,0,0,1,0,1,0,0,0,1,0],
-    [1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,0,1,1,0,0,1],
-    [1,0,1,1,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1,0,0],
-    [1,0,1,1,1,0,1,0,0,1,1,0,1,0,0,0,1,1,0,1,1],
-    [1,0,0,0,0,0,1,0,1,0,0,1,0,1,1,0,0,0,1,0,0],
-    [1,1,1,1,1,1,1,0,0,1,1,0,1,0,0,1,1,0,0,1,1],
-  ];
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <rect width={size} height={size} fill="white" />
-      {pattern.map((row, r) =>
-        row.map((v, c) =>
-          v ? <rect key={`${r}-${c}`} x={c * cell} y={r * cell} width={cell} height={cell} fill="#0f172a" /> : null
-        )
-      )}
-    </svg>
-  );
-}
 
 type FormState = {
   customerCode: string;
@@ -71,6 +36,36 @@ export default function AdminPatientsPage() {
   const { toast, showToast } = useToast();
   const [showQR, setShowQR] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
+  const { clinic, setClinic } = useClinicInfo();
+  const [regeneratingPin, setRegeneratingPin] = useState(false);
+  // originはSSR時に取得できないため、クライアントでのレンダリング時にのみ算出する
+  // （useEffect+setStateにすると react-hooks/set-state-in-effect に抵触するため直接算出）。
+  const joinUrl =
+    isClinicRole && session?.user.customerCode && typeof window !== 'undefined'
+      ? `${window.location.origin}/join/${session.user.customerCode}`
+      : '';
+
+  const handleRegenerateSignupPin = async () => {
+    setRegeneratingPin(true);
+    try {
+      const res = await fetch('/api/admin/clinic-info', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ regenerateSignupPin: true }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? 'PINの発行に失敗しました');
+      }
+      const { clinic: updated } = await res.json();
+      setClinic((prev) => (prev ? { ...prev, ...updated } : prev));
+      showToast('受付PINを発行しました');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'エラーが発生しました');
+    } finally {
+      setRegeneratingPin(false);
+    }
+  };
 
   const fetchPatients = () => {
     fetch('/api/admin/patients')
@@ -198,15 +193,17 @@ export default function AdminPatientsPage() {
             <p className="text-slate-600 text-sm mt-0.5">患者のID・パスワードを発行・管理します</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setShowQR(true)}
-              className="bg-teal-500 hover:bg-teal-400 text-white text-base font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer flex items-center gap-2">
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/>
-                <path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/>
-              </svg>
-              QRで招待
-            </button>
+            {isClinicRole && (
+              <button onClick={() => setShowQR(true)}
+                className="bg-teal-500 hover:bg-teal-400 text-white text-base font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer flex items-center gap-2">
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/>
+                  <path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/>
+                </svg>
+                QRで招待
+              </button>
+            )}
             <Button theme="sky" onClick={openNew}>
               ＋ 患者IDを発行
             </Button>
@@ -349,28 +346,54 @@ export default function AdminPatientsPage() {
           <Card theme="sky" className="p-6 w-full max-w-sm shadow-2xl text-center">
             <h2 className="text-slate-800 font-bold text-xl mb-1">患者様を招待する</h2>
             <p className="text-slate-500 text-sm mb-5">QRコードを患者様にお見せください。<br />当院に紐付いた状態で登録されます。</p>
-            <div className="flex justify-center mb-4">
-              <div className="border-2 border-slate-100 rounded-2xl p-3 inline-block shadow-sm">
-                <FakeQRCode size={160} />
-              </div>
-            </div>
-            <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-4 text-left">
-              <p className="text-xs text-slate-500 mb-1 font-medium">招待URL（コピーして送付も可）</p>
-              <p className="text-xs text-sky-700 font-mono break-all">https://portal.biogaia.jp/join?clinic=TEST-001</p>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setShowQR(false)}
-                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-base font-medium cursor-pointer hover:bg-slate-50 transition-colors">
-                閉じる
-              </button>
-              <Button
-                theme="sky"
-                fullWidth
-                onClick={() => { setUrlCopied(true); setTimeout(() => setUrlCopied(false), 2000); }}
-              >
-                {urlCopied ? '✓ コピーしました' : 'URLをコピー'}
-              </Button>
-            </div>
+
+            {!clinic?.signup_pin ? (
+              <>
+                <p className="text-slate-400 text-sm mb-5">まだ受付PINが発行されていません。</p>
+                <div className="flex gap-3">
+                  <button onClick={() => setShowQR(false)}
+                    className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-base font-medium cursor-pointer hover:bg-slate-50 transition-colors">
+                    閉じる
+                  </button>
+                  <Button theme="sky" fullWidth onClick={handleRegenerateSignupPin} disabled={regeneratingPin}>
+                    {regeneratingPin ? '発行中...' : '発行する'}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-center mb-4">
+                  <div className="border-2 border-slate-100 rounded-2xl p-3 inline-block shadow-sm">
+                    {joinUrl && <QRCodeSVG value={joinUrl} size={160} />}
+                  </div>
+                </div>
+                <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-3 text-left">
+                  <p className="text-xs text-slate-500 mb-1 font-medium">受付PIN（患者様に口頭でお伝えください）</p>
+                  <p className="text-xl font-bold text-sky-700 font-mono tracking-widest">{clinic.signup_pin}</p>
+                </div>
+                <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-4 text-left">
+                  <p className="text-xs text-slate-500 mb-1 font-medium">登録URL（コピーして送付も可）</p>
+                  <p className="text-xs text-sky-700 font-mono break-all">{joinUrl}</p>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setShowQR(false)}
+                    className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-base font-medium cursor-pointer hover:bg-slate-50 transition-colors">
+                    閉じる
+                  </button>
+                  <Button
+                    theme="sky"
+                    fullWidth
+                    onClick={() => {
+                      navigator.clipboard.writeText(joinUrl);
+                      setUrlCopied(true);
+                      setTimeout(() => setUrlCopied(false), 2000);
+                    }}
+                  >
+                    {urlCopied ? '✓ コピーしました' : 'URLをコピー'}
+                  </Button>
+                </div>
+              </>
+            )}
           </Card>
         </div>
       )}

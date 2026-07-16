@@ -3,6 +3,7 @@
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import nextDynamic from "next/dynamic";
+import { QRCodeSVG } from "qrcode.react";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
 import ClinicStaffManager from "@/components/ClinicStaffManager";
 import ClinicQaManager from "@/components/ClinicQaManager";
@@ -19,7 +20,7 @@ const SalesHistoryChart = nextDynamic(() => import("./SalesHistoryChart"), {
 
 type ClinicWithStaff = Clinic & ClinicPatientSettings & ClinicIntroInfo & { staff: SalesRepWithMaster | null };
 
-const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "訪問記録", "ログイン管理", "クリニック紹介", "Q&A"];
+const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "訪問記録", "ログイン管理", "接続情報", "クリニック紹介", "Q&A"];
 
 type ClinicFormState = {
   name: string;
@@ -152,6 +153,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [savingLoginAction, setSavingLoginAction] = useState(false);
+
+  // 接続情報（患者様の自己登録用QR + 受付PIN）。originはSSR時に取得できないため、
+  // クライアントでのレンダリング時にのみ算出する（set-state-in-effectを避ける）。
+  const joinUrl = typeof window !== "undefined" ? `${window.location.origin}/join/${code}` : "";
 
   const fetchClinicUsers = useCallback(() => {
     fetch(`/api/bgj/clinics/${code}/user`)
@@ -382,6 +387,32 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
       setSavingLoginAction(false);
+    }
+  };
+
+  const [regeneratingPin, setRegeneratingPin] = useState(false);
+  const [confirmingPinRegen, setConfirmingPinRegen] = useState(false);
+
+  const handleRegenerateSignupPin = async () => {
+    setRegeneratingPin(true);
+    try {
+      const res = await fetch(`/api/bgj/clinics/${code}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ regenerateSignupPin: true }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? "PINの発行に失敗しました");
+      }
+      const { clinic: updated } = await res.json();
+      setClinic(updated);
+      showToast("受付PINを発行しました");
+      setConfirmingPinRegen(false);
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setRegeneratingPin(false);
     }
   };
 
@@ -936,6 +967,61 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                 </Button>
               </Card>
             </div>
+          )}
+
+          {/* 接続情報（患者様の自己登録用QR + 受付PIN） */}
+          {activeTab === "接続情報" && (
+            <Card className="p-5">
+              <h3 className="text-sm font-bold text-slate-700 mb-1">患者様の新規ポータル登録（QRコード）</h3>
+              <p className="text-xs text-slate-400 mb-4">
+                クリニック共通のQRコードです。窓口に掲示し、受付PINと合わせて患者様にお伝えください。患者様はご自身のスマホでスキャンし、その場でログインID・パスワードを設定して登録できます。
+              </p>
+
+              {!clinic?.signup_pin ? (
+                <p className="text-slate-400 text-sm mb-4">まだ受付PINが発行されていません。</p>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-6 mb-4">
+                  <div className="border-2 border-slate-100 rounded-2xl p-3 inline-block shadow-sm self-start">
+                    {joinUrl && <QRCodeSVG value={joinUrl} size={160} />}
+                  </div>
+                  <div className="flex flex-col gap-3 flex-1 min-w-0">
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium mb-1">受付PIN</p>
+                      <p className="text-2xl font-bold text-slate-800 font-mono tracking-widest">{clinic.signup_pin}</p>
+                    </div>
+                    <div className="bg-violet-50 border border-violet-200 rounded-xl px-4 py-3">
+                      <p className="text-xs text-slate-500 mb-1 font-medium">登録URL（コピーして送付も可）</p>
+                      <p className="text-xs text-violet-700 font-mono break-all">{joinUrl}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {confirmingPinRegen ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
+                  <p className="text-amber-700 text-xs flex-1 min-w-[200px]">
+                    再発行すると、これまでのQRコード・受付PINは無効になります。よろしいですか？
+                  </p>
+                  <button
+                    onClick={handleRegenerateSignupPin}
+                    disabled={regeneratingPin}
+                    className="text-xs text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 font-semibold px-3 py-1.5 rounded-lg"
+                  >
+                    {regeneratingPin ? "発行中..." : "再発行する"}
+                  </button>
+                  <button
+                    onClick={() => setConfirmingPinRegen(false)}
+                    className="text-xs text-slate-500 hover:text-slate-700 font-semibold"
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              ) : (
+                <Button theme="violet" size="sm" onClick={() => setConfirmingPinRegen(true)}>
+                  {clinic?.signup_pin ? "PIN・QRを再発行する" : "PIN・QRを発行する"}
+                </Button>
+              )}
+            </Card>
           )}
 
           {/* クリニック紹介（代理編集） */}
