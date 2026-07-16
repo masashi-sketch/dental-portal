@@ -5,6 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
 import { useToast } from "@/hooks/useToast";
 import type { Clinic, ClinicStatus, ClinicTerms, SalesRepWithMaster } from "@/lib/supabase/types";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import LoadingState from "@/components/ui/LoadingState";
 
 type ClinicWithStats = Clinic & { month_sales: number; last_order_date: string | null; staff: SalesRepWithMaster | null };
 
@@ -116,15 +119,12 @@ export default function CustomersPage() {
           <h1 className="text-xl font-bold text-slate-800">得意先一覧</h1>
           <p className="text-sm text-slate-500 mt-0.5">{clinics.length}件登録</p>
         </div>
-        <button
-          onClick={openNew}
-          className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm"
-        >
+        <Button theme="violet" size="sm" className="shadow-sm" onClick={openNew}>
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
           新規登録
-        </button>
+        </Button>
       </div>
 
       {error && (
@@ -132,7 +132,7 @@ export default function CustomersPage() {
       )}
 
       {/* 絞り込み */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-4">
+      <Card className="p-4 mb-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <input
             type="text"
@@ -154,10 +154,10 @@ export default function CustomersPage() {
             {STATUSES.map((s) => <option key={s}>{s}</option>)}
           </select>
         </div>
-      </div>
+      </Card>
 
       {/* テーブル */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -168,9 +168,7 @@ export default function CustomersPage() {
               </tr>
             </thead>
             <tbody>
-              {loading && (
-                <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-400">読み込み中...</td></tr>
-              )}
+              {loading && <LoadingState variant="table-row" colSpan={11} />}
               {!loading && filtered.length === 0 && (
                 <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-400">得意先がまだ登録されていません</td></tr>
               )}
@@ -222,7 +220,7 @@ export default function CustomersPage() {
         <div className="px-4 py-3 border-t border-slate-100 text-xs text-slate-400">
           {filtered.length}件表示（全{clinics.length}件）
         </div>
-      </div>
+      </Card>
 
       {/* 新規登録モーダル */}
       {showForm && (
@@ -273,10 +271,9 @@ export default function CustomersPage() {
                 className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
                 キャンセル
               </button>
-              <button onClick={handleSave} disabled={saving}
-                className="flex-1 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
+              <Button theme="violet" size="sm" fullWidth onClick={handleSave} disabled={saving}>
                 {saving ? "登録中..." : "登録する"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

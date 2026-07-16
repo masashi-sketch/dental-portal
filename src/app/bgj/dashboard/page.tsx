@@ -1,16 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import nextDynamic from "next/dynamic";
+import Card from "@/components/ui/Card";
 
-const monthlyData = [
-  { month: "1月", 全体: 4820, 山本: 1650, 田中: 1420, 佐藤: 1750 },
-  { month: "2月", 全体: 5100, 山本: 1780, 田中: 1560, 佐藤: 1760 },
-  { month: "3月", 全体: 5680, 山本: 1920, 田中: 1740, 佐藤: 2020 },
-  { month: "4月", 全体: 5240, 山本: 1830, 田中: 1580, 佐藤: 1830 },
-  { month: "5月", 全体: 5890, 山本: 2050, 田中: 1760, 佐藤: 2080 },
-  { month: "6月", 全体: 6120, 山本: 2180, 田中: 1890, 佐藤: 2050 },
-];
+const MonthlySalesChart = nextDynamic(() => import("./MonthlySalesChart"), {
+  ssr: false,
+  loading: () => <p className="text-slate-400 text-sm text-center py-16">グラフを読み込み中...</p>,
+});
 
 const alerts = [
   { code: "TK-0042", name: "さくら歯科クリニック", issue: "90日以上注文なし", level: "high" },
@@ -74,25 +71,13 @@ export default function BgjDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         {/* 売上グラフ */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5">
+        <Card className="lg:col-span-2 p-5">
           <h2 className="text-sm font-bold text-slate-700 mb-4">月次売上推移（千円）</h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 11 }} unit="千" />
-              <Tooltip formatter={(v: unknown) => `¥${(v as number).toLocaleString()}千`} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="全体" stroke="#7c3aed" strokeWidth={2.5} dot={false} />
-              <Line type="monotone" dataKey="山本" stroke="#0ea5e9" strokeWidth={1.5} dot={false} strokeDasharray="4 2" />
-              <Line type="monotone" dataKey="田中" stroke="#10b981" strokeWidth={1.5} dot={false} strokeDasharray="4 2" />
-              <Line type="monotone" dataKey="佐藤" stroke="#f59e0b" strokeWidth={1.5} dot={false} strokeDasharray="4 2" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+          <MonthlySalesChart />
+        </Card>
 
         {/* アラート */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <Card className="p-5">
           <h2 className="text-sm font-bold text-slate-700 mb-3">要フォローアラート</h2>
           <div className="flex flex-col gap-2">
             {alerts.map((a) => (
@@ -111,11 +96,11 @@ export default function BgjDashboard() {
           <Link href="/bgj/customers?filter=alert" className="block text-center text-xs text-violet-600 hover:text-violet-800 mt-3 font-semibold">
             すべて見る →
           </Link>
-        </div>
+        </Card>
       </div>
 
       {/* 最近の注文 */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+      <Card className="p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold text-slate-700">最近の注文</h2>
           <Link href="/bgj/reports" className="text-xs text-violet-600 hover:text-violet-800 font-semibold">
@@ -150,10 +135,10 @@ export default function BgjDashboard() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       {/* 医院ランキング */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 mt-4">
+      <Card className="p-5 mt-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold text-slate-700">今月の医院ランキング（上位5院）</h2>
           <Link href="/bgj/reports" className="text-xs text-violet-600 hover:text-violet-800 font-semibold">
@@ -193,7 +178,7 @@ export default function BgjDashboard() {
             </Link>
           ))}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -2,12 +2,20 @@
 
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import nextDynamic from "next/dynamic";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
 import ClinicStaffManager from "@/components/ClinicStaffManager";
 import ClinicQaManager from "@/components/ClinicQaManager";
 import { useToast } from "@/hooks/useToast";
 import type { Clinic, ClinicIntroInfo, ClinicOrder, ClinicPatientSettings, ClinicStatus, ClinicUserPublic, ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import LoadingState from "@/components/ui/LoadingState";
+
+const SalesHistoryChart = nextDynamic(() => import("./SalesHistoryChart"), {
+  ssr: false,
+  loading: () => <p className="text-slate-400 text-sm text-center py-12">グラフを読み込み中...</p>,
+});
 
 type ClinicWithStaff = Clinic & ClinicPatientSettings & ClinicIntroInfo & { staff: SalesRepWithMaster | null };
 
@@ -445,15 +453,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                 )}
               </div>
             </div>
-            <button
-              onClick={() => setShowVisitModal(true)}
-              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm"
-            >
+            <Button theme="violet" size="sm" className="shadow-sm" onClick={() => setShowVisitModal(true)}>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               訪問記録を追加
-            </button>
+            </Button>
           </div>
 
           {/* タブ */}
@@ -473,7 +478,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
 
           {/* 基本情報 */}
           {activeTab === "基本情報" && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5">
+            <Card className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold text-slate-700">基本情報</h2>
                 {!editingClinic ? (
@@ -634,12 +639,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                   </div>
                 </div>
               )}
-            </div>
+            </Card>
           )}
 
           {/* 経営情報 */}
           {activeTab === "経営情報" && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5">
+            <Card className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold text-slate-700">経営情報</h2>
                 {!editingClinic ? (
@@ -706,25 +711,17 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                   </div>
                 </div>
               )}
-            </div>
+            </Card>
           )}
 
           {/* 売上・注文 */}
           {activeTab === "売上・注文" && (
             <div className="flex flex-col gap-4">
-              <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <Card className="p-5">
                 <h3 className="text-sm font-bold text-slate-700 mb-4">月次売上推移（円）</h3>
-                <ResponsiveContainer width="100%" height={180}>
-                  <LineChart data={salesHistory}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: unknown) => `¥${(v as number).toLocaleString()}`} />
-                    <Line type="monotone" dataKey="sales" stroke="#7c3aed" strokeWidth={2.5} dot={{ r: 4, fill: "#7c3aed" }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                <SalesHistoryChart data={salesHistory} />
+              </Card>
+              <Card className="overflow-hidden">
                 <div className="px-5 py-4 border-b border-slate-100">
                   <h3 className="text-sm font-bold text-slate-700">注文履歴</h3>
                 </div>
@@ -755,15 +752,15 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </Card>
             </div>
           )}
 
           {/* 取引条件 */}
           {activeTab === "取引条件" && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5">
+            <Card className="p-5">
               {termsLoading ? (
-                <p className="text-slate-400 text-sm">読み込み中...</p>
+                <LoadingState />
               ) : (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
@@ -804,28 +801,24 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                         className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
                     </div>
                   </div>
-                  <button
-                    onClick={handleSaveTerms}
-                    disabled={termsSaving}
-                    className="bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold px-6 py-3 rounded-xl transition-colors"
-                  >
+                  <Button theme="violet" size="sm" onClick={handleSaveTerms} disabled={termsSaving}>
                     {termsSaving ? "保存中..." : "保存する"}
-                  </button>
+                  </Button>
                 </>
               )}
-            </div>
+            </Card>
           )}
 
           {/* 訪問記録 */}
           {activeTab === "訪問記録" && (
             <div className="flex flex-col gap-3">
               {visits.length === 0 && (
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 text-center text-slate-400 text-sm">
+                <Card className="p-5 text-center text-slate-400 text-sm">
                   訪問記録はまだありません
-                </div>
+                </Card>
               )}
               {visits.map((v) => (
-                <div key={v.id} className="bg-white rounded-2xl border border-slate-200 p-5">
+                <Card key={v.id} className="p-5">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div>
                       <span className="text-xs text-slate-400">{v.visit_date}</span>
@@ -836,7 +829,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                     )}
                   </div>
                   {v.memo && <p className="text-sm text-slate-600 bg-slate-50 rounded-xl px-3 py-2">{v.memo}</p>}
-                </div>
+                </Card>
               ))}
             </div>
           )}
@@ -844,13 +837,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
           {/* ログイン管理 */}
           {activeTab === "ログイン管理" && (
             <div className="flex flex-col gap-4">
-              <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <Card className="p-5">
                 <h3 className="text-sm font-bold text-slate-700 mb-1">医院ログイン一覧</h3>
                 <p className="text-xs text-slate-400 mb-4">
                   ここで発行したログインID・パスワードで、医院側が「/clinic-login」から自分の得意先コードに閉じたセッションでログインできます。
                 </p>
                 {clinicUsersLoading ? (
-                  <p className="text-slate-400 text-sm">読み込み中...</p>
+                  <LoadingState />
                 ) : clinicUsers.length === 0 ? (
                   <p className="text-slate-400 text-sm">まだログインは発行されていません。</p>
                 ) : (
@@ -914,9 +907,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                     ))}
                   </div>
                 )}
-              </div>
+              </Card>
 
-              <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <Card className="p-5">
                 <h3 className="text-sm font-bold text-slate-700 mb-4">新規ログインを発行</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                   <div>
@@ -938,35 +931,31 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
                   </div>
                 </div>
-                <button
-                  onClick={handleCreateLogin}
-                  disabled={creatingLogin}
-                  className="bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold px-6 py-3 rounded-xl transition-colors"
-                >
+                <Button theme="violet" size="sm" onClick={handleCreateLogin} disabled={creatingLogin}>
                   {creatingLogin ? "発行中..." : "発行する"}
-                </button>
-              </div>
+                </Button>
+              </Card>
             </div>
           )}
 
           {/* クリニック紹介（代理編集） */}
           {activeTab === "クリニック紹介" && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5">
+            <Card className="p-5">
               <p className="text-xs text-slate-400 mb-4">
                 患者様ポータルの「クリニック紹介」画面に表示するスタッフ紹介を、医院様に代わって編集できます。診療時間・アクセス情報は「基本情報」タブから編集してください。
               </p>
               <ClinicStaffManager customerCode={code} theme="violet" />
-            </div>
+            </Card>
           )}
 
           {/* Q&A（代理編集） */}
           {activeTab === "Q&A" && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5">
+            <Card className="p-5">
               <p className="text-xs text-slate-400 mb-4">
                 患者様ポータルの「Q&A」画面に表示する質問・回答を、医院様に代わって編集できます。
               </p>
               <ClinicQaManager customerCode={code} theme="violet" />
-            </div>
+            </Card>
           )}
         </>
       )}
@@ -1007,10 +996,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                 className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
                 キャンセル
               </button>
-              <button onClick={handleSaveVisit} disabled={savingVisit}
-                className="flex-1 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
+              <Button theme="violet" size="sm" fullWidth onClick={handleSaveVisit} disabled={savingVisit}>
                 {savingVisit ? "保存中..." : "保存"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

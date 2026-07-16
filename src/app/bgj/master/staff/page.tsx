@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
 import { useToast } from "@/hooks/useToast";
 import type { SalesRepWithMaster, StaffArea, StaffRole } from "@/lib/supabase/types";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import LoadingState from "@/components/ui/LoadingState";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 type ClinicSummary = { staff: { id: string } | null; month_sales: number };
 
@@ -129,15 +133,12 @@ export default function StaffMasterPage() {
           <h1 className="text-xl font-bold text-slate-800">営業担当</h1>
           <p className="text-sm text-slate-500 mt-0.5">営業担当者の管理</p>
         </div>
-        <button
-          onClick={openNew}
-          className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm"
-        >
+        <Button theme="violet" size="sm" className="shadow-sm" onClick={openNew}>
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
           担当者を追加
-        </button>
+        </Button>
       </div>
 
       {error && (
@@ -146,14 +147,14 @@ export default function StaffMasterPage() {
 
       {/* 担当者カード */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {loading && <p className="text-slate-400 col-span-full text-center py-8">読み込み中...</p>}
+        {loading && <LoadingState variant="grid-cell" />}
         {!loading && salesReps.length === 0 && (
           <p className="text-slate-400 col-span-full text-center py-8">営業担当者がまだ登録されていません</p>
         )}
         {salesReps.map((s) => {
           const stats = statsFor(s.id);
           return (
-            <div key={s.id} className="bg-white rounded-2xl border border-slate-200 p-5">
+            <Card key={s.id} className="p-5">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <SalesRepAvatar name={s.name} photoUrl={s.photo_url} size={44} className="text-lg" />
@@ -197,13 +198,13 @@ export default function StaffMasterPage() {
                   <p className="text-xs text-slate-400">今月売上</p>
                 </div>
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
 
       {/* 担当変更テーブル */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-sm font-bold text-slate-700">担当変更履歴</h2>
         </div>
@@ -232,7 +233,7 @@ export default function StaffMasterPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       {/* 追加・編集モーダル */}
       {showModal && (
@@ -286,34 +287,23 @@ export default function StaffMasterPage() {
                 className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
                 キャンセル
               </button>
-              <button onClick={handleSave} disabled={saving}
-                className="flex-1 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
+              <Button theme="violet" size="sm" fullWidth onClick={handleSave} disabled={saving}>
                 {saving ? "保存中..." : editItem ? "更新する" : "追加"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
 
       {/* 削除確認 */}
-      {deleteId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 text-center">
-            <p className="text-slate-800 font-bold text-lg mb-2">削除しますか？</p>
-            <p className="text-slate-600 text-sm mb-6">この操作は取り消せません。担当していた得意先は未割当になります。</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)}
-                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
-                キャンセル
-              </button>
-              <button onClick={() => handleDelete(deleteId)}
-                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-400 text-white text-sm font-semibold transition-colors">
-                削除する
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={deleteId !== null}
+        theme="violet"
+        title="削除しますか？"
+        description="この操作は取り消せません。担当していた得意先は未割当になります。"
+        onCancel={() => setDeleteId(null)}
+        onConfirm={() => deleteId !== null && handleDelete(deleteId)}
+      />
     </div>
   );
 }

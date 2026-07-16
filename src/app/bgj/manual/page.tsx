@@ -1,16 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import Card from "@/components/ui/Card";
 
 const TABS = ["システム手順", "利用マニュアル"] as const;
 type Tab = (typeof TABS)[number];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5">
+    <Card className="p-5">
       <h2 className="text-sm font-bold text-slate-700 mb-3">{title}</h2>
       <div className="text-sm text-slate-700 leading-relaxed flex flex-col gap-2">{children}</div>
-    </div>
+    </Card>
   );
 }
 
@@ -32,12 +33,12 @@ function GuideCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <Card className="overflow-hidden">
       <div className={`px-5 py-3 ${color}`}>
         <p className="text-sm font-bold text-white">{audience}</p>
       </div>
       <div className="p-5 flex flex-col gap-5">{children}</div>
-    </div>
+    </Card>
   );
 }
 

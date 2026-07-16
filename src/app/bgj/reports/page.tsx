@@ -1,19 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
-} from "recharts";
+import nextDynamic from "next/dynamic";
+import Card from "@/components/ui/Card";
 
-const monthlyTotal = [
-  { month: "1月", 売上: 4820, 件数: 38 },
-  { month: "2月", 売上: 5100, 件数: 41 },
-  { month: "3月", 売上: 5680, 件数: 47 },
-  { month: "4月", 売上: 5240, 件数: 43 },
-  { month: "5月", 売上: 5890, 件数: 49 },
-  { month: "6月", 売上: 6120, 件数: 51 },
-];
+const chartLoading = <p className="text-slate-400 text-sm text-center py-16">グラフを読み込み中...</p>;
+const MonthlySalesChart = nextDynamic(() => import("./ReportsCharts").then((m) => m.MonthlySalesChart), { ssr: false, loading: () => chartLoading });
+const MonthlyOrdersChart = nextDynamic(() => import("./ReportsCharts").then((m) => m.MonthlyOrdersChart), { ssr: false, loading: () => chartLoading });
+const AreaSalesChart = nextDynamic(() => import("./ReportsCharts").then((m) => m.AreaSalesChart), { ssr: false, loading: () => chartLoading });
 
 const byStaff = [
   { name: "山本権兵衛", 売上: 2180, 得意先数: 82, 訪問数: 24 },
@@ -65,11 +59,11 @@ export default function ReportsPage() {
           { label: "総注文件数", value: "269件", sub: "6ヶ月累計" },
           { label: "平均注文単価", value: "¥122,139", sub: "1件あたり" },
         ].map((c) => (
-          <div key={c.label} className="bg-white rounded-2xl border border-slate-200 p-4">
+          <Card key={c.label} className="p-4">
             <p className="text-xs text-slate-400 mb-1">{c.label}</p>
             <p className="text-xl font-bold text-violet-700">{c.value}</p>
             <p className="text-xs text-slate-400 mt-1">{c.sub}</p>
-          </div>
+          </Card>
         ))}
       </div>
 
@@ -88,36 +82,20 @@ export default function ReportsPage() {
       {/* 月次推移 */}
       {view === "月次推移" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5">
+          <Card className="p-5">
             <h3 className="text-sm font-bold text-slate-700 mb-4">月次売上（千円）</h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={monthlyTotal}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 11 }} unit="千" />
-                <Tooltip formatter={(v: unknown) => `¥${(v as number).toLocaleString()}千`} />
-                <Bar dataKey="売上" fill="#7c3aed" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="bg-white rounded-2xl border border-slate-200 p-5">
+            <MonthlySalesChart />
+          </Card>
+          <Card className="p-5">
             <h3 className="text-sm font-bold text-slate-700 mb-4">月次注文件数</h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={monthlyTotal}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 11 }} unit="件" />
-                <Tooltip formatter={(v: unknown) => `${(v as number)}件`} />
-                <Line type="monotone" dataKey="件数" stroke="#7c3aed" strokeWidth={2.5} dot={{ r: 4, fill: "#7c3aed" }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+            <MonthlyOrdersChart />
+          </Card>
         </div>
       )}
 
       {/* 担当別 */}
       {view === "担当別" && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <Card className="overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
@@ -140,25 +118,17 @@ export default function ReportsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
 
       {/* エリア別 */}
       {view === "エリア別" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5">
+          <Card className="p-5">
             <h3 className="text-sm font-bold text-slate-700 mb-4">エリア別売上（千円）</h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={byArea} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis type="number" tick={{ fontSize: 11 }} unit="千" />
-                <YAxis type="category" dataKey="area" tick={{ fontSize: 12 }} width={50} />
-                <Tooltip formatter={(v: unknown) => `¥${(v as number).toLocaleString()}千`} />
-                <Bar dataKey="売上" fill="#7c3aed" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <AreaSalesChart />
+          </Card>
+          <Card className="overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
@@ -177,13 +147,13 @@ export default function ReportsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         </div>
       )}
 
       {/* 上位得意先 */}
       {view === "上位得意先" && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <Card className="overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100">
             <h3 className="text-sm font-bold text-slate-700">上半期 売上上位（TOP5）</h3>
           </div>
@@ -212,7 +182,7 @@ export default function ReportsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
     </div>
   );
