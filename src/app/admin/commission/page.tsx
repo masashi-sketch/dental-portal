@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
+import { useToast } from '@/hooks/useToast';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
@@ -98,9 +99,7 @@ const tooltipFormatter = (value: any, name: any) => {
 export default function CommissionPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<ClinicInfo>(emptyForm);
-  const [toast, setToast] = useState('');
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const { toast, showToast } = useToast();
 
   const handleSave = () => {
     showToast('経営情報を保存しました');

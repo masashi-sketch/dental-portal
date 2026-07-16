@@ -1,21 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/useToast";
 import type { StaffArea } from "@/lib/supabase/types";
 
 export default function StaffAreasMasterPage() {
   const [areas, setAreas] = useState<StaffArea[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState("");
+  const { toast, showToast } = useToast();
 
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<StaffArea | null>(null);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
   const fetchAreas = async () => {
     setLoading(true);

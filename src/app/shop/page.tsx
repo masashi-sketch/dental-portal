@@ -5,6 +5,7 @@ import { useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
+import { useToast } from '@/hooks/useToast';
 import { isPatientNavKeyVisible, type PatientNavKey } from '@/lib/patientNav';
 
 /* ── ヘッダー共通アイコン ── */
@@ -262,14 +263,13 @@ export default function ShopPage() {
   const { clinicName, navVisibility } = usePatientClinicBranding();
   const [activeCategory, setActiveCategory] = useState<string>('すべて');
   const [cart, setCart] = useState<Record<number, number>>({});
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, showToast } = useToast();
 
   const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
 
   const addToCart = (product: Product) => {
     setCart((prev) => ({ ...prev, [product.id]: (prev[product.id] ?? 0) + 1 }));
-    setToast(`「${product.name}」をカートに追加しました`);
-    setTimeout(() => setToast(null), 2500);
+    showToast(`「${product.name}」をカートに追加しました`);
   };
 
   const filtered =

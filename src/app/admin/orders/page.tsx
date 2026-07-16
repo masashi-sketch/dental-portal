@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
+import { useToast } from '@/hooks/useToast';
 
 type OrderStatus = '確認中' | '配送中' | '完了' | 'キャンセル';
 
@@ -35,9 +36,7 @@ const statusColors: Record<OrderStatus, string> = {
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [filter, setFilter] = useState<OrderStatus | 'すべて'>('すべて');
-  const [toast, setToast] = useState('');
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const { toast, showToast } = useToast();
 
   const updateStatus = (id: number, status: OrderStatus) => {
     setOrders(orders.map((o) => o.id === id ? { ...o, status, nextDelivery: status === '完了' || status === 'キャンセル' ? '—' : o.nextDelivery } : o));

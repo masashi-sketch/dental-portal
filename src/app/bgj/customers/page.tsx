@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
+import { useToast } from "@/hooks/useToast";
 import type { Clinic, ClinicStatus, ClinicTerms, SalesRepWithMaster } from "@/lib/supabase/types";
 
 type ClinicWithStats = Clinic & { month_sales: number; last_order_date: string | null; staff: SalesRepWithMaster | null };
@@ -23,7 +24,7 @@ export default function CustomersPage() {
   const [salesReps, setSalesReps] = useState<SalesRepWithMaster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState("");
+  const { toast, showToast } = useToast();
 
   const [search, setSearch] = useState("");
   const [area, setArea] = useState("すべて");
@@ -33,8 +34,6 @@ export default function CustomersPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
   const fetchAll = async () => {
     setLoading(true);

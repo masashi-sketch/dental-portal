@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
+import { useToast } from '@/hooks/useToast';
 
 type CampaignStatus = '公開中' | '準備中' | '終了';
 type CampaignCategory = '割引' | '新商品' | '季節' | 'キャンペーン' | 'イベント';
@@ -112,9 +113,7 @@ export default function CampaignPage() {
   const [filterStatus, setFilterStatus] = useState<CampaignStatus | 'すべて'>('すべて');
   const [view, setView] = useState<'card' | 'list'>('list');
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [toast, setToast] = useState('');
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const { toast, showToast } = useToast();
 
   const handleDelete = (id: number) => {
     setCampaigns(campaigns.filter((c) => c.id !== id));

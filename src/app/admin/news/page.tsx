@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
+import { useToast } from '@/hooks/useToast';
 
 type NewsItem = {
   id: number;
@@ -29,12 +30,7 @@ export default function AdminNewsPage() {
   const [editItem, setEditItem] = useState<NewsItem | null>(null);
   const [form, setForm] = useState({ date: '', tag: 'お知らせ' as NewsItem['tag'], text: '', status: '公開' as NewsItem['status'] });
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [toast, setToast] = useState('');
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 2500);
-  };
+  const { toast, showToast } = useToast();
 
   const openNew = () => {
     setEditItem(null);

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
+import { useToast } from '@/hooks/useToast';
 
 type ProductCategory = '定期購入' | 'おすすめ商品';
 
@@ -33,9 +34,7 @@ export default function AdminProductsPage() {
   const [form, setForm] = useState({ name: '', category: '定期購入' as ProductCategory, subCategory: '', price: '', unit: '', status: '公開' as Product['status'] });
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [filterCat, setFilterCat] = useState<ProductCategory | 'すべて'>('すべて');
-  const [toast, setToast] = useState('');
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const { toast, showToast } = useToast();
 
   const openNew = () => {
     setEditItem(null);

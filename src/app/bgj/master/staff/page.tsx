@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
+import { useToast } from "@/hooks/useToast";
 import type { SalesRepWithMaster, StaffArea, StaffRole } from "@/lib/supabase/types";
 
 type ClinicSummary = { staff: { id: string } | null; month_sales: number };
@@ -15,15 +16,13 @@ export default function StaffMasterPage() {
   const [clinics, setClinics] = useState<ClinicSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState("");
+  const { toast, showToast } = useToast();
 
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<SalesRepWithMaster | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
   const fetchAll = async () => {
     setLoading(true);

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
+import { useToast } from '@/hooks/useToast';
 
 type ArticleStatus = '公開中' | '準備中' | '終了';
 type ArticleCategory = '学術情報' | '製品情報' | '症例紹介' | 'お知らせ' | 'イベント';
@@ -112,9 +113,7 @@ export default function BiogaiaPage() {
   const [filterStatus, setFilterStatus] = useState<ArticleStatus | 'すべて'>('すべて');
   const [view, setView] = useState<'card' | 'list'>('list');
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [toast, setToast] = useState('');
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const { toast, showToast } = useToast();
 
   const handleDelete = (id: number) => {
     setArticles(articles.filter((a) => a.id !== id));

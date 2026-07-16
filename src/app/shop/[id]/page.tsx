@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import BottomNav from '../../components/BottomNav';
+import { useToast } from '@/hooks/useToast';
 import { products } from '../data';
 
 /* ── アイコン ── */
@@ -142,7 +143,7 @@ export default function ProductDetailPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, showToast } = useToast();
 
   if (!product) {
     return (
@@ -157,8 +158,7 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     setAdded(true);
-    setToast(`「${product.name}」を${qty}点カートに追加しました`);
-    setTimeout(() => setToast(null), 2500);
+    showToast(`「${product.name}」を${qty}点カートに追加しました`);
   };
 
   const relatedProducts = products
