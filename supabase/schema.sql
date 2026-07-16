@@ -194,12 +194,19 @@ create table public.clinic_patient_settings (
   -- QR・PINを発行（再発行）した日時。updated_atは他の設定変更でも更新されるため、
   -- 「このQRがいつ発行されたか」を正確に示すために専用カラムを持つ。
   signup_pin_issued_at         timestamptz,
+  -- QR・登録URL（/join/[signup_slug]）に使う、得意先コードとは無関係なランダム文字列。
+  -- 得意先コードは連番的で推測可能なため、URLには一切出さずこちらを使う
+  -- （PINと同時に再発行し、古いQRが指すURL自体も無効にする）。
+  signup_slug                  text,
   updated_at                   timestamptz not null default now()
 );
 
 create trigger trg_clinic_patient_settings_updated_at
   before update on public.clinic_patient_settings
   for each row execute function public.set_updated_at_generic();
+
+create unique index if not exists clinic_patient_settings_signup_slug_key
+  on public.clinic_patient_settings (signup_slug) where signup_slug is not null;
 
 create table public.clinic_intro_info (
   customer_code            text primary key references public.clinics (customer_code) on delete cascade,

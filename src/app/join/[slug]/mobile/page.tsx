@@ -7,17 +7,19 @@ const DEFAULT_CLINIC_NAME = 'デンタルポータル';
 const DEFAULT_BACKGROUND = '/patient-login-bg.jpg';
 
 // クリニック共通QR（SignupQrCard）が実際にスマホへ送り込む先の、スマホ専用登録画面。
-// /join/[code]（PC等での確認・共有用の簡易版）とは別に、こちらはクリニックの
+// /join/[slug]（PC等での確認・共有用の簡易版）とは別に、こちらはクリニックの
 // 指定背景画像を全面に使い、幅も常にmax-w-md（電話幅）に固定した専用デザイン。
-// 送信先API（/api/clinics/[code]/join）は/join/[code]と共通。
+// パスの[slug]は得意先コードとは無関係なランダム文字列（signup_slug）。
+// 得意先コードは連番で推測可能なため、URL・リクエストのいずれにも含めない。
+// 送信先API（/api/join/[slug]）は/join/[slug]と共通。
 //
 // 【重要な運用方針】このフォームの入力項目（氏名・ログインID・パスワード）は、
 // 医院用ポータルの患者様登録フォーム（src/app/admin/patients/page.tsx）・
 // 登録API（src/app/api/admin/patients/route.ts）と同じ項目に揃えている。
-// 患者様の登録項目を追加・変更した場合は、このページと/join/[code]/page.tsx・
-// 送信先API（src/app/api/clinics/[code]/join/route.ts）も必ず連動して更新すること。
-export default function PatientJoinMobilePage({ params }: { params: Promise<{ code: string }> }) {
-  const { code } = use(params);
+// 患者様の登録項目を追加・変更した場合は、このページと/join/[slug]/page.tsx・
+// 送信先API（src/app/api/join/[slug]/route.ts）も必ず連動して更新すること。
+export default function PatientJoinMobilePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
   const [clinicName, setClinicName] = useState(DEFAULT_CLINIC_NAME);
   const [backgroundUrl, setBackgroundUrl] = useState(DEFAULT_BACKGROUND);
   const [pin, setPin] = useState('');
@@ -30,14 +32,14 @@ export default function PatientJoinMobilePage({ params }: { params: Promise<{ co
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/clinics/${encodeURIComponent(code)}/branding`)
+    fetch(`/api/join/${encodeURIComponent(slug)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.displayName) setClinicName(data.displayName);
         if (data?.backgroundUrl) setBackgroundUrl(data.backgroundUrl);
       })
       .catch(() => {});
-  }, [code]);
+  }, [slug]);
 
   const handleSubmit = async () => {
     if (!pin.trim() || !name.trim() || !loginId.trim() || !password) {
@@ -52,7 +54,7 @@ export default function PatientJoinMobilePage({ params }: { params: Promise<{ co
     setError('');
 
     try {
-      const res = await fetch(`/api/clinics/${encodeURIComponent(code)}/join`, {
+      const res = await fetch(`/api/join/${encodeURIComponent(slug)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin: pin.trim(), name: name.trim(), loginId: loginId.trim(), password }),

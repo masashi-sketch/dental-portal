@@ -18,21 +18,24 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   const isAuthPath = pathname.startsWith("/auth");
   const isApiAuth = pathname.startsWith("/api/auth");
   const isClinicLoginPath = pathname.startsWith("/clinic-login");
+  const isBgjLoginPath = pathname.startsWith("/bgj-login");
   const isPatientLoginPath = pathname === "/";
   // クリニックのブランディング（表示名・背景画像URL）だけを返す公開エンドポイント。
   // 患者ポータルのログイン画面（未認証）から呼ぶため認証不要。
   const isPublicClinicBrandingPath = pathname.startsWith("/api/clinics/");
-  // 患者様のQR自己登録画面（/join/[code]、/join/[code]/mobile）と、その送信先API
-  // （/api/clinics/[code]/joinはisPublicClinicBrandingPathで既に許可済み）。
-  // QRをスマホで読み取って未認証のまま開く前提のため認証不要。
+  // 患者様のQR自己登録画面（/join/[slug]、/join/[slug]/mobile）と、その送信先API
+  // （/api/join/[slug]）。QRをスマホで読み取って未認証のまま開く前提のため認証不要。
   const isJoinPath = pathname.startsWith("/join/");
+  const isJoinApiPath = pathname.startsWith("/api/join/");
 
   if (isApiAuth) return NextResponse.next();
   if (isAuthPath) return NextResponse.next();
   if (isClinicLoginPath) return NextResponse.next();
+  if (isBgjLoginPath) return NextResponse.next();
   if (isPatientLoginPath) return NextResponse.next();
   if (isPublicClinicBrandingPath) return NextResponse.next();
   if (isJoinPath) return NextResponse.next();
+  if (isJoinApiPath) return NextResponse.next();
 
   const role = req.auth?.user?.role;
   const isPatientPortalPath = PATIENT_PORTAL_PATHS.some(

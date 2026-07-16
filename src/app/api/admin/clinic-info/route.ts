@@ -10,7 +10,7 @@ import {
   STAFF_ROLE_COLUMNS,
 } from '@/lib/supabase/types';
 import { resolveScopedCustomerCode } from '@/lib/auth/clinicScope';
-import { generateSignupPin } from '@/lib/auth/signupPin';
+import { generateSignupPin, generateSignupSlug } from '@/lib/auth/signupPin';
 
 export const dynamic = 'force-dynamic';
 
@@ -108,6 +108,7 @@ export async function PATCH(request: NextRequest) {
     settingsUpdate.signup_pin_failed_attempts = 0;
     settingsUpdate.signup_pin_locked_until = null;
     settingsUpdate.signup_pin_issued_at = new Date().toISOString();
+    settingsUpdate.signup_slug = generateSignupSlug();
   }
 
   const introUpdate: Record<string, unknown> = {};

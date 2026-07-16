@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { requireBgjSession } from '@/lib/auth/clinicScope';
-import { generateSignupPin } from '@/lib/auth/signupPin';
+import { generateSignupPin, generateSignupSlug } from '@/lib/auth/signupPin';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
@@ -140,6 +140,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     settingsUpdate.signup_pin_failed_attempts = 0;
     settingsUpdate.signup_pin_locked_until = null;
     settingsUpdate.signup_pin_issued_at = new Date().toISOString();
+    settingsUpdate.signup_slug = generateSignupSlug();
   }
 
   const supabase = getSupabaseServerClient();

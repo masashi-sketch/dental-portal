@@ -167,13 +167,21 @@ vercel --prod          # 本番デプロイ`}</Code>
                         このプロジェクトはTailwind v4（oklchカラー関数）を使っているため、無印の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">html2canvas</code>ではなく対応フォークの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">html2canvas-pro</code>を使う（無印だと色の解釈でエラーになる）。
                       </p>
                       <p>
-                        新規の公開（認証不要）ルート：QRコードが実際に開く、クリニック指定背景・スマホ専用の登録画面<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/[customerCode]/mobile</code>、PC等での確認用の簡易版<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/[customerCode]</code>、共通の送信先API<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinics/[code]/join</code>。受付PINで本人確認し、5回連続で間違えると15分ロックする（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/signupPin.ts</code>）。
+                        新規の公開（認証不要）ルート：QRコードが実際に開く、クリニック指定背景・スマホ専用の登録画面<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/[signup_slug]/mobile</code>、PC等での確認用の簡易版<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/[signup_slug]</code>、共通の送信先API<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/join/[signup_slug]</code>。受付PINで本人確認し、5回連続で間違えると15分ロックする（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/signupPin.ts</code>）。
                       </p>
                       <p>
-                        <strong className="text-red-600">重要：</strong>患者様の登録項目（氏名・ログインID・パスワード）を追加・変更する場合は、上記2つの登録ページと送信先APIを必ず連動して更新すること（各ファイル冒頭にもこの方針をコメントで残している）。
+                        <strong className="text-red-600">重要：</strong>URLの`[signup_slug]`は得意先コードとは無関係なランダム文字列（`generateSignupSlug()`、PINと同時に再発行）。得意先コードは連番で推測可能なため、URLには一切使わない（単純なハッシュ化では全パターン先回り計算で逆引きされるため不十分、という判断）。
+                      </p>
+                      <p>
+                        患者様の登録項目（氏名・ログインID・パスワード）を追加・変更する場合は、上記2つの登録ページと送信先APIを必ず連動して更新すること（各ファイル冒頭にもこの方針をコメントで残している）。
                       </p>
                       <p>
                         QR・PINの発行/再発行は、BGJ側（得意先詳細＞接続情報タブ）・医院側（クリニック情報＞QR設定、および患者様管理のQRモーダル）のどちらからも行え、実体は同じ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_patient_settings</code>の1行なので双方向に反映される。QRの見た目・PDFファイル名にはPIN発行日時（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">yyyymmddhhmmss</code>）を埋め込み、再発行のたびにQRが変わるようにしている。
+                      </p>
+                      <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
+                        <strong>ハマりどころ：</strong>このプロジェクトのNext.js 16では<code className="bg-white px-1.5 py-0.5 rounded text-xs">middleware.ts</code>が<code className="bg-white px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>という名前に変わっている。ほぼ全パスを認証必須にする関所として動くため、
+                        <strong>新しい公開（認証不要）ページ・APIを追加したら、必ず<code className="bg-white px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>の許可リストにも追加すること。</strong>
+                        実際に<code className="bg-white px-1.5 py-0.5 rounded text-xs">/join/[signup_slug]</code>を追加した際にこれを見落とし、QRからスマホでアクセスすると本番でログイン画面にリダイレクトされる不具合が発生した（あわせて、既存の<code className="bg-white px-1.5 py-0.5 rounded text-xs">/bgj-login</code>も同じ理由で許可リスト漏れだったため修正済み）。
                       </p>
                     </>
                   ),

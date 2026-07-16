@@ -18,10 +18,11 @@ export default function AdminClinicQrPage() {
   const [confirmingRegen, setConfirmingRegen] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
 
-  // originはSSR時に取得できないため、クライアントでのレンダリング時にのみ算出する
-  // （useEffect+setStateにすると react-hooks/set-state-in-effect に抵触するため直接算出）。
-  const joinUrl = isClinicRole && customerCode && typeof window !== 'undefined'
-    ? `${window.location.origin}/join/${customerCode}/mobile`
+  // 得意先コードは連番で推測可能なためURLには使わず、無関係なランダム文字列である
+  // signup_slugを使う。originはSSR時に取得できないため、クライアントでの
+  // レンダリング時にのみ算出する（set-state-in-effectを避ける）。
+  const joinUrl = isClinicRole && clinic?.signup_slug && typeof window !== 'undefined'
+    ? `${window.location.origin}/join/${clinic.signup_slug}/mobile`
     : '';
   const signupPinIssuedAt = formatTimestampCompact(clinic?.signup_pin_issued_at);
   const qrValue = joinUrl && signupPinIssuedAt ? `${joinUrl}?t=${signupPinIssuedAt}` : joinUrl;
@@ -65,7 +66,7 @@ export default function AdminClinicQrPage() {
                 クリニック共通のQRコードです。窓口に掲示し、受付PINと合わせて患者様にお伝えください。患者様はご自身のスマホでスキャンし、その場でログインID・パスワードを設定して登録できます。BGJポータルの「得意先一覧＞接続情報」タブからも同じQR・PINを確認・再発行できます。
               </p>
 
-              {!clinic.signup_pin ? (
+              {!clinic.signup_pin || !clinic.signup_slug ? (
                 <>
                   <p className="text-slate-400 text-sm mb-4">まだ受付PINが発行されていません。</p>
                   <Button theme="sky" onClick={regenerate} disabled={regenerating}>

@@ -140,6 +140,7 @@ export type ClinicPatientSettings = {
   signup_pin_failed_attempts: number;
   signup_pin_locked_until: string | null;
   signup_pin_issued_at: string | null;
+  signup_slug: string | null;
   updated_at: string;
 };
 
@@ -244,7 +245,7 @@ export const CLINIC_COLUMNS =
 // clinic_patient_settingsテーブル（ブランディング・患者ナビ表示切替・歯周病表示切替）の列。
 // 公開エンドポイントでも使う。
 export const CLINIC_PATIENT_SETTINGS_COLUMNS =
-  'customer_code, display_name, patient_background_url, nav_show_clinic_info, nav_show_medical_record, nav_show_medication, nav_show_subscription, nav_show_shop, nav_show_qa, show_periodontal_diagnosis, signup_pin, signup_pin_failed_attempts, signup_pin_locked_until, signup_pin_issued_at';
+  'customer_code, display_name, patient_background_url, nav_show_clinic_info, nav_show_medical_record, nav_show_medication, nav_show_subscription, nav_show_shop, nav_show_qa, show_periodontal_diagnosis, signup_pin, signup_pin_failed_attempts, signup_pin_locked_until, signup_pin_issued_at, signup_slug';
 
 // clinic_intro_infoテーブル（患者ポータルの「クリニック紹介」診療時間・アクセス）の列。
 export const CLINIC_INTRO_INFO_COLUMNS =

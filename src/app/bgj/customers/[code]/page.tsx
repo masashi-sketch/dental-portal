@@ -155,9 +155,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [savingLoginAction, setSavingLoginAction] = useState(false);
 
-  // 接続情報（患者様の自己登録用QR + 受付PIN）。originはSSR時に取得できないため、
-  // クライアントでのレンダリング時にのみ算出する（set-state-in-effectを避ける）。
-  const joinUrl = typeof window !== "undefined" ? `${window.location.origin}/join/${code}/mobile` : "";
+  // 接続情報（患者様の自己登録用QR + 受付PIN）。得意先コードは連番で推測可能なため
+  // URLには使わず、無関係なランダム文字列であるsignup_slugを使う。originはSSR時に
+  // 取得できないため、クライアントでのレンダリング時にのみ算出する
+  // （set-state-in-effectを避ける）。
+  const joinUrl =
+    typeof window !== "undefined" && clinic?.signup_slug
+      ? `${window.location.origin}/join/${clinic.signup_slug}/mobile`
+      : "";
   const signupPinIssuedAt = formatTimestampCompact(clinic?.signup_pin_issued_at);
   // QRの内容にタイムスタンプを含めることで、再発行のたびにQRの見た目自体が変わり、
   // 窓口に古いQRが貼られたままになっていないか目視でも判別しやすくする。
@@ -994,7 +999,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                 クリニック共通のQRコードです。窓口に掲示し、受付PINと合わせて患者様にお伝えください。患者様はご自身のスマホでスキャンし、その場でログインID・パスワードを設定して登録できます。
               </p>
 
-              {!clinic?.signup_pin ? (
+              {!clinic?.signup_pin || !clinic.signup_slug ? (
                 <p className="text-slate-400 text-sm mb-4">まだ受付PINが発行されていません。</p>
               ) : (
                 <SignupQrCard

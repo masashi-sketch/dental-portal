@@ -40,11 +40,12 @@ export default function AdminPatientsPage() {
   const [urlCopied, setUrlCopied] = useState(false);
   const { clinic, setClinic } = useClinicInfo();
   const { regenerate: handleRegenerateSignupPin, regenerating: regeneratingPin } = useSignupPinRegenerate(setClinic, showToast);
-  // originはSSR時に取得できないため、クライアントでのレンダリング時にのみ算出する
-  // （useEffect+setStateにすると react-hooks/set-state-in-effect に抵触するため直接算出）。
+  // 得意先コードは連番で推測可能なためURLには使わず、無関係なランダム文字列である
+  // signup_slugを使う。originはSSR時に取得できないため、クライアントでの
+  // レンダリング時にのみ算出する（set-state-in-effectを避ける）。
   const joinUrl =
-    isClinicRole && session?.user.customerCode && typeof window !== 'undefined'
-      ? `${window.location.origin}/join/${session.user.customerCode}/mobile`
+    isClinicRole && clinic?.signup_slug && typeof window !== 'undefined'
+      ? `${window.location.origin}/join/${clinic.signup_slug}/mobile`
       : '';
   const signupPinIssuedAt = formatTimestampCompact(clinic?.signup_pin_issued_at);
   // QRの内容にタイムスタンプを含めることで、再発行のたびにQRの見た目自体が変わり、
@@ -331,7 +332,7 @@ export default function AdminPatientsPage() {
             <h2 className="text-slate-800 font-bold text-xl mb-1">患者様を招待する</h2>
             <p className="text-slate-500 text-sm mb-5">QRコードを患者様にお見せください。<br />当院に紐付いた状態で登録されます。</p>
 
-            {!clinic?.signup_pin ? (
+            {!clinic?.signup_pin || !clinic.signup_slug ? (
               <>
                 <p className="text-slate-400 text-sm mb-5">まだ受付PINが発行されていません。</p>
                 <div className="flex gap-3">
