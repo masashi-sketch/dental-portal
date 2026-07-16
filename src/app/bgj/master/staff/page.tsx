@@ -24,26 +24,33 @@ export default function StaffMasterPage() {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const fetchAll = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [repsRes, rolesRes, areasRes, clinicsRes] = await Promise.all([
-        fetch("/api/bgj/sales-reps"),
-        fetch("/api/bgj/staff-roles"),
-        fetch("/api/bgj/staff-areas"),
-        fetch("/api/bgj/clinics"),
-      ]);
-      if (!repsRes.ok) throw new Error("営業担当者一覧の取得に失敗しました");
-      setSalesReps((await repsRes.json()).salesReps ?? []);
-      if (rolesRes.ok) setRoles((await rolesRes.json()).staffRoles ?? []);
-      if (areasRes.ok) setAreas((await areasRes.json()).staffAreas ?? []);
-      if (clinicsRes.ok) setClinics((await clinicsRes.json()).clinics ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "エラーが発生しました");
-    } finally {
-      setLoading(false);
-    }
+  const fetchAll = () => {
+    Promise.all([
+      fetch("/api/bgj/sales-reps"),
+      fetch("/api/bgj/staff-roles"),
+      fetch("/api/bgj/staff-areas"),
+      fetch("/api/bgj/clinics"),
+    ])
+      .then(([repsRes, rolesRes, areasRes, clinicsRes]) => {
+        if (!repsRes.ok) throw new Error("営業担当者一覧の取得に失敗しました");
+        return Promise.all([
+          repsRes.json(),
+          rolesRes.ok ? rolesRes.json() : Promise.resolve(null),
+          areasRes.ok ? areasRes.json() : Promise.resolve(null),
+          clinicsRes.ok ? clinicsRes.json() : Promise.resolve(null),
+        ]);
+      })
+      .then(([repsData, rolesData, areasData, clinicsData]) => {
+        setSalesReps(repsData.salesReps ?? []);
+        if (rolesData) setRoles(rolesData.staffRoles ?? []);
+        if (areasData) setAreas(areasData.staffAreas ?? []);
+        if (clinicsData) setClinics(clinicsData.clinics ?? []);
+        setError(null);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "エラーが発生しました");
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -88,7 +95,7 @@ export default function StaffMasterPage() {
       }
       showToast(editItem ? "営業担当者を更新しました" : "営業担当者を登録しました");
       setShowModal(false);
-      await fetchAll();
+      fetchAll();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -105,7 +112,7 @@ export default function StaffMasterPage() {
       }
       setDeleteId(null);
       showToast("営業担当者を削除しました");
-      await fetchAll();
+      fetchAll();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     }

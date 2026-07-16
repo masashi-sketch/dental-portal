@@ -68,19 +68,17 @@ export default function AdminPatientsPage() {
   const [showQR, setShowQR] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
 
-  const fetchPatients = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/admin/patients');
-      if (!res.ok) throw new Error('患者一覧の取得に失敗しました');
-      const { patients } = await res.json();
-      setPatients(patients);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'エラーが発生しました');
-    } finally {
-      setLoading(false);
-    }
+  const fetchPatients = () => {
+    fetch('/api/admin/patients')
+      .then((res) => {
+        if (!res.ok) throw new Error('患者一覧の取得に失敗しました');
+        return res.json();
+      })
+      .then((data) => setPatients(data.patients))
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'エラーが発生しました');
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchPatients(); }, []);

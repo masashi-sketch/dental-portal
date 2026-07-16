@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import AdminSidebar from '../components/AdminSidebar';
 import ClinicStaffManager from '@/components/ClinicStaffManager';
@@ -38,23 +38,22 @@ const EMPTY_HOURS_FORM: HoursForm = {
 };
 
 export default function AdminClinicIntroPage() {
-  const { isClinicRole, clinic, setClinic, loaded } = useClinicInfo();
   const { toast, showToast } = useToast();
   const [hoursForm, setHoursForm] = useState<HoursForm>(EMPTY_HOURS_FORM);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!clinic) return;
+  const { isClinicRole, setClinic, loaded } = useClinicInfo((fetchedClinic) => {
+    if (!fetchedClinic) return;
     setHoursForm({
-      clinicHoursWeekday: clinic.clinic_hours_weekday ?? '',
-      clinicHoursSaturday: clinic.clinic_hours_saturday ?? '',
-      clinicClosedDay: clinic.clinic_closed_day ?? '',
-      clinicPhone: clinic.clinic_phone ?? '',
-      clinicAddress: clinic.clinic_address ?? '',
-      clinicNearestStation: clinic.clinic_nearest_station ?? '',
-      clinicParking: clinic.clinic_parking ?? '',
+      clinicHoursWeekday: fetchedClinic.clinic_hours_weekday ?? '',
+      clinicHoursSaturday: fetchedClinic.clinic_hours_saturday ?? '',
+      clinicClosedDay: fetchedClinic.clinic_closed_day ?? '',
+      clinicPhone: fetchedClinic.clinic_phone ?? '',
+      clinicAddress: fetchedClinic.clinic_address ?? '',
+      clinicNearestStation: fetchedClinic.clinic_nearest_station ?? '',
+      clinicParking: fetchedClinic.clinic_parking ?? '',
     });
-  }, [clinic]);
+  });
 
   const handleSaveHours = async () => {
     setSaving(true);

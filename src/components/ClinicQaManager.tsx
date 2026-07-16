@@ -44,7 +44,6 @@ export default function ClinicQaManager({
   const qs = customerCode ? `?customerCode=${encodeURIComponent(customerCode)}` : '';
 
   const fetchAll = async () => {
-    setLoading(true);
     try {
       const res = await fetch(`/api/admin/clinic-qa${qs}`);
       if (res.ok) setQaList((await res.json()).qa ?? []);

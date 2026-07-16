@@ -16,18 +16,20 @@ export default function StaffRolesMasterPage() {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const fetchRoles = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/bgj/staff-roles");
-      if (!res.ok) throw new Error("役職マスタの取得に失敗しました");
-      setRoles((await res.json()).staffRoles ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "エラーが発生しました");
-    } finally {
-      setLoading(false);
-    }
+  const fetchRoles = () => {
+    fetch("/api/bgj/staff-roles")
+      .then((res) => {
+        if (!res.ok) throw new Error("役職マスタの取得に失敗しました");
+        return res.json();
+      })
+      .then((data) => {
+        setRoles(data.staffRoles ?? []);
+        setError(null);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "エラーが発生しました");
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchRoles(); }, []);
@@ -59,7 +61,7 @@ export default function StaffRolesMasterPage() {
       }
       showToast(editItem ? "役職を更新しました" : "役職を追加しました");
       setShowModal(false);
-      await fetchRoles();
+      fetchRoles();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -76,7 +78,7 @@ export default function StaffRolesMasterPage() {
       }
       setDeleteId(null);
       showToast("役職を削除しました");
-      await fetchRoles();
+      fetchRoles();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     }

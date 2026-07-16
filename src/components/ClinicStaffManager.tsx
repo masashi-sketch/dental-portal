@@ -45,7 +45,6 @@ export default function ClinicStaffManager({
   const qs = customerCode ? `?customerCode=${encodeURIComponent(customerCode)}` : '';
 
   const fetchAll = async () => {
-    setLoading(true);
     try {
       const res = await fetch(`/api/admin/clinic-staff${qs}`);
       if (res.ok) setStaff((await res.json()).staff ?? []);

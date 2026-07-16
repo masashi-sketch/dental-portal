@@ -32,32 +32,29 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
   const [saving, setSaving] = useState(false);
   const [periodontalEnabled, setPeriodontalEnabled] = useState(true);
 
-  const fetchAll = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [patientRes, diagnosesRes, masterRes] = await Promise.all([
-        fetch(`/api/admin/patients/${id}`),
-        fetch(`/api/admin/patients/${id}/diagnoses`),
-        fetch('/api/periodontal/master'),
-      ]);
-      if (!patientRes.ok) throw new Error('患者情報の取得に失敗しました');
-      if (!diagnosesRes.ok) throw new Error('診断履歴の取得に失敗しました');
-      if (!masterRes.ok) throw new Error('マスタ情報の取得に失敗しました');
-
-      const { patient } = await patientRes.json();
-      const { diagnoses } = await diagnosesRes.json();
-      const { stages, grades } = await masterRes.json();
-
-      setPatient(patient);
-      setDiagnoses(diagnoses);
-      setStages(stages);
-      setGrades(grades);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'エラーが発生しました');
-    } finally {
-      setLoading(false);
-    }
+  const fetchAll = () => {
+    Promise.all([
+      fetch(`/api/admin/patients/${id}`),
+      fetch(`/api/admin/patients/${id}/diagnoses`),
+      fetch('/api/periodontal/master'),
+    ])
+      .then(([patientRes, diagnosesRes, masterRes]) => {
+        if (!patientRes.ok) throw new Error('患者情報の取得に失敗しました');
+        if (!diagnosesRes.ok) throw new Error('診断履歴の取得に失敗しました');
+        if (!masterRes.ok) throw new Error('マスタ情報の取得に失敗しました');
+        return Promise.all([patientRes.json(), diagnosesRes.json(), masterRes.json()]);
+      })
+      .then(([patientData, diagnosesData, masterData]) => {
+        setPatient(patientData.patient);
+        setDiagnoses(diagnosesData.diagnoses);
+        setStages(masterData.stages);
+        setGrades(masterData.grades);
+        setError(null);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'エラーが発生しました');
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchAll(); }, [id]);

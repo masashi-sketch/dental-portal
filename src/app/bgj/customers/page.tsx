@@ -35,28 +35,30 @@ export default function CustomersPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
-  const fetchAll = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [clinicsRes, termsRes, repsRes] = await Promise.all([
-        fetch("/api/bgj/clinics"),
-        fetch("/api/bgj/clinic-terms"),
-        fetch("/api/bgj/sales-reps"),
-      ]);
-      if (!clinicsRes.ok) throw new Error("得意先一覧の取得に失敗しました");
-      const { clinics } = await clinicsRes.json();
-      setClinics(clinics);
-      if (termsRes.ok) {
-        const { terms } = await termsRes.json();
-        setTerms(terms ?? []);
-      }
-      if (repsRes.ok) setSalesReps((await repsRes.json()).salesReps ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "エラーが発生しました");
-    } finally {
-      setLoading(false);
-    }
+  const fetchAll = () => {
+    Promise.all([
+      fetch("/api/bgj/clinics"),
+      fetch("/api/bgj/clinic-terms"),
+      fetch("/api/bgj/sales-reps"),
+    ])
+      .then(([clinicsRes, termsRes, repsRes]) => {
+        if (!clinicsRes.ok) throw new Error("得意先一覧の取得に失敗しました");
+        return Promise.all([
+          clinicsRes.json(),
+          termsRes.ok ? termsRes.json() : Promise.resolve(null),
+          repsRes.ok ? repsRes.json() : Promise.resolve(null),
+        ]);
+      })
+      .then(([clinicsData, termsData, repsData]) => {
+        setClinics(clinicsData.clinics);
+        if (termsData) setTerms(termsData.terms ?? []);
+        if (repsData) setSalesReps(repsData.salesReps ?? []);
+        setError(null);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "エラーが発生しました");
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -95,7 +97,7 @@ export default function CustomersPage() {
       }
       showToast("得意先を登録しました");
       setShowForm(false);
-      await fetchAll();
+      fetchAll();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {

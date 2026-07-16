@@ -12,16 +12,12 @@ export function useActiveClinic() {
   const { data: session, status: sessionStatus } = useSession();
   const [clinicName, setClinicName] = useState<string | null>(null);
   const [salesRep, setSalesRep] = useState<SalesRepWithMaster | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [fetchDone, setFetchDone] = useState(false);
+
+  const code = session?.user?.role === 'clinic' ? session.user.customerCode ?? null : null;
 
   useEffect(() => {
-    if (sessionStatus === 'loading') return;
-
-    const code = session?.user?.role === 'clinic' ? session.user.customerCode : null;
-    if (!code) {
-      setLoaded(true);
-      return;
-    }
+    if (sessionStatus === 'loading' || !code) return;
     fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(code)}`)
       .then((res) => (res.ok ? res.json() : { clinic: null }))
       .then((data) => {
@@ -32,8 +28,11 @@ export function useActiveClinic() {
         setClinicName(null);
         setSalesRep(null);
       })
-      .finally(() => setLoaded(true));
-  }, [session, sessionStatus]);
+      .finally(() => setFetchDone(true));
+  }, [code, sessionStatus]);
+
+  // clinicロール以外は取得対象がないため、sessionが確定した時点で読み込み完了とする
+  const loaded = sessionStatus !== 'loading' && (!code || fetchDone);
 
   return { clinicName, salesRep, loaded };
 }

@@ -11,15 +11,11 @@ export default function AdminClinicContractPage() {
   const { isClinicRole, customerCode, clinic } = useClinicInfo();
 
   const [terms, setTerms] = useState<ClinicTerms | null>(null);
-  const [termsLoading, setTermsLoading] = useState(false);
+  const [termsLoading, setTermsLoading] = useState(true);
 
   useEffect(() => {
-    if (!isClinicRole || !customerCode) {
-      setTerms(null);
-      return;
-    }
+    if (!isClinicRole || !customerCode) return;
     let cancelled = false;
-    setTermsLoading(true);
     fetch('/api/admin/clinic-terms')
       .then((res) => (res.ok ? res.json() : { terms: null }))
       .then((data) => { if (!cancelled) setTerms(data.terms ?? null); })

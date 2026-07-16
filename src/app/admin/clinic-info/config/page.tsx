@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import AdminSidebar from '../../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
@@ -24,7 +24,6 @@ const NAV_TOGGLE_ITEMS: { key: NavToggleKey; label: string }[] = [
 ];
 
 export default function AdminClinicConfigPage() {
-  const { isClinicRole, clinic, setClinic } = useClinicInfo();
   const { toast, showToast } = useToast();
   const [brandingForm, setBrandingForm] = useState({ displayName: '', patientBackgroundUrl: '' });
   const [brandingSaving, setBrandingSaving] = useState(false);
@@ -40,22 +39,22 @@ export default function AdminClinicConfigPage() {
   const [showPeriodontalDiagnosis, setShowPeriodontalDiagnosis] = useState(true);
   const [periodontalSaving, setPeriodontalSaving] = useState(false);
 
-  useEffect(() => {
-    if (!clinic) return;
+  const { isClinicRole, clinic, setClinic } = useClinicInfo((fetchedClinic) => {
+    if (!fetchedClinic) return;
     setBrandingForm({
-      displayName: clinic.display_name ?? '',
-      patientBackgroundUrl: clinic.patient_background_url ?? '',
+      displayName: fetchedClinic.display_name ?? '',
+      patientBackgroundUrl: fetchedClinic.patient_background_url ?? '',
     });
     setNavForm({
-      navShowClinicInfo: clinic.nav_show_clinic_info,
-      navShowMedicalRecord: clinic.nav_show_medical_record,
-      navShowMedication: clinic.nav_show_medication,
-      navShowSubscription: clinic.nav_show_subscription,
-      navShowShop: clinic.nav_show_shop,
-      navShowQa: clinic.nav_show_qa,
+      navShowClinicInfo: fetchedClinic.nav_show_clinic_info,
+      navShowMedicalRecord: fetchedClinic.nav_show_medical_record,
+      navShowMedication: fetchedClinic.nav_show_medication,
+      navShowSubscription: fetchedClinic.nav_show_subscription,
+      navShowShop: fetchedClinic.nav_show_shop,
+      navShowQa: fetchedClinic.nav_show_qa,
     });
-    setShowPeriodontalDiagnosis(clinic.show_periodontal_diagnosis);
-  }, [clinic]);
+    setShowPeriodontalDiagnosis(fetchedClinic.show_periodontal_diagnosis);
+  });
 
   const handleToggleNav = (key: NavToggleKey, checked: boolean) => {
     if (!checked) {

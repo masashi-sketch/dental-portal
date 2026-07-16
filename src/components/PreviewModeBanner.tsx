@@ -11,6 +11,10 @@ export default function PreviewModeBanner() {
   const [previewing, setPreviewing] = useState(false);
 
   useEffect(() => {
+    // document.cookieの同期読み取りはSSR時に実行不可なため、マウント後に
+    // 反映する。サーバー/クライアント初回レンダリングの不一致（hydration
+    // mismatch）を避けるため、あえてクライアント側のeffectでのみ反映する。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreviewing(!!readDemoPatientId());
   }, []);
 

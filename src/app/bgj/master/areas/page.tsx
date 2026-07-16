@@ -16,18 +16,20 @@ export default function StaffAreasMasterPage() {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const fetchAreas = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/bgj/staff-areas");
-      if (!res.ok) throw new Error("担当エリアマスタの取得に失敗しました");
-      setAreas((await res.json()).staffAreas ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "エラーが発生しました");
-    } finally {
-      setLoading(false);
-    }
+  const fetchAreas = () => {
+    fetch("/api/bgj/staff-areas")
+      .then((res) => {
+        if (!res.ok) throw new Error("担当エリアマスタの取得に失敗しました");
+        return res.json();
+      })
+      .then((data) => {
+        setAreas(data.staffAreas ?? []);
+        setError(null);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "エラーが発生しました");
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchAreas(); }, []);
@@ -59,7 +61,7 @@ export default function StaffAreasMasterPage() {
       }
       showToast(editItem ? "担当エリアを更新しました" : "担当エリアを追加しました");
       setShowModal(false);
-      await fetchAreas();
+      fetchAreas();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -76,7 +78,7 @@ export default function StaffAreasMasterPage() {
       }
       setDeleteId(null);
       showToast("担当エリアを削除しました");
-      await fetchAreas();
+      fetchAreas();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     }

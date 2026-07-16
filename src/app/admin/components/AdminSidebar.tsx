@@ -317,6 +317,9 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
       localStorage.setItem(`admin_lastRead_${active}`, new Date().toISOString());
       counts.delete(active);
     }
+    // localStorageの同期読み取りはSSR時に実行不可なため、マウント後・active変更後に
+    // 反映する。hydration mismatchを避けるため、あえてクライアント側のeffectでのみ反映する。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUnreadCounts(counts);
   }, [active]);
 

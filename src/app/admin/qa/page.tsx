@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import AdminSidebar from '../components/AdminSidebar';
@@ -9,12 +8,7 @@ import ClinicQaManager from '@/components/ClinicQaManager';
 export default function AdminQaPage() {
   const { data: session, status: sessionStatus } = useSession();
   const isClinicRole = session?.user?.role === 'clinic';
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    if (sessionStatus === 'loading') return;
-    setReady(true);
-  }, [sessionStatus]);
+  const ready = sessionStatus !== 'loading';
 
   return (
     <div className="min-h-screen flex bg-sky-50">

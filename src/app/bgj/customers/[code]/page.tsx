@@ -145,40 +145,43 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [savingLoginAction, setSavingLoginAction] = useState(false);
 
-  const fetchClinicUsers = async () => {
-    setClinicUsersLoading(true);
-    try {
-      const res = await fetch(`/api/bgj/clinics/${code}/user`);
-      if (res.ok) setClinicUsers((await res.json()).clinicUsers ?? []);
-    } finally {
-      setClinicUsersLoading(false);
-    }
+  const fetchClinicUsers = () => {
+    fetch(`/api/bgj/clinics/${code}/user`)
+      .then((res) => (res.ok ? res.json() : { clinicUsers: [] }))
+      .then((data) => setClinicUsers(data.clinicUsers ?? []))
+      .finally(() => setClinicUsersLoading(false));
   };
 
-  const fetchAll = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [clinicRes, ordersRes, visitsRes] = await Promise.all([
-        fetch(`/api/bgj/clinics/${code}`),
-        fetch(`/api/bgj/clinics/${code}/orders`),
-        fetch(`/api/bgj/clinics/${code}/visits`),
-      ]);
-      if (!clinicRes.ok) throw new Error("得意先情報の取得に失敗しました");
-      const { clinic } = await clinicRes.json();
-      setClinic(clinic);
-      if (clinic) setClinicForm(clinicToForm(clinic));
-      // 新規ログイン発行フォームの担当者名は、未入力なら担当営業の名前を初期値にする
-      if (clinic?.staff?.name) {
-        setNewLoginForm((f) => (f.name ? f : { ...f, name: clinic.staff.name }));
-      }
-      if (ordersRes.ok) setOrders((await ordersRes.json()).orders ?? []);
-      if (visitsRes.ok) setVisits((await visitsRes.json()).visits ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "エラーが発生しました");
-    } finally {
-      setLoading(false);
-    }
+  const fetchAll = () => {
+    Promise.all([
+      fetch(`/api/bgj/clinics/${code}`),
+      fetch(`/api/bgj/clinics/${code}/orders`),
+      fetch(`/api/bgj/clinics/${code}/visits`),
+    ])
+      .then(([clinicRes, ordersRes, visitsRes]) => {
+        if (!clinicRes.ok) throw new Error("得意先情報の取得に失敗しました");
+        return Promise.all([
+          clinicRes.json(),
+          ordersRes.ok ? ordersRes.json() : Promise.resolve(null),
+          visitsRes.ok ? visitsRes.json() : Promise.resolve(null),
+        ]);
+      })
+      .then(([clinicData, ordersData, visitsData]) => {
+        const { clinic } = clinicData;
+        setClinic(clinic);
+        if (clinic) setClinicForm(clinicToForm(clinic));
+        // 新規ログイン発行フォームの担当者名は、未入力なら担当営業の名前を初期値にする
+        if (clinic?.staff?.name) {
+          setNewLoginForm((f) => (f.name ? f : { ...f, name: clinic.staff.name }));
+        }
+        if (ordersData) setOrders(ordersData.orders ?? []);
+        if (visitsData) setVisits(visitsData.visits ?? []);
+        setError(null);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "エラーが発生しました");
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchAll(); }, [code]);

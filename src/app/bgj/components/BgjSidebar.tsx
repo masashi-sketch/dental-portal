@@ -54,12 +54,18 @@ const navItems: NavItem[] = [
   },
 ];
 
-export default function BgjSidebar() {
-  const pathname = usePathname();
-  const { data: session } = useSession();
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  const SidebarContent = () => (
+function SidebarContent({
+  pathname,
+  userName,
+  userEmail,
+  onNavClick,
+}: {
+  pathname: string;
+  userName: string | null | undefined;
+  userEmail: string | null | undefined;
+  onNavClick: () => void;
+}) {
+  return (
     <>
       {/* ロゴ */}
       <div className="px-5 py-5 border-b border-violet-700/50">
@@ -87,7 +93,7 @@ export default function BgjSidebar() {
               )}
               <Link
                 href={item.href}
-                onClick={() => setMobileOpen(false)}
+                onClick={onNavClick}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
                   isActive
                     ? "bg-white/20 text-white font-semibold shadow-sm"
@@ -108,7 +114,7 @@ export default function BgjSidebar() {
         <p className="text-violet-400/60 text-[10px] font-bold tracking-widest px-3 pt-2 pb-1">ポータル切替</p>
         <Link
           href="/"
-          onClick={() => setMobileOpen(false)}
+          onClick={onNavClick}
           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-violet-200/80 hover:bg-white/10 hover:text-white transition-colors"
         >
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
@@ -116,7 +122,7 @@ export default function BgjSidebar() {
         </Link>
         <Link
           href="/admin"
-          onClick={() => setMobileOpen(false)}
+          onClick={onNavClick}
           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-violet-200/80 hover:bg-white/10 hover:text-white transition-colors"
         >
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
@@ -128,8 +134,8 @@ export default function BgjSidebar() {
       <div className="px-3 pt-2 pb-3 border-t border-violet-700/50">
         <div className="bg-violet-800/60 rounded-xl px-3 py-3 mb-2">
           <p className="text-violet-300 text-xs mb-0.5">ログイン中</p>
-          <p className="text-white text-sm font-semibold truncate">{session?.user?.name ?? "—"}</p>
-          <p className="text-violet-300 text-xs truncate">{session?.user?.email ?? "—"}</p>
+          <p className="text-white text-sm font-semibold truncate">{userName ?? "—"}</p>
+          <p className="text-violet-300 text-xs truncate">{userEmail ?? "—"}</p>
         </div>
         <button
           onClick={() => { document.cookie = "portal-selected=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/"; signOut({ callbackUrl: "/auth/signin" }); }}
@@ -143,12 +149,19 @@ export default function BgjSidebar() {
       </div>
     </>
   );
+}
+
+export default function BgjSidebar() {
+  const pathname = usePathname();
+  const { data: session } = useSession();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const closeMobile = () => setMobileOpen(false);
 
   return (
     <>
       {/* デスクトップサイドバー */}
       <aside className="hidden md:flex w-60 shrink-0 flex-col bg-violet-900 sticky top-0 h-screen overflow-hidden">
-        <SidebarContent />
+        <SidebarContent pathname={pathname} userName={session?.user?.name} userEmail={session?.user?.email} onNavClick={closeMobile} />
       </aside>
 
       {/* モバイルトップバー */}
@@ -164,9 +177,9 @@ export default function BgjSidebar() {
       {/* モバイルドロワー */}
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-40 flex">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
+          <div className="fixed inset-0 bg-black/50" onClick={closeMobile} />
           <aside className="relative w-60 bg-violet-900 flex flex-col h-full">
-            <SidebarContent />
+            <SidebarContent pathname={pathname} userName={session?.user?.name} userEmail={session?.user?.email} onNavClick={closeMobile} />
           </aside>
         </div>
       )}
