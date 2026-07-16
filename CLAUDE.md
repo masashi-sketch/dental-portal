@@ -193,6 +193,13 @@ vercel --prod
 
 **現状把握**：トースト通知は`src/hooks/useToast.ts`に共通化済み（状態管理のみ共通化、見た目はポータルごとに維持）。新規ページでトーストが必要な場合はこのフックを使う。
 
+**共通UIコンポーネント**：`src/components/ui/`に`Button.tsx` / `Card.tsx` / `LoadingState.tsx` / `ConfirmDialog.tsx`を新設し、admin・bgj両ポータルの該当箇所を置き換え済み。いずれも`theme: 'sky' | 'violet'`propを持つ（`sky`=admin/管理ポータル、`violet`=bgjポータルのデフォルト）。これは見た目の統一ではなく、**既存の意図的な差異をそのまま保持するための設計**：
+- `Card`：admin側は`border-sky-100`、bgj側（および一部adminの例外画面）は`border-slate-200`が正で、これは元々ポータルごとに使い分けられていた配色。`theme`未指定時は`violet`（`border-slate-200`）がデフォルト。
+- `ConfirmDialog`：admin側は`border-sky-100 rounded-2xl`+`text-base`、bgj側は`rounded-3xl`（ボーダーなし）+`text-sm`という元々の差異をそのまま`theme`で出し分けている。
+- `Button`：`size: 'sm' | 'lg'`固定（`rounded-xl`）。`sm`=`px-4 py-2.5 text-sm font-semibold`、`lg`=`px-5 py-3 text-base font-bold`。既存コードの微妙なpadding差（px-4/5/6、py-2/2.5/3など）はこの2サイズに正規化済み（意図的な統合、見た目の破壊的変更ではない）。
+- 新しいカード・ボタン・削除確認モーダル・ローディング表示を追加するときは、必ずこれらのコンポーネントを`theme`propと共に使う。独自にTailwindクラスを再実装しない。
+- スコープ外（意図的に共通化していないもの）：Linkベースの装飾カード（hover演出付きの統計カードなど）、`rounded-lg`+`text-xs`の小さいピルボタン、患者ポータル全体。
+
 # コーディング禁止事項
 
 - `alert()`禁止 → 各ページの既存トースト実装を使う（共通`useToast()`ができるまでの暫定）
@@ -275,6 +282,8 @@ DB変更SQLを提示するときは、以下をセットにする。
 - `admin/patients`, `admin/patients/[id]`, `ClinicStaffManager`, `ClinicQaManager`, `bgj/customers/[code]`は、登録・更新・削除成功時にAPIレスポンスの行をローカルstateにマージする楽観的更新方式に統一済み（全件再取得はしない）。新しいCRUD操作を追加する際もこのパターンを踏襲する。
 - `react-hooks/set-state-in-effect` / `react-hooks/static-components`のlint指摘は解消済み（`npm run lint`は0エラー）。マウント時にfetchする関数は「`useCallback`でメモ化 → `useEffect`の依存配列に関数を含める」のパターンに統一し、`.then()`チェーンで書く（`async/await`+`try/catch`で書くと、effectから直接呼んだ場合に指摘が出ることがある）。
 - 患者ポータルの`navItems`配列（qa/medication/clinic/subscription/shop/homeの6ページ）は依然として個別定義のまま（共通化は意図的にスコープ外としている）。
+- `src/app/api/periodontal/master/route.ts`はほぼ変化しないマスタデータのため`next/cache`の`unstable_cache`で1時間キャッシュ済み。`auth()`（cookie読み取り）はキャッシュ対象外に置き、認可は毎回そのまま効かせている。同様に「ほぼ変化しないマスタ + 認証必須」なAPIルートを追加する際はこのパターンを踏襲する。
+- recharts（`admin/commission`・`bgj/customers/[code]`・`bgj/dashboard`・`bgj/reports`）は`next/dynamic`（`ssr: false`）で遅延読み込み済み。チャート部分は同ディレクトリの子コンポーネント（例：`CommissionChart.tsx`）に切り出し、データが動的な場合はprops経由で渡す（`SalesHistoryChart.tsx`が例）。新しく重いチャートを追加する場合もこのパターンを踏襲する。
 
 # 自動テスト方針
 
@@ -298,7 +307,8 @@ DB変更SQLを提示するときは、以下をセットにする。
 
 ## 次のおすすめ
 
-1. テストカバレッジのさらなる拡大。現状`src/lib/auth/`（`clinicScope.ts`・`password.ts`・`patientScope.ts`・`scopedSupabaseClient.ts`）・`src/lib/patientNav.ts`・APIルート1本（`clinic-staff/[id]`、雛形）をカバー済み。次点候補：他のAPIルート、`PatientSidebarNav.tsx`のコンポーネントテスト
-2. 得意先マスタ（BGJポータルの得意先一覧）は既にSupabase移行済み（`src/lib/clinics.ts`は存在しない）。この項目は完了扱い
-3. `clinics`テーブルの正規化は見送り済み。列定数グループ分け（`CLINIC_PATIENT_SETTINGS_COLUMNS`等）で概念的な分離はできているため、実テーブル分割（6本のAPIルートへのJOIN実装追加が必要）は必要性が高まった時点で再検討する
-4. CI（GitHub Actions、`.github/workflows/ci.yml`）を導入済み。push/pull_request時にlint/tsc/testを自動実行する。今後さらにpre-commitフック（husky等）を追加するかは要否をユーザーと確認
+1. テストカバレッジのさらなる拡大。現状`src/lib/auth/`（`clinicScope.ts`・`password.ts`・`patientScope.ts`・`scopedSupabaseClient.ts`）・`src/lib/patientNav.ts`・APIルート数本・`useToast`/`PatientSidebarNav`のコンポーネントテストをカバー済み。次点候補：他のAPIルート、新設した`src/components/ui/`配下のコンポーネントテスト
+2. `clinics`テーブルは`clinic_patient_settings`・`clinic_intro_info`に分割済み（正規化完了。詳細はメモリ`project_db_normalization_policy`参照）
+3. CI（GitHub Actions、`.github/workflows/ci.yml`）導入済み。push/pull_request時にlint/tsc/testを自動実行する。pre-commitフック（husky等）の追加は未実施・要否は都度確認
+4. レスポンス改善：`periodontal/master`のキャッシュ化・recharts4ページの遅延読み込みは完了。次点候補はクライアント側フェッチのキャッシュ層（SWR/React Query）導入（今回は意図的にスコープ外）
+5. UI一貫性：`src/components/ui/`のButton/Card/LoadingState/ConfirmDialogをadmin・bgj全ページに適用済み。次点候補は患者ポータルへの適用要否の検討（現状は意図的にスコープ外）
