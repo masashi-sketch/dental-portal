@@ -1,11 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import nextDynamic from 'next/dynamic';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-} from 'recharts';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+
+// rechartsは初期表示のJSバンドルから外すため遅延読み込みにする。
+const CommissionChart = nextDynamic(() => import('./CommissionChart'), {
+  ssr: false,
+  loading: () => <p className="text-slate-400 text-sm text-center py-16">グラフを読み込み中...</p>,
+});
 
 type ClinicInfo = {
   patientType: string;
@@ -79,23 +85,6 @@ const currentTierIndex = commissionTiers.findIndex(
 const nextTier = commissionTiers[currentTierIndex + 1] ?? null;
 const toNextTier = nextTier ? nextTier.min - clinicTotalSales : 0;
 
-// 月次グラフデータ
-const monthlyData = [
-  { month: '1月', 医院売上: 18200, コミッション: 1820, 患者来院数: 12 },
-  { month: '2月', 医院売上: 21500, コミッション: 2150, 患者来院数: 15 },
-  { month: '3月', 医院売上: 19800, コミッション: 1980, 患者来院数: 13 },
-  { month: '4月', 医院売上: 24300, コミッション: 2430, 患者来院数: 18 },
-  { month: '5月', 医院売上: 22100, コミッション: 2210, 患者来院数: 16 },
-  { month: '6月', 医院売上: 27300, コミッション: 2730, 患者来院数: 21 },
-];
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const tooltipFormatter = (value: any, name: any) => {
-  const num = Number(value);
-  if (name === '患者来院数') return [`${num}名`, name];
-  return [`¥${num.toLocaleString()}`, name];
-};
-
 export default function CommissionPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<ClinicInfo>(emptyForm);
@@ -121,11 +110,9 @@ export default function CommissionPage() {
             <h1 className="text-slate-800 font-bold text-xl">コミッション管理</h1>
             <p className="text-slate-600 text-sm mt-0.5">患者様の笑顔のために、ロイテリ菌を届けたい。</p>
           </div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-sky-500 hover:bg-sky-400 text-white text-base font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer">
+          <Button theme="sky" onClick={() => setShowForm(true)}>
             ＋ 経営情報を追加
-          </button>
+          </Button>
         </header>
 
         <main className="flex-1 p-5 sm:p-6 flex flex-col gap-6 bg-sky-50">
@@ -134,7 +121,7 @@ export default function CommissionPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
             {/* 左：医院の実績 */}
-            <div className="bg-white border border-sky-100 rounded-2xl p-5 shadow-sm">
+            <Card theme="sky" className="p-5 shadow-sm">
               <p className="text-slate-500 text-xs font-semibold tracking-widest mb-4">医院の実績（今月）</p>
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between py-3 border-b border-slate-100">
@@ -154,7 +141,7 @@ export default function CommissionPage() {
                   <p className="text-sky-700 text-2xl font-bold">¥{clinicTotalSales.toLocaleString()}</p>
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* 右：弊社コミッション */}
             <div className="bg-white border border-teal-100 rounded-2xl p-5 shadow-sm">
@@ -200,7 +187,7 @@ export default function CommissionPage() {
           </div>
 
           {/* 段階的コミッション率 */}
-          <div className="bg-white border border-sky-100 rounded-2xl p-5 shadow-sm">
+          <Card theme="sky" className="p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <p className="text-slate-700 text-base font-bold">コミッション段階レート</p>
               {nextTier && (
@@ -249,28 +236,16 @@ export default function CommissionPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
 
           {/* 折れ線グラフ */}
-          <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-sm">
+          <Card theme="sky" className="p-6 shadow-sm">
             <p className="text-slate-700 text-base font-bold mb-5">月次推移グラフ（過去6ヶ月）</p>
-            <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={monthlyData} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f4f8" />
-                <XAxis dataKey="month" tick={{ fontSize: 13, fill: '#64748b' }} />
-                <YAxis yAxisId="money" tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 12, fill: '#64748b' }} width={56} />
-                <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 12, fill: '#64748b' }} width={36} unit="名" />
-                <Tooltip formatter={tooltipFormatter} contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '13px' }} />
-                <Legend wrapperStyle={{ fontSize: '13px', paddingTop: '16px' }} />
-                <Line yAxisId="money" type="monotone" dataKey="医院売上"   stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                <Line yAxisId="money" type="monotone" dataKey="コミッション" stroke="#14b8a6" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                <Line yAxisId="count" type="monotone" dataKey="患者来院数"  stroke="#f97316" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+            <CommissionChart />
+          </Card>
 
           {/* 商品別コミッション内訳 */}
-          <div className="bg-white border border-sky-100 rounded-2xl overflow-hidden shadow-sm">
+          <Card theme="sky" className="overflow-hidden shadow-sm">
             <div className="px-5 py-4 border-b border-slate-100">
               <p className="text-slate-700 text-base font-bold">商品別コミッション内訳</p>
             </div>
@@ -316,7 +291,7 @@ export default function CommissionPage() {
                 </tfoot>
               </table>
             </div>
-          </div>
+          </Card>
 
         </main>
       </div>
@@ -329,7 +304,7 @@ export default function CommissionPage() {
       {/* 経営情報入力モーダル */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white border border-sky-100 rounded-2xl w-full max-w-2xl shadow-2xl my-6">
+          <Card theme="sky" className="w-full max-w-2xl shadow-2xl my-6">
 
             {/* モーダルヘッダー */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
@@ -453,12 +428,11 @@ export default function CommissionPage() {
                 className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-base font-medium transition-colors cursor-pointer">
                 キャンセル
               </button>
-              <button onClick={handleSave}
-                className="flex-1 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-base transition-colors cursor-pointer">
+              <Button theme="sky" fullWidth onClick={handleSave}>
                 保存する
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 

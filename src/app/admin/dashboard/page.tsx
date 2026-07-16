@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import AdminSidebar from '../components/AdminSidebar';
 import { useActiveClinic } from '@/hooks/useActiveClinic';
+import Card from '@/components/ui/Card';
 
 function IconUsers() {
   return <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
@@ -91,7 +92,7 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
             {/* 最近の注文 */}
-            <div className="bg-white border border-sky-100 rounded-2xl p-5 shadow-sm">
+            <Card theme="sky" className="p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-slate-800 font-bold text-base">最近の定期購入注文</h2>
                 <Link href="/admin/orders" className="text-sky-600 text-sm font-medium hover:underline">すべて見る →</Link>
@@ -107,10 +108,10 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
 
             {/* お知らせ一覧 */}
-            <div className="bg-white border border-sky-100 rounded-2xl p-5 shadow-sm">
+            <Card theme="sky" className="p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-slate-800 font-bold text-base">公開中のお知らせ</h2>
                 <Link href="/admin/news" className="text-sky-600 text-sm font-medium hover:underline">管理する →</Link>
@@ -126,11 +127,11 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           </div>
 
           {/* クイックリンク */}
-          <div className="bg-white border border-sky-100 rounded-2xl p-5 shadow-sm">
+          <Card theme="sky" className="p-5 shadow-sm">
             <h2 className="text-slate-800 font-bold text-base mb-4">クイックアクション</h2>
             <div className="flex flex-wrap gap-3">
               {[
@@ -146,7 +147,7 @@ export default function AdminDashboard() {
                 </Link>
               ))}
             </div>
-          </div>
+          </Card>
 
         </main>
       </div>

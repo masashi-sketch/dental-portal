@@ -6,6 +6,8 @@ import { useSession } from 'next-auth/react';
 import AdminSidebar from '../../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
 import type { PatientPublic, PeriodontalDiagnosisWithMaster, PeriodontalGrade, PeriodontalStage } from '@/lib/supabase/types';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
 
 type DiagnosisForm = {
   stageCode: string;
@@ -158,7 +160,7 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
               </div>
 
               {/* 基本情報 */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-5">
+              <Card className="p-5 mb-5">
                 <h2 className="text-sm font-bold text-slate-700 mb-4">基本情報</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
                   {[
@@ -175,19 +177,15 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
 
               {/* 歯周病診断 */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <Card className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-sm font-bold text-slate-700">歯周病診断</h2>
-                  <button
-                    onClick={openDiagnosisForm}
-                    disabled={!periodontalEnabled}
-                    className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
-                  >
+                  <Button theme="sky" size="sm" onClick={openDiagnosisForm} disabled={!periodontalEnabled}>
                     ＋ 新規診断を記録
-                  </button>
+                  </Button>
                 </div>
 
                 {!periodontalEnabled && (
@@ -252,13 +250,15 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
                       >
                         キャンセル
                       </button>
-                      <button
+                      <Button
+                        theme="sky"
+                        size="sm"
+                        fullWidth
                         onClick={handleSaveDiagnosis}
                         disabled={saving || !diagnosisForm.stageCode || !diagnosisForm.gradeCode}
-                        className="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
                       >
                         {saving ? '保存中...' : '保存する'}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -288,7 +288,7 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </Card>
             </>
           )}
         </main>

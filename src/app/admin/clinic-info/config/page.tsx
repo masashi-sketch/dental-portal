@@ -5,6 +5,8 @@ import Link from 'next/link';
 import AdminSidebar from '../../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
 
 type NavToggleKey =
   | 'navShowClinicInfo'
@@ -151,7 +153,7 @@ export default function AdminClinicConfigPage() {
           )}
 
           {!isClinicRole && (
-            <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm max-w-2xl">
+            <Card theme="sky" className="p-5 sm:p-6 shadow-sm max-w-2xl">
               <p className="text-sm font-bold text-slate-700 mb-1">この画面はクリニックログイン専用です</p>
               <p className="text-slate-500 text-sm mb-4">
                 得意先ごとの基本情報・取引条件・ブランディング設定は、BGJポータルの「得意先一覧」から確認・編集できます。
@@ -162,7 +164,7 @@ export default function AdminClinicConfigPage() {
               >
                 BGJポータルの得意先一覧へ
               </Link>
-            </div>
+            </Card>
           )}
 
           {isClinicRole && (
@@ -170,7 +172,7 @@ export default function AdminClinicConfigPage() {
               {/* 左カラム：ブランディング設定・歯周病表示 */}
               <div className="flex flex-col gap-5">
               {clinic && (
-                <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+                <Card theme="sky" className="p-5 sm:p-6 shadow-sm">
                   <p className="text-sm font-bold text-slate-700 mb-1">ブランディング設定</p>
                   <p className="text-xs text-slate-400 mb-4">
                     患者様ポータル・医院用ポータルに表示される名称と、患者様ポータルのログイン画面の背景画像を設定できます。
@@ -199,18 +201,14 @@ export default function AdminClinicConfigPage() {
                       <p className="text-xs text-slate-400 mt-1">未入力の場合は標準の背景画像が使われます。</p>
                     </div>
                   </div>
-                  <button
-                    onClick={handleSaveBranding}
-                    disabled={brandingSaving}
-                    className="mt-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white text-base font-bold px-6 py-3 rounded-xl transition-colors cursor-pointer"
-                  >
+                  <Button theme="sky" onClick={handleSaveBranding} disabled={brandingSaving} className="mt-4">
                     {brandingSaving ? '保存中...' : '保存する'}
-                  </button>
-                </div>
+                  </Button>
+                </Card>
               )}
 
               {clinic && (
-                <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+                <Card theme="sky" className="p-5 sm:p-6 shadow-sm">
                   <p className="text-sm font-bold text-slate-700 mb-1">歯周病表示</p>
                   <p className="text-xs text-slate-400 mb-4">
                     オンにすると、患者様ポータルの「サプリメントの受け取り」画面に歯周病の診断結果が表示されます。オフにすると患者様には表示されなくなり、医院用ポータルでの新規診断の入力もできなくなります（登録済みの履歴は残ります）。
@@ -224,21 +222,17 @@ export default function AdminClinicConfigPage() {
                     />
                     歯周病の診断結果を患者様ポータルに表示する
                   </label>
-                  <button
-                    onClick={handleSavePeriodontal}
-                    disabled={periodontalSaving}
-                    className="mt-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white text-base font-bold px-6 py-3 rounded-xl transition-colors cursor-pointer"
-                  >
+                  <Button theme="sky" onClick={handleSavePeriodontal} disabled={periodontalSaving} className="mt-4">
                     {periodontalSaving ? '保存中...' : '保存する'}
-                  </button>
-                </div>
+                  </Button>
+                </Card>
               )}
               </div>
 
               {/* 右カラム：患者ポータルの表示設定 */}
               <div className="flex flex-col gap-5">
               {clinic && (
-                <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+                <Card theme="sky" className="p-5 sm:p-6 shadow-sm">
                   <p className="text-sm font-bold text-slate-700 mb-1">患者ポータルの表示設定</p>
                   <p className="text-xs text-slate-400 mb-4">
                     患者様ポータルのメニューに表示する項目を選べます。チェックを外すと、患者様には表示されなくなります（少なくとも1つは表示のままにする必要があります）。
@@ -256,14 +250,10 @@ export default function AdminClinicConfigPage() {
                       </label>
                     ))}
                   </div>
-                  <button
-                    onClick={handleSaveNav}
-                    disabled={navSaving}
-                    className="mt-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white text-base font-bold px-6 py-3 rounded-xl transition-colors cursor-pointer"
-                  >
+                  <Button theme="sky" onClick={handleSaveNav} disabled={navSaving} className="mt-4">
                     {navSaving ? '保存中...' : '保存する'}
-                  </button>
-                </div>
+                  </Button>
+                </Card>
               )}
               </div>
             </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
+import Card from '@/components/ui/Card';
 
 type OrderStatus = '確認中' | '配送中' | '完了' | 'キャンセル';
 
@@ -87,16 +88,16 @@ export default function AdminOrdersPage() {
 
           {/* サマリーカード */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white border border-sky-100 rounded-2xl p-5 shadow-sm">
+            <Card theme="sky" className="p-5 shadow-sm">
               <p className="text-slate-600 text-sm font-medium mb-1">月額売上商品数</p>
               <p className="text-slate-800 text-3xl font-bold">{activeCount}<span className="text-base text-slate-500 font-normal ml-1">件</span></p>
               <p className="text-slate-500 text-xs mt-2">配送中・確認中の注文数</p>
-            </div>
-            <div className="bg-white border border-sky-100 rounded-2xl p-5 shadow-sm">
+            </Card>
+            <Card theme="sky" className="p-5 shadow-sm">
               <p className="text-slate-600 text-sm font-medium mb-1">売上金額</p>
               <p className="text-slate-800 text-3xl font-bold">¥{totalSales.toLocaleString()}<span className="text-base text-slate-500 font-normal ml-1">/月</span></p>
               <p className="text-slate-500 text-xs mt-2">アクティブ注文の月額合計</p>
-            </div>
+            </Card>
             <div className="bg-white border border-teal-100 rounded-2xl p-5 shadow-sm">
               <p className="text-slate-600 text-sm font-medium mb-1">コミッション金額</p>
               <p className="text-teal-700 text-3xl font-bold">¥{commission.toLocaleString()}<span className="text-base text-teal-500 font-normal ml-1">/月</span></p>
@@ -105,7 +106,7 @@ export default function AdminOrdersPage() {
           </div>
 
           {/* テーブル */}
-          <div className="bg-white border border-sky-100 rounded-2xl overflow-hidden shadow-sm">
+          <Card theme="sky" className="overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-base">
                 <thead>
@@ -157,7 +158,7 @@ export default function AdminOrdersPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         </main>
       </div>
     </div>

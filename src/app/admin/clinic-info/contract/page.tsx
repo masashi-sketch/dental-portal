@@ -6,6 +6,8 @@ import AdminSidebar from '../../components/AdminSidebar';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import type { ClinicTerms } from '@/lib/supabase/types';
+import Card from '@/components/ui/Card';
+import LoadingState from '@/components/ui/LoadingState';
 
 export default function AdminClinicContractPage() {
   const { isClinicRole, customerCode, clinic } = useClinicInfo();
@@ -38,7 +40,7 @@ export default function AdminClinicContractPage() {
 
         <main className="flex-1 p-5 sm:p-6">
           {!isClinicRole && (
-            <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm max-w-2xl">
+            <Card theme="sky" className="p-5 sm:p-6 shadow-sm max-w-2xl">
               <p className="text-sm font-bold text-slate-700 mb-1">この画面はクリニックログイン専用です</p>
               <p className="text-slate-500 text-sm mb-4">
                 得意先ごとの基本情報・取引条件・ブランディング設定は、BGJポータルの「得意先一覧」から確認・編集できます。
@@ -49,12 +51,12 @@ export default function AdminClinicContractPage() {
               >
                 BGJポータルの得意先一覧へ
               </Link>
-            </div>
+            </Card>
           )}
 
           {isClinicRole && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 max-w-5xl">
-              <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+              <Card theme="sky" className="p-5 sm:p-6 shadow-sm">
                 <p className="text-sm font-bold text-slate-700 mb-4">基本情報</p>
                 {clinic ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
@@ -85,15 +87,15 @@ export default function AdminClinicContractPage() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-slate-400 text-sm">読み込み中...</p>
+                  <LoadingState />
                 )}
                 <p className="text-xs text-slate-400 mt-4">この情報はBGJポータル側で管理されています。変更のご希望はバイオガイア担当者までお問い合わせください。</p>
-              </div>
+              </Card>
 
-              <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+              <Card theme="sky" className="p-5 sm:p-6 shadow-sm">
                 <p className="text-sm font-bold text-slate-700 mb-3">取引条件</p>
                 {termsLoading ? (
-                  <p className="text-slate-400 text-sm">読み込み中...</p>
+                  <LoadingState />
                 ) : terms ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8">
                     {[
@@ -113,7 +115,7 @@ export default function AdminClinicContractPage() {
                 ) : (
                   <p className="text-slate-400 text-sm">取引条件はまだ設定されていません。BGJポータル側での設定をお待ちください。</p>
                 )}
-              </div>
+              </Card>
             </div>
           )}
         </main>

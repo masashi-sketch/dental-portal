@@ -6,6 +6,9 @@ import AdminSidebar from '../components/AdminSidebar';
 import ClinicStaffManager from '@/components/ClinicStaffManager';
 import { useToast } from '@/hooks/useToast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import LoadingState from '@/components/ui/LoadingState';
 
 const HOURS_FIELDS: { key: keyof HoursForm; label: string; placeholder: string }[] = [
   { key: 'clinicHoursWeekday', label: '平日の診療時間', placeholder: '例）9:00〜18:00' },
@@ -95,7 +98,7 @@ export default function AdminClinicIntroPage() {
           )}
 
           {!isClinicRole && (
-            <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm max-w-2xl">
+            <Card theme="sky" className="p-5 sm:p-6 shadow-sm max-w-2xl">
               <p className="text-sm font-bold text-slate-700 mb-1">この画面はクリニックログイン専用です</p>
               <p className="text-slate-500 text-sm mb-4">
                 得意先ごとのクリニック紹介の編集は、BGJポータルの「得意先一覧」から行えます。
@@ -106,15 +109,15 @@ export default function AdminClinicIntroPage() {
               >
                 BGJポータルの得意先一覧へ
               </Link>
-            </div>
+            </Card>
           )}
 
           {isClinicRole && (
             <div className="flex flex-col gap-5 max-w-3xl">
-              <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+              <Card theme="sky" className="p-5 sm:p-6 shadow-sm">
                 <p className="text-sm font-bold text-slate-700 mb-4">診療時間・アクセス</p>
                 {!loaded ? (
-                  <p className="text-slate-400 text-sm">読み込み中...</p>
+                  <LoadingState />
                 ) : (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -131,20 +134,16 @@ export default function AdminClinicIntroPage() {
                         </div>
                       ))}
                     </div>
-                    <button
-                      onClick={handleSaveHours}
-                      disabled={saving}
-                      className="mt-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white text-base font-bold px-6 py-3 rounded-xl transition-colors cursor-pointer"
-                    >
+                    <Button theme="sky" onClick={handleSaveHours} disabled={saving} className="mt-4">
                       {saving ? '保存中...' : '保存する'}
-                    </button>
+                    </Button>
                   </>
                 )}
-              </div>
+              </Card>
 
-              <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+              <Card theme="sky" className="p-5 sm:p-6 shadow-sm">
                 <ClinicStaffManager theme="sky" />
-              </div>
+              </Card>
             </div>
           )}
         </main>

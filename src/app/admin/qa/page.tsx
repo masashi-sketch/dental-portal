@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import AdminSidebar from '../components/AdminSidebar';
 import ClinicQaManager from '@/components/ClinicQaManager';
+import Card from '@/components/ui/Card';
+import LoadingState from '@/components/ui/LoadingState';
 
 export default function AdminQaPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -23,10 +25,10 @@ export default function AdminQaPage() {
         </header>
 
         <main className="flex-1 p-5 sm:p-6">
-          {!ready && <p className="text-slate-400 text-sm">読み込み中...</p>}
+          {!ready && <LoadingState />}
 
           {ready && !isClinicRole && (
-            <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm max-w-2xl">
+            <Card theme="sky" className="p-5 sm:p-6 shadow-sm max-w-2xl">
               <p className="text-sm font-bold text-slate-700 mb-1">この画面はクリニックログイン専用です</p>
               <p className="text-slate-500 text-sm mb-4">
                 得意先ごとのQ&amp;Aの編集は、BGJポータルの「得意先一覧」から行えます。
@@ -37,13 +39,13 @@ export default function AdminQaPage() {
               >
                 BGJポータルの得意先一覧へ
               </Link>
-            </div>
+            </Card>
           )}
 
           {ready && isClinicRole && (
-            <div className="bg-white border border-sky-100 rounded-2xl p-5 sm:p-6 shadow-sm max-w-3xl">
+            <Card theme="sky" className="p-5 sm:p-6 shadow-sm max-w-3xl">
               <ClinicQaManager theme="sky" />
-            </div>
+            </Card>
           )}
         </main>
       </div>

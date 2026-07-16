@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 type NewsItem = {
   id: number;
@@ -73,12 +76,9 @@ export default function AdminNewsPage() {
             <h1 className="text-slate-800 font-bold text-xl">お知らせ管理</h1>
             <p className="text-slate-600 text-sm mt-0.5">患者ポータルに表示するお知らせを管理します</p>
           </div>
-          <button
-            onClick={openNew}
-            className="bg-sky-500 hover:bg-sky-400 text-white text-base font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer"
-          >
+          <Button theme="sky" onClick={openNew}>
             ＋ 追加
-          </button>
+          </Button>
         </header>
 
         <main className="flex-1 p-5 sm:p-6 bg-sky-50">
@@ -88,7 +88,7 @@ export default function AdminNewsPage() {
             </div>
           )}
 
-          <div className="bg-white border border-sky-100 rounded-2xl overflow-hidden shadow-sm">
+          <Card theme="sky" className="overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-base">
                 <thead>
@@ -141,14 +141,14 @@ export default function AdminNewsPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         </main>
       </div>
 
       {/* 追加・編集モーダル */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-sky-100 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+          <Card theme="sky" className="p-6 w-full max-w-md shadow-2xl">
             <h2 className="text-slate-800 font-bold text-xl mb-5">{editItem ? 'お知らせを編集' : 'お知らせを追加'}</h2>
             <div className="flex flex-col gap-4">
               <div>
@@ -185,34 +185,23 @@ export default function AdminNewsPage() {
                 className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-base font-medium transition-colors cursor-pointer">
                 キャンセル
               </button>
-              <button onClick={handleSave}
-                className="flex-1 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-base transition-colors cursor-pointer">
+              <Button theme="sky" fullWidth onClick={handleSave}>
                 {editItem ? '更新する' : '追加する'}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
       {/* 削除確認モーダル */}
-      {deleteId !== null && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-sky-100 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl">
-            <p className="text-slate-800 font-bold text-lg mb-2">削除しますか？</p>
-            <p className="text-slate-600 text-base mb-6">この操作は取り消せません。</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)}
-                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-base font-medium transition-colors cursor-pointer">
-                キャンセル
-              </button>
-              <button onClick={() => handleDelete(deleteId)}
-                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-base transition-colors cursor-pointer">
-                削除する
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={deleteId !== null}
+        theme="sky"
+        title="削除しますか？"
+        description="この操作は取り消せません。"
+        onCancel={() => setDeleteId(null)}
+        onConfirm={() => deleteId !== null && handleDelete(deleteId)}
+      />
     </div>
   );
 }

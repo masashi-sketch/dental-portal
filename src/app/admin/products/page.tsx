@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 type ProductCategory = '定期購入' | 'おすすめ商品';
 
@@ -88,10 +91,9 @@ export default function AdminProductsPage() {
             <h1 className="text-slate-800 font-bold text-xl">商品管理</h1>
             <p className="text-slate-600 text-sm mt-0.5">定期購入・おすすめ商品を管理します</p>
           </div>
-          <button onClick={openNew}
-            className="bg-sky-500 hover:bg-sky-400 text-white text-base font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer">
+          <Button theme="sky" onClick={openNew}>
             ＋ 商品を追加
-          </button>
+          </Button>
         </header>
 
         <main className="flex-1 p-5 sm:p-6 bg-sky-50 flex flex-col gap-5">
@@ -113,16 +115,16 @@ export default function AdminProductsPage() {
 
           {/* サマリーカード */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white border border-sky-100 rounded-2xl p-5 shadow-sm">
+            <Card theme="sky" className="p-5 shadow-sm">
               <p className="text-slate-600 text-sm font-medium mb-1">月額売上商品数</p>
               <p className="text-slate-800 text-3xl font-bold">{activeCount}<span className="text-base text-slate-500 font-normal ml-1">品</span></p>
               <p className="text-slate-500 text-xs mt-2">公開中の商品数</p>
-            </div>
-            <div className="bg-white border border-sky-100 rounded-2xl p-5 shadow-sm">
+            </Card>
+            <Card theme="sky" className="p-5 shadow-sm">
               <p className="text-slate-600 text-sm font-medium mb-1">売上金額</p>
               <p className="text-slate-800 text-3xl font-bold">¥{totalSales.toLocaleString()}<span className="text-base text-slate-500 font-normal ml-1">合計</span></p>
               <p className="text-slate-500 text-xs mt-2">公開商品の価格合計</p>
-            </div>
+            </Card>
             <div className="bg-white border border-teal-100 rounded-2xl p-5 shadow-sm">
               <p className="text-slate-600 text-sm font-medium mb-1">コミッション金額</p>
               <p className="text-teal-700 text-3xl font-bold">¥{commission.toLocaleString()}<span className="text-base text-teal-500 font-normal ml-1">合計</span></p>
@@ -131,7 +133,7 @@ export default function AdminProductsPage() {
           </div>
 
           {/* テーブル */}
-          <div className="bg-white border border-sky-100 rounded-2xl overflow-hidden shadow-sm">
+          <Card theme="sky" className="overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-base">
                 <thead>
@@ -182,14 +184,14 @@ export default function AdminProductsPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         </main>
       </div>
 
       {/* 追加・編集モーダル */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-sky-100 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+          <Card theme="sky" className="p-6 w-full max-w-md shadow-2xl">
             <h2 className="text-slate-800 font-bold text-xl mb-5">{editItem ? '商品を編集' : '商品を追加'}</h2>
             <div className="flex flex-col gap-4">
               <div>
@@ -242,33 +244,22 @@ export default function AdminProductsPage() {
                 className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-base font-medium transition-colors cursor-pointer">
                 キャンセル
               </button>
-              <button onClick={handleSave}
-                className="flex-1 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-base transition-colors cursor-pointer">
+              <Button theme="sky" fullWidth onClick={handleSave}>
                 {editItem ? '更新する' : '追加する'}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
-      {deleteId !== null && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-sky-100 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl">
-            <p className="text-slate-800 font-bold text-lg mb-2">削除しますか？</p>
-            <p className="text-slate-600 text-base mb-6">この操作は取り消せません。</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)}
-                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-base font-medium transition-colors cursor-pointer">
-                キャンセル
-              </button>
-              <button onClick={() => handleDelete(deleteId)}
-                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-base transition-colors cursor-pointer">
-                削除する
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={deleteId !== null}
+        theme="sky"
+        title="削除しますか？"
+        description="この操作は取り消せません。"
+        onCancel={() => setDeleteId(null)}
+        onConfirm={() => deleteId !== null && handleDelete(deleteId)}
+      />
     </div>
   );
 }

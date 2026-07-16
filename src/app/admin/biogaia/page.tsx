@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 type ArticleStatus = '公開中' | '準備中' | '終了';
 type ArticleCategory = '学術情報' | '製品情報' | '症例紹介' | 'お知らせ' | 'イベント';
@@ -155,9 +158,9 @@ export default function BiogaiaPage() {
                 <IconList />一覧
               </button>
             </div>
-            <button className="bg-sky-500 hover:bg-sky-400 text-white text-base font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer">
+            <Button theme="sky">
               ＋ 追加
-            </button>
+            </Button>
           </div>
         </header>
 
@@ -181,7 +184,7 @@ export default function BiogaiaPage() {
 
           {/* 一覧（テーブル）表示 */}
           {view === 'list' && (
-            <div className="bg-white border border-sky-100 rounded-2xl overflow-hidden shadow-sm">
+            <Card theme="sky" className="overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-base">
                   <thead>
@@ -218,15 +221,15 @@ export default function BiogaiaPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Card>
           )}
 
           {/* カードグリッド表示 */}
           {view === 'card' && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {filtered.map((a) => (
-                <div key={a.id}
-                  className={`bg-white border border-sky-100 border-t-4 ${statusBorder[a.status]} rounded-2xl shadow-sm flex flex-col`}>
+                <Card key={a.id} theme="sky"
+                  className={`border-t-4 ${statusBorder[a.status]} shadow-sm flex flex-col`}>
                   <div className="px-5 pt-5 pb-3">
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${categoryStyles[a.category]}`}>{a.category}</span>
@@ -258,7 +261,7 @@ export default function BiogaiaPage() {
                     <button onClick={() => setDeleteId(a.id)}
                       className="flex-1 text-sm text-red-600 hover:text-red-500 bg-red-50 py-2 rounded-lg transition-colors cursor-pointer font-medium">削除</button>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           )}
@@ -269,24 +272,14 @@ export default function BiogaiaPage() {
         </main>
       </div>
 
-      {deleteId !== null && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-sky-100 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl">
-            <p className="text-slate-800 font-bold text-lg mb-2">削除しますか？</p>
-            <p className="text-slate-600 text-base mb-6">この操作は取り消せません。</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)}
-                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-base font-medium transition-colors cursor-pointer">
-                キャンセル
-              </button>
-              <button onClick={() => handleDelete(deleteId)}
-                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-base transition-colors cursor-pointer">
-                削除する
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={deleteId !== null}
+        theme="sky"
+        title="削除しますか？"
+        description="この操作は取り消せません。"
+        onCancel={() => setDeleteId(null)}
+        onConfirm={() => deleteId !== null && handleDelete(deleteId)}
+      />
     </div>
   );
 }

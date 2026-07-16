@@ -6,6 +6,10 @@ import { useSession } from 'next-auth/react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
 import type { PatientPublic } from '@/lib/supabase/types';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import LoadingState from '@/components/ui/LoadingState';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 function FakeQRCode({ size = 160 }: { size?: number }) {
   const cell = size / 21;
@@ -203,10 +207,9 @@ export default function AdminPatientsPage() {
               </svg>
               QRで招待
             </button>
-            <button onClick={openNew}
-              className="bg-sky-500 hover:bg-sky-400 text-white text-base font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer">
+            <Button theme="sky" onClick={openNew}>
               ＋ 患者IDを発行
-            </button>
+            </Button>
           </div>
         </header>
 
@@ -219,7 +222,7 @@ export default function AdminPatientsPage() {
             <div className="mb-4 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
           )}
 
-          <div className="bg-white border border-sky-100 rounded-2xl overflow-hidden shadow-sm">
+          <Card theme="sky" className="overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-base">
                 <thead>
@@ -230,9 +233,7 @@ export default function AdminPatientsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {loading && (
-                    <tr><td colSpan={8} className="px-5 py-8 text-center text-slate-400">読み込み中...</td></tr>
-                  )}
+                  {loading && <LoadingState variant="table-row" colSpan={8} />}
                   {!loading && patients.length === 0 && (
                     <tr><td colSpan={8} className="px-5 py-8 text-center text-slate-400">患者様がまだ登録されていません</td></tr>
                   )}
@@ -278,14 +279,14 @@ export default function AdminPatientsPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         </main>
       </div>
 
       {/* 追加・編集モーダル */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-sky-100 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+          <Card theme="sky" className="p-6 w-full max-w-md shadow-2xl">
             <h2 className="text-slate-800 font-bold text-xl mb-5">{editItem ? '患者情報を編集' : '新規患者IDを発行'}</h2>
             {!editItem && (
               <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-5">
@@ -334,19 +335,18 @@ export default function AdminPatientsPage() {
                 className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-base font-medium transition-colors cursor-pointer">
                 キャンセル
               </button>
-              <button onClick={handleSave}
-                className="flex-1 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-base transition-colors cursor-pointer">
+              <Button theme="sky" fullWidth onClick={handleSave}>
                 {editItem ? '更新する' : '発行する'}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
       {/* QRコード招待モーダル */}
       {showQR && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-sky-100 rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
+          <Card theme="sky" className="p-6 w-full max-w-sm shadow-2xl text-center">
             <h2 className="text-slate-800 font-bold text-xl mb-1">患者様を招待する</h2>
             <p className="text-slate-500 text-sm mb-5">QRコードを患者様にお見せください。<br />当院に紐付いた状態で登録されます。</p>
             <div className="flex justify-center mb-4">
@@ -363,34 +363,26 @@ export default function AdminPatientsPage() {
                 className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-base font-medium cursor-pointer hover:bg-slate-50 transition-colors">
                 閉じる
               </button>
-              <button
+              <Button
+                theme="sky"
+                fullWidth
                 onClick={() => { setUrlCopied(true); setTimeout(() => setUrlCopied(false), 2000); }}
-                className="flex-1 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-base cursor-pointer transition-colors">
+              >
                 {urlCopied ? '✓ コピーしました' : 'URLをコピー'}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
-      {deleteId !== null && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-sky-100 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl">
-            <p className="text-slate-800 font-bold text-lg mb-2">削除しますか？</p>
-            <p className="text-slate-600 text-base mb-6">この操作は取り消せません。</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)}
-                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-base font-medium transition-colors cursor-pointer">
-                キャンセル
-              </button>
-              <button onClick={() => handleDelete(deleteId)}
-                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-base transition-colors cursor-pointer">
-                削除する
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={deleteId !== null}
+        theme="sky"
+        title="削除しますか？"
+        description="この操作は取り消せません。"
+        onCancel={() => setDeleteId(null)}
+        onConfirm={() => deleteId !== null && handleDelete(deleteId)}
+      />
     </div>
   );
 }
