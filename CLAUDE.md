@@ -316,3 +316,4 @@ DB変更SQLを提示するときは、以下をセットにする。
 4. レスポンス改善：`periodontal/master`のキャッシュ化・recharts4ページの遅延読み込みは完了。次点候補はクライアント側フェッチのキャッシュ層（SWR/React Query）導入（今回は意図的にスコープ外）
 5. UI一貫性：`src/components/ui/`のButton/Card/LoadingState/ConfirmDialogをadmin・bgj全ページに適用済み。次点候補は患者ポータルへの適用要否の検討（現状は意図的にスコープ外）
 6. 本番リリース（想定300クリニック・4,000ユーザー）に向けて、`bgj_clinic_order_summary`によるDB集計バグ修正・ログインの総当たり対策（アカウント単位ロックアウト）・Sentry導入（DSN未設定時は無効化）が完了。残タスク：(a) Sentryの`NEXT_PUBLIC_SENTRY_DSN`をsentry.ioで発行して設定する、(b) Supabase/Vercelのプラン見直し（帯域・接続数・バックアップ要件の整理、ユーザー確認要）、(c) BGJダッシュボード/レポート画面を中心とした簡易負荷試験
+7. BGJポータルに「システム管理」（DB管理`/bgj/system/db`・アプリ管理`/bgj/system/apps`）を新設済み。DB容量はPostgres内蔵関数（`bgj_db_total_size`/`bgj_db_table_usage`、Free tier上限500MBは目安値でコード内定数）で取得し、Supabase Management APIは未連携（帯域・ストレージはダッシュボードへのリンク案内のみ）。アプリ管理は`bgj/manual`と同様の静的ページ＋環境変数の設定有無チェック（値は非表示）。次点候補（今回は見送り）：Management API連携によるプロジェクト全体の使用量取得、バックアップ状況の自動チェック、CI実行状況の埋め込み表示

@@ -270,3 +270,6 @@ export const CLINIC_USER_COLUMNS =
 // クライアントへ返す一覧・詳細用（password_hashを含めない）
 export const CLINIC_USER_PUBLIC_COLUMNS =
   'id, customer_code, login_id, name, status, created_at, updated_at';
+
+// BGJポータル「システム管理」：bgj_db_table_usage()のRPC結果
+export type DbTableUsage = { table_name: string; size_bytes: number; row_estimate: number };

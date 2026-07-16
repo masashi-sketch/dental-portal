@@ -467,3 +467,32 @@ create policy "scoped read on diagnoses" on public.periodontal_diagnoses
       select id from public.patients where customer_code = (auth.jwt() ->> 'customer_code')
     )
   );
+
+-- ============================================================
+-- システム管理（BGJポータル）：DB使用量の概況
+-- pg_class/pg_namespaceはユーザーデータではなくスキーマメタデータのため、
+-- 新規テーブルではなくRLS/ポリシーの対象外。Supabase Management APIのような
+-- 追加の認証情報を必要とせず、Postgres内だけで完結させている。
+-- ============================================================
+create or replace function public.bgj_db_total_size()
+returns bigint
+language sql
+stable
+as $$
+  select pg_database_size(current_database());
+$$;
+
+create or replace function public.bgj_db_table_usage()
+returns table (table_name text, size_bytes bigint, row_estimate bigint)
+language sql
+stable
+as $$
+  select
+    c.relname as table_name,
+    pg_total_relation_size(c.oid) as size_bytes,
+    c.reltuples::bigint as row_estimate
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relkind = 'r'
+  order by size_bytes desc;
+$$;
