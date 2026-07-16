@@ -3,11 +3,12 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { QRCodeSVG } from 'qrcode.react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
+import { useSignupPinRegenerate } from '@/hooks/useSignupPinRegenerate';
 import { formatTimestampCompact } from '@/lib/formatTimestamp';
+import SignupQrCard from '@/components/SignupQrCard';
 import type { PatientPublic } from '@/lib/supabase/types';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -38,7 +39,7 @@ export default function AdminPatientsPage() {
   const [showQR, setShowQR] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
   const { clinic, setClinic } = useClinicInfo();
-  const [regeneratingPin, setRegeneratingPin] = useState(false);
+  const { regenerate: handleRegenerateSignupPin, regenerating: regeneratingPin } = useSignupPinRegenerate(setClinic, showToast);
   // originはSSR時に取得できないため、クライアントでのレンダリング時にのみ算出する
   // （useEffect+setStateにすると react-hooks/set-state-in-effect に抵触するため直接算出）。
   const joinUrl =
@@ -49,28 +50,6 @@ export default function AdminPatientsPage() {
   // QRの内容にタイムスタンプを含めることで、再発行のたびにQRの見た目自体が変わり、
   // 古いQRが窓口に貼られたままになっていないか目視でも判別しやすくする。
   const qrValue = joinUrl && signupPinIssuedAt ? `${joinUrl}?t=${signupPinIssuedAt}` : joinUrl;
-
-  const handleRegenerateSignupPin = async () => {
-    setRegeneratingPin(true);
-    try {
-      const res = await fetch('/api/admin/clinic-info', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ regenerateSignupPin: true }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.error ?? 'PINの発行に失敗しました');
-      }
-      const { clinic: updated } = await res.json();
-      setClinic((prev) => (prev ? { ...prev, ...updated } : prev));
-      showToast('受付PINを発行しました');
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : 'エラーが発生しました');
-    } finally {
-      setRegeneratingPin(false);
-    }
-  };
 
   const fetchPatients = () => {
     fetch('/api/admin/patients')
@@ -367,24 +346,15 @@ export default function AdminPatientsPage() {
               </>
             ) : (
               <>
-                <div className="flex justify-center mb-4">
-                  <div className="border-2 border-slate-100 rounded-2xl p-3 inline-block shadow-sm">
-                    {qrValue && <QRCodeSVG value={qrValue} size={160} />}
-                  </div>
-                </div>
-                <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-3 text-left">
-                  <p className="text-xs text-slate-500 mb-1 font-medium">受付PIN（患者様に口頭でお伝えください）</p>
-                  <p className="text-xl font-bold text-sky-700 font-mono tracking-widest">{clinic.signup_pin}</p>
-                </div>
-                <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-3 text-left">
-                  <p className="text-xs text-slate-500 mb-1 font-medium">発行日時</p>
-                  <p className="text-sm text-slate-700 font-mono">{signupPinIssuedAt || '—'}</p>
-                </div>
-                <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-4 text-left">
-                  <p className="text-xs text-slate-500 mb-1 font-medium">登録URL（コピーして送付も可）</p>
-                  <p className="text-xs text-sky-700 font-mono break-all">{qrValue}</p>
-                </div>
-                <div className="flex gap-3">
+                <SignupQrCard
+                  clinicName={clinic.display_name || clinic.name}
+                  signupPin={clinic.signup_pin}
+                  signupPinIssuedAt={signupPinIssuedAt}
+                  qrValue={qrValue}
+                  pdfFilename={`患者登録QR_${session?.user.customerCode ?? ''}.pdf`}
+                  theme="sky"
+                />
+                <div className="flex gap-3 mt-4">
                   <button onClick={() => setShowQR(false)}
                     className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-base font-medium cursor-pointer hover:bg-slate-50 transition-colors">
                     閉じる

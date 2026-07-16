@@ -202,6 +202,8 @@ vercel --prod
 - 新しいカード・ボタン・削除確認モーダル・ローディング表示を追加するときは、必ずこれらのコンポーネントを`theme`propと共に使う。独自にTailwindクラスを再実装しない。
 - スコープ外（意図的に共通化していないもの）：Linkベースの装飾カード（hover演出付きの統計カードなど）、`rounded-lg`+`text-xs`の小さいピルボタン、患者ポータル全体。
 
+**患者様QR自己登録の共通部品**：QRコード＋受付PIN＋発行日時＋PDF出力のカードUIは`src/components/SignupQrCard.tsx`に共通化済み（BGJ得意先詳細「接続情報」タブ・`/admin/patients`のQRモーダル・`/admin/clinic-info/qr`の3箇所で使用、3箇所目を追加した時点で共通化した実例）。クリニック側のPIN再発行処理（`/api/admin/clinic-info`へのPATCH）は`src/hooks/useSignupPinRegenerate.ts`に共通化済み（BGJ側は別エンドポイント`/api/bgj/clinics/[code]`のため対象外、page側で個別に実装する）。
+
 # コーディング禁止事項
 
 - `alert()`禁止 → 各ページの既存トースト実装を使う（共通`useToast()`ができるまでの暫定）
@@ -238,7 +240,7 @@ const { data, error } = await supabase
    - BGJポータル: `src/app/bgj/components/BgjSidebar.tsx`の`navItems`
    - 患者様ポータル: デスクトップは`src/components/PatientSidebarNav.tsx`のNAV_ITEMS定数、モバイルは`src/app/components/BottomNav.tsx`のitems定数（両方に追加が必要）
 3. Supabaseの新規テーブルが必要な場合は`supabase/schema.sql`に追記し、増分SQLをユーザーに提示する（下記「データベースを変更するときのルール」参照）
-4. 権限テーブルや`/manual`ページはこのプロジェクトに存在しないため対応不要
+4. 権限テーブルはこのプロジェクトに存在しないため対応不要。ただし**`src/app/bgj/manual/page.tsx`は存在する**（BGJポータル「マニュアル」、システム手順／利用マニュアルの2タブ構成）。DB・APIの新規変更や新機能を追加したときは、このページも一緒に更新すること（ページ冒頭にもその旨の注記あり）。カード等を縦に並べるのではなく、共通`SubTabs`コンポーネントでタブ切り替えにする方針（画面スクロールを減らすため）
 
 # データベースを変更するときのルール
 
@@ -287,6 +289,8 @@ DB変更SQLを提示するときは、以下をセットにする。
 - `src/app/api/periodontal/master/route.ts`はほぼ変化しないマスタデータのため`next/cache`の`unstable_cache`で1時間キャッシュ済み。`auth()`（cookie読み取り）はキャッシュ対象外に置き、認可は毎回そのまま効かせている。同様に「ほぼ変化しないマスタ + 認証必須」なAPIルートを追加する際はこのパターンを踏襲する。
 - recharts（`admin/commission`・`bgj/customers/[code]`・`bgj/dashboard`・`bgj/reports`）は`next/dynamic`（`ssr: false`）で遅延読み込み済み。チャート部分は同ディレクトリの子コンポーネント（例：`CommissionChart.tsx`）に切り出し、データが動的な場合はprops経由で渡す（`SalesHistoryChart.tsx`が例）。新しく重いチャートを追加する場合もこのパターンを踏襲する。
 - **複数得意先を横断集計するAPI（`/api/bgj/clinics`等）は、行単位でlimit付き取得してアプリ側でループ集計してはいけない**。得意先数・履歴件数が増えると`limit`を超えた時点で古い得意先の集計が欠落するバグになる（実際に`clinic_orders`の`last_order_date`/`month_sales`集計で発生し、Postgres関数`public.bgj_clinic_order_summary()`に置き換えて修正済み）。同様の「全得意先を横断する集計」を追加する場合は、Postgres側の集計関数（`group by`）をRPCで呼び出す設計にする。
+- **PDF出力を追加する場合は`jspdf` + `html2canvas-pro`を使う（無印`html2canvas`は使わない）**。このプロジェクトはTailwind v4を採用しており、コンパイル後のCSSは`oklch(...)`カラー関数を多用する（実際に確認済み）。無印`html2canvas`はoklchを解釈できずエラーになるため、対応済みフォークの`html2canvas-pro`を使うこと。両ライブラリともボタンクリック時にのみ動的`import()`で読み込み、初期バンドルに含めない（`src/lib/exportElementAsPdf.ts`が実装例）。
+- **意図的に認証不要な公開APIルート**（`/api/clinics/[code]/branding`、`/api/clinics/[code]/join`など）は、ログイン前の画面から呼ばれるという明確な理由をコメントで残し、返す情報を必要最小限に絞る。書き込み系（`join`など）は追加でPIN等の本人確認手段と、失敗時のロックアウト（`src/lib/auth/signupPin.ts`のような専用モジュール）を必ず設ける。
 
 # 自動テスト方針
 
@@ -317,3 +321,4 @@ DB変更SQLを提示するときは、以下をセットにする。
 5. UI一貫性：`src/components/ui/`のButton/Card/LoadingState/ConfirmDialogをadmin・bgj全ページに適用済み。次点候補は患者ポータルへの適用要否の検討（現状は意図的にスコープ外）
 6. 本番リリース（想定300クリニック・4,000ユーザー）に向けて、`bgj_clinic_order_summary`によるDB集計バグ修正・ログインの総当たり対策（アカウント単位ロックアウト）・Sentry導入（DSN未設定時は無効化）が完了。残タスク：(a) Sentryの`NEXT_PUBLIC_SENTRY_DSN`をsentry.ioで発行して設定する、(b) Supabase/Vercelのプラン見直し（帯域・接続数・バックアップ要件の整理、ユーザー確認要）、(c) BGJダッシュボード/レポート画面を中心とした簡易負荷試験
 7. BGJポータルに「システム管理」（DB管理`/bgj/system/db`・アプリ管理`/bgj/system/apps`）を新設済み。DB容量はPostgres内蔵関数（`bgj_db_total_size`/`bgj_db_table_usage`、Free tier上限500MBは目安値でコード内定数）で取得し、Supabase Management APIは未連携（帯域・ストレージはダッシュボードへのリンク案内のみ）。アプリ管理は`bgj/manual`と同様の静的ページ＋環境変数の設定有無チェック（値は非表示）。次点候補（今回は見送り）：Management API連携によるプロジェクト全体の使用量取得、バックアップ状況の自動チェック、CI実行状況の埋め込み表示
+8. 患者様のQR自己登録機能（クリニック共通QR＋受付PIN）を新設済み。`clinic_patient_settings`に`signup_pin`系4カラムを追加し、公開ルート`/join/[customerCode]`・`/api/clinics/[code]/join`で患者様自身がログインID・パスワードを設定できる。発行・再発行はBGJ（得意先詳細＞接続情報タブ）・医院（クリニック情報＞QR設定、患者様管理のQRモーダル）の両方から可能で、実体は同じ行なので双方向に反映される。QR表示・PDF出力は共通部品化済み（上記「共通部品の方針」参照）。次点候補（今回は見送り）：受付PINの誤入力ロックはアプリ内カウンタのみで、IPベースのレート制限は未導入（総合的なレート制限方針が固まったら見直す）

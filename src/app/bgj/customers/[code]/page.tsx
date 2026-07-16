@@ -3,8 +3,8 @@
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import nextDynamic from "next/dynamic";
-import { QRCodeSVG } from "qrcode.react";
 import { formatTimestampCompact } from "@/lib/formatTimestamp";
+import SignupQrCard from "@/components/SignupQrCard";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
 import ClinicStaffManager from "@/components/ClinicStaffManager";
 import ClinicQaManager from "@/components/ClinicQaManager";
@@ -489,12 +489,24 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                 )}
               </div>
             </div>
-            <Button theme="violet" size="sm" className="shadow-sm" onClick={() => setShowVisitModal(true)}>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              訪問記録を追加
-            </Button>
+            {activeTab === "接続情報" ? (
+              clinic.signup_pin ? (
+                <Button theme="violet" size="sm" className="shadow-sm" onClick={() => setConfirmingPinRegen(true)}>
+                  PIN・QRを再発行する
+                </Button>
+              ) : (
+                <Button theme="violet" size="sm" className="shadow-sm" onClick={handleRegenerateSignupPin} disabled={regeneratingPin}>
+                  {regeneratingPin ? "発行中..." : "PIN・QRを発行する"}
+                </Button>
+              )
+            ) : (
+              <Button theme="violet" size="sm" className="shadow-sm" onClick={() => setShowVisitModal(true)}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                訪問記録を追加
+              </Button>
+            )}
           </div>
 
           {/* タブ */}
@@ -985,28 +997,17 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
               {!clinic?.signup_pin ? (
                 <p className="text-slate-400 text-sm mb-4">まだ受付PINが発行されていません。</p>
               ) : (
-                <div className="flex flex-col sm:flex-row gap-6 mb-4">
-                  <div className="border-2 border-slate-100 rounded-2xl p-3 inline-block shadow-sm self-start">
-                    {qrValue && <QRCodeSVG value={qrValue} size={160} />}
-                  </div>
-                  <div className="flex flex-col gap-3 flex-1 min-w-0">
-                    <div>
-                      <p className="text-xs text-slate-400 font-medium mb-1">受付PIN</p>
-                      <p className="text-2xl font-bold text-slate-800 font-mono tracking-widest">{clinic.signup_pin}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 font-medium mb-1">発行日時</p>
-                      <p className="text-sm text-slate-600 font-mono">{signupPinIssuedAt || "—"}</p>
-                    </div>
-                    <div className="bg-violet-50 border border-violet-200 rounded-xl px-4 py-3">
-                      <p className="text-xs text-slate-500 mb-1 font-medium">登録URL（コピーして送付も可）</p>
-                      <p className="text-xs text-violet-700 font-mono break-all">{qrValue}</p>
-                    </div>
-                  </div>
-                </div>
+                <SignupQrCard
+                  clinicName={clinic.name}
+                  signupPin={clinic.signup_pin}
+                  signupPinIssuedAt={signupPinIssuedAt}
+                  qrValue={qrValue}
+                  pdfFilename={`接続情報_${code}.pdf`}
+                  theme="violet"
+                />
               )}
 
-              {confirmingPinRegen ? (
+              {confirmingPinRegen && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
                   <p className="text-amber-700 text-xs flex-1 min-w-[200px]">
                     再発行すると、これまでのQRコード・受付PINは無効になります。よろしいですか？
@@ -1025,10 +1026,6 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                     キャンセル
                   </button>
                 </div>
-              ) : (
-                <Button theme="violet" size="sm" onClick={() => setConfirmingPinRegen(true)}>
-                  {clinic?.signup_pin ? "PIN・QRを再発行する" : "PIN・QRを発行する"}
-                </Button>
               )}
             </Card>
           )}

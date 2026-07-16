@@ -7,7 +7,7 @@ import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { useActiveClinic } from '@/hooks/useActiveClinic';
 import type { SalesRepWithMaster } from '@/lib/supabase/types';
 
-export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'clinicContract' | 'clinicConfig' | 'clinicIntro' | 'clinicQa';
+export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'clinicContract' | 'clinicConfig' | 'clinicQr' | 'clinicIntro' | 'clinicQa';
 
 // モック：未読件数と最終更新日時
 const CONTENT_UNREAD: Partial<Record<AdminPage, { updatedAt: string; count: number }>> = {
@@ -93,6 +93,7 @@ const navItems: (LinkNavItem | GroupNavItem)[] = [
     children: [
       { key: 'clinicContract', label: '医院契約情報', href: '/admin/clinic-info/contract' },
       { key: 'clinicConfig',   label: '医院設定情報', href: '/admin/clinic-info/config' },
+      { key: 'clinicQr',       label: 'QR設定',       href: '/admin/clinic-info/qr' },
     ],
   },
   { type: 'link',  key: 'news',       label: 'お知らせ管理',     href: '/admin/news',        icon: <IconBell />, dividerBefore: true },
