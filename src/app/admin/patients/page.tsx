@@ -44,7 +44,7 @@ export default function AdminPatientsPage() {
   // （useEffect+setStateにすると react-hooks/set-state-in-effect に抵触するため直接算出）。
   const joinUrl =
     isClinicRole && session?.user.customerCode && typeof window !== 'undefined'
-      ? `${window.location.origin}/join/${session.user.customerCode}`
+      ? `${window.location.origin}/join/${session.user.customerCode}/mobile`
       : '';
   const signupPinIssuedAt = formatTimestampCompact(clinic?.signup_pin_issued_at);
   // QRの内容にタイムスタンプを含めることで、再発行のたびにQRの見た目自体が変わり、

@@ -21,7 +21,7 @@ export default function AdminClinicQrPage() {
   // originはSSR時に取得できないため、クライアントでのレンダリング時にのみ算出する
   // （useEffect+setStateにすると react-hooks/set-state-in-effect に抵触するため直接算出）。
   const joinUrl = isClinicRole && customerCode && typeof window !== 'undefined'
-    ? `${window.location.origin}/join/${customerCode}`
+    ? `${window.location.origin}/join/${customerCode}/mobile`
     : '';
   const signupPinIssuedAt = formatTimestampCompact(clinic?.signup_pin_issued_at);
   const qrValue = joinUrl && signupPinIssuedAt ? `${joinUrl}?t=${signupPinIssuedAt}` : joinUrl;

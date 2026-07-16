@@ -167,7 +167,10 @@ vercel --prod          # 本番デプロイ`}</Code>
                         このプロジェクトはTailwind v4（oklchカラー関数）を使っているため、無印の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">html2canvas</code>ではなく対応フォークの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">html2canvas-pro</code>を使う（無印だと色の解釈でエラーになる）。
                       </p>
                       <p>
-                        新規の公開（認証不要）ルート：患者様向け登録ページ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/[customerCode]</code>と、その送信先API<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinics/[code]/join</code>。受付PINで本人確認し、5回連続で間違えると15分ロックする（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/signupPin.ts</code>）。
+                        新規の公開（認証不要）ルート：QRコードが実際に開く、クリニック指定背景・スマホ専用の登録画面<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/[customerCode]/mobile</code>、PC等での確認用の簡易版<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/[customerCode]</code>、共通の送信先API<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinics/[code]/join</code>。受付PINで本人確認し、5回連続で間違えると15分ロックする（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/signupPin.ts</code>）。
+                      </p>
+                      <p>
+                        <strong className="text-red-600">重要：</strong>患者様の登録項目（氏名・ログインID・パスワード）を追加・変更する場合は、上記2つの登録ページと送信先APIを必ず連動して更新すること（各ファイル冒頭にもこの方針をコメントで残している）。
                       </p>
                       <p>
                         QR・PINの発行/再発行は、BGJ側（得意先詳細＞接続情報タブ）・医院側（クリニック情報＞QR設定、および患者様管理のQRモーダル）のどちらからも行え、実体は同じ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_patient_settings</code>の1行なので双方向に反映される。QRの見た目・PDFファイル名にはPIN発行日時（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">yyyymmddhhmmss</code>）を埋め込み、再発行のたびにQRが変わるようにしている。

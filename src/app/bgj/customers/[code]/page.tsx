@@ -157,7 +157,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
 
   // 接続情報（患者様の自己登録用QR + 受付PIN）。originはSSR時に取得できないため、
   // クライアントでのレンダリング時にのみ算出する（set-state-in-effectを避ける）。
-  const joinUrl = typeof window !== "undefined" ? `${window.location.origin}/join/${code}` : "";
+  const joinUrl = typeof window !== "undefined" ? `${window.location.origin}/join/${code}/mobile` : "";
   const signupPinIssuedAt = formatTimestampCompact(clinic?.signup_pin_issued_at);
   // QRの内容にタイムスタンプを含めることで、再発行のたびにQRの見た目自体が変わり、
   // 窓口に古いQRが貼られたままになっていないか目視でも判別しやすくする。

@@ -9,6 +9,11 @@ export const dynamic = 'force-dynamic';
 // 初回アクセスする想定のため）。受付PINで「窓口にいる本人か」を確認したうえで
 // patientsへ新規登録する。得意先コード・氏名・ログインID・パスワード以外の
 // クリニック情報は一切返さない。
+//
+// 【重要な運用方針】受け取る項目（氏名・ログインID・パスワード）は、送信元の
+// src/app/join/[code]/mobile/page.tsx（QRの実際の遷移先）・
+// src/app/join/[code]/page.tsx（PC等での確認用の簡易版）と揃えている。
+// 患者様の登録項目を追加・変更する場合は、この3ファイルを必ず連動して更新すること。
 export async function POST(request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const body = await request.json();

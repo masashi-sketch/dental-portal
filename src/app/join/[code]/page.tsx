@@ -5,6 +5,13 @@ import Link from 'next/link';
 
 const DEFAULT_CLINIC_NAME = 'デンタルポータル';
 
+// PC等での確認・共有用の簡易版。QRコードが実際に開く先はスマホ専用・
+// クリニック指定背景の src/app/join/[code]/mobile/page.tsx（別ページ、意図的に分離）。
+//
+// 【重要な運用方針】このフォームの入力項目（氏名・ログインID・パスワード）は、
+// join/[code]/mobile・送信先API（src/app/api/clinics/[code]/join/route.ts）と
+// 同じ項目に揃えている。患者様の登録項目を追加・変更する場合は、この3ファイルを
+// 必ず連動して更新すること。
 export default function PatientJoinPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const [clinicName, setClinicName] = useState(DEFAULT_CLINIC_NAME);
