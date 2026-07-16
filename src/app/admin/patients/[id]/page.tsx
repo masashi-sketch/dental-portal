@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import AdminSidebar from '../../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
@@ -32,7 +32,7 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
   const [saving, setSaving] = useState(false);
   const [periodontalEnabled, setPeriodontalEnabled] = useState(true);
 
-  const fetchAll = () => {
+  const fetchAll = useCallback(() => {
     Promise.all([
       fetch(`/api/admin/patients/${id}`),
       fetch(`/api/admin/patients/${id}/diagnoses`),
@@ -55,9 +55,9 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
         setError(e instanceof Error ? e.message : 'エラーが発生しました');
       })
       .finally(() => setLoading(false));
-  };
+  }, [id]);
 
-  useEffect(() => { fetchAll(); }, [id]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   useEffect(() => {
     const customerCode = session?.user?.customerCode;

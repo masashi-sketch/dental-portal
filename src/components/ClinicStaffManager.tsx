@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { useToast } from '@/hooks/useToast';
 import type { ClinicStaff } from '@/lib/supabase/types';
@@ -44,16 +44,16 @@ export default function ClinicStaffManager({
 
   const qs = customerCode ? `?customerCode=${encodeURIComponent(customerCode)}` : '';
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/clinic-staff${qs}`);
       if (res.ok) setStaff((await res.json()).staff ?? []);
     } finally {
       setLoading(false);
     }
-  };
+  }, [qs]);
 
-  useEffect(() => { fetchAll(); }, [customerCode]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const openNew = () => {
     setEditItem(null);

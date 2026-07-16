@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useToast } from '@/hooks/useToast';
 import type { ClinicQa } from '@/lib/supabase/types';
 
@@ -43,16 +43,16 @@ export default function ClinicQaManager({
 
   const qs = customerCode ? `?customerCode=${encodeURIComponent(customerCode)}` : '';
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/clinic-qa${qs}`);
       if (res.ok) setQaList((await res.json()).qa ?? []);
     } finally {
       setLoading(false);
     }
-  };
+  }, [qs]);
 
-  useEffect(() => { fetchAll(); }, [customerCode]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const openNew = () => {
     setEditItem(null);

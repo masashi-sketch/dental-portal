@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
@@ -145,14 +145,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [savingLoginAction, setSavingLoginAction] = useState(false);
 
-  const fetchClinicUsers = () => {
+  const fetchClinicUsers = useCallback(() => {
     fetch(`/api/bgj/clinics/${code}/user`)
       .then((res) => (res.ok ? res.json() : { clinicUsers: [] }))
       .then((data) => setClinicUsers(data.clinicUsers ?? []))
       .finally(() => setClinicUsersLoading(false));
-  };
+  }, [code]);
 
-  const fetchAll = () => {
+  const fetchAll = useCallback(() => {
     Promise.all([
       fetch(`/api/bgj/clinics/${code}`),
       fetch(`/api/bgj/clinics/${code}/orders`),
@@ -182,9 +182,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
         setError(e instanceof Error ? e.message : "エラーが発生しました");
       })
       .finally(() => setLoading(false));
-  };
+  }, [code]);
 
-  useEffect(() => { fetchAll(); }, [code]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   useEffect(() => {
     fetch("/api/bgj/sales-reps")
@@ -193,7 +193,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
       .catch(() => setSalesReps([]));
   }, []);
 
-  useEffect(() => { fetchClinicUsers(); }, [code]);
+  useEffect(() => { fetchClinicUsers(); }, [fetchClinicUsers]);
 
   useEffect(() => {
     (async () => {
