@@ -226,6 +226,28 @@ create trigger trg_clinic_intro_info_updated_at
   before update on public.clinic_intro_info
   for each row execute function public.set_updated_at_generic();
 
+-- 得意先（クリニック）ごとにカスタマイズできる患者様向けメール文面（初回登録完了メール・
+-- パスワード変更メールなど）。列が空（null）の場合はアプリ側の共通デフォルト文面
+-- （src/lib/email/templates.ts）を使う。件名・本文には {{患者名}} 等のプレースホルダを
+-- 使え、送信時にアプリ側で実際の値へ置換する（詳細はbgj/manual参照）。
+-- 現時点ではBGJポータルの編集・プレビュー画面のみ提供し、実際の送信機能は未実装。
+create table public.clinic_email_templates (
+  customer_code           text primary key references public.clinics (customer_code) on delete cascade,
+  -- 差出人表示名（例：「○○歯科クリニック」）。送信アドレス自体は共通の
+  -- WorkSpaceエイリアス1つに固定し、表示名だけを得意先ごとに変える
+  -- （実アドレスを得意先の数だけ用意するのは非現実的なため）。未設定ならクリニック名を使う。
+  sender_name             text,
+  welcome_subject         text,
+  welcome_body            text,
+  password_reset_subject  text,
+  password_reset_body     text,
+  updated_at              timestamptz not null default now()
+);
+
+create trigger trg_clinic_email_templates_updated_at
+  before update on public.clinic_email_templates
+  for each row execute function public.set_updated_at_generic();
+
 -- ============================================================
 -- 4. 得意先（医院）の注文履歴
 -- ============================================================

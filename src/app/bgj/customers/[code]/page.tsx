@@ -8,6 +8,7 @@ import SignupQrCard from "@/components/SignupQrCard";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
 import ClinicStaffManager from "@/components/ClinicStaffManager";
 import ClinicQaManager from "@/components/ClinicQaManager";
+import ClinicEmailTemplatesManager from "@/components/ClinicEmailTemplatesManager";
 import { useToast } from "@/hooks/useToast";
 import type { Clinic, ClinicIntroInfo, ClinicOrder, ClinicPatientSettings, ClinicStatus, ClinicUserPublic, ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
 import Button from "@/components/ui/Button";
@@ -21,7 +22,7 @@ const SalesHistoryChart = nextDynamic(() => import("./SalesHistoryChart"), {
 
 type ClinicWithStaff = Clinic & ClinicPatientSettings & ClinicIntroInfo & { staff: SalesRepWithMaster | null };
 
-const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "訪問記録", "ログイン管理", "接続情報", "クリニック紹介", "Q&A"];
+const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "訪問記録", "ログイン管理", "接続情報", "メール設定", "クリニック紹介", "Q&A"];
 
 type ClinicFormState = {
   name: string;
@@ -1032,6 +1033,17 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                   </button>
                 </div>
               )}
+            </Card>
+          )}
+
+          {/* メール設定（初回登録メール・パスワード変更メールの文面カスタマイズ） */}
+          {activeTab === "メール設定" && clinic && (
+            <Card className="p-5">
+              <h3 className="text-sm font-bold text-slate-700 mb-1">患者様向けメール文面</h3>
+              <p className="text-xs text-slate-400 mb-4">
+                この得意先専用の文面にカスタマイズできます。実際の送信機能は現在準備中で、この画面では文面の編集・保存・プレビューのみ行えます。
+              </p>
+              <ClinicEmailTemplatesManager customerCode={code} clinicName={clinic.name} theme="violet" />
             </Card>
           )}
 

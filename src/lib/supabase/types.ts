@@ -158,6 +158,18 @@ export type ClinicIntroInfo = {
   updated_at: string;
 };
 
+// 得意先ごとにカスタマイズできる患者様向けメール文面。未設定（null）の項目は
+// アプリ側の共通デフォルト文面（src/lib/email/templates.ts）を使う。
+export type ClinicEmailTemplates = {
+  customer_code: string;
+  sender_name: string | null;
+  welcome_subject: string | null;
+  welcome_body: string | null;
+  password_reset_subject: string | null;
+  password_reset_body: string | null;
+  updated_at: string;
+};
+
 export type ClinicStaff = {
   id: string;
   customer_code: string;
@@ -250,6 +262,9 @@ export const CLINIC_PATIENT_SETTINGS_COLUMNS =
 // clinic_intro_infoテーブル（患者ポータルの「クリニック紹介」診療時間・アクセス）の列。
 export const CLINIC_INTRO_INFO_COLUMNS =
   'customer_code, clinic_hours_weekday, clinic_hours_saturday, clinic_closed_day, clinic_phone, clinic_address, clinic_nearest_station, clinic_parking';
+
+export const CLINIC_EMAIL_TEMPLATES_COLUMNS =
+  'customer_code, sender_name, welcome_subject, welcome_body, password_reset_subject, password_reset_body, updated_at';
 
 export const CLINIC_STAFF_COLUMNS =
   'id, customer_code, role_label, name, credentials, description, photo_url, sort_order, created_at, updated_at';

@@ -213,6 +213,31 @@ alter table public.patients
                     </>
                   ),
                 },
+                {
+                  label: "7. 患者様メール文面のカスタマイズ",
+                  content: (
+                    <>
+                      <p>
+                        得意先ごとに患者様向けメール（初回登録メール・パスワード変更メール）の文面をカスタマイズできる機能。<strong>現時点ではBGJポータルでの編集・プレビュー画面のみ実装済みで、実際のメール送信機能はまだ実装していない。</strong>
+                      </p>
+                      <Code>{`create table public.clinic_email_templates (
+  customer_code           text primary key references public.clinics (customer_code) on delete cascade,
+  sender_name             text,
+  welcome_subject         text,
+  welcome_body            text,
+  password_reset_subject  text,
+  password_reset_body     text,
+  updated_at              timestamptz not null default now()
+);`}</Code>
+                      <p>
+                        未設定（null）の項目は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/email/templates.ts</code>の共通デフォルト文面を使う。件名・本文には<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`{{患者名}}`}</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`{{ログインID}}`}</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`{{医院名}}`}</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`{{リンク}}`}</code>のプレースホルダを使え、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">renderEmailTemplate()</code>で実際の値に置換する。BGJ得意先詳細の「メール設定」タブ（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ClinicEmailTemplatesManager.tsx</code>）から編集・プレビューする。
+                      </p>
+                      <p>
+                        <strong>送信予定の方式（未実装）：</strong>GoogleWorkSpaceの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">jyosys@biogaia.jp</code>のアプリパスワードでSMTP認証し、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">nodemailer</code>で送信する予定（新規の有料サービス契約は不要）。<strong>実際のメールアドレス自体は得意先ごとに変えず、共通のエイリアス1つに固定し、差出人表示名（<code className="bg-white px-1.5 py-0.5 rounded text-xs">sender_name</code>）だけを得意先ごとに変える</strong>設計にしている（実アドレスを得意先の数だけ用意するのはWorkSpace管理上非現実的なため）。
+                      </p>
+                    </>
+                  ),
+                },
               ]}
             />
           </Card>
