@@ -327,6 +327,11 @@ create table public.patients (
 
 create index idx_patients_customer_code on public.patients (customer_code);
 
+-- メールアドレスは患者間で重複させない（重複するとパスワード再設定時の
+-- 患者特定が不能になるため）。手動発行の患者はemailがnullのままなので、
+-- nullは複数許容する部分uniqueインデックスにする。
+create unique index patients_email_key on public.patients (email) where email is not null;
+
 -- 患者様のワンクリックログイン（初回登録メール）・パスワード再設定メールで使う
 -- 使い捨て・期限付きトークン。平文は保存せずハッシュ化して持つ（src/lib/auth/loginToken.ts）。
 create table public.patient_login_tokens (

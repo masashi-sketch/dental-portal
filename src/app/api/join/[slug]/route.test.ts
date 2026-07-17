@@ -7,6 +7,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+// afterはレスポンス送信後に実行されるため、テストではコールバックを溜めて
+// 明示的に実行する（リクエストスコープ外での呼び出しエラーも回避）。
+const afterCallbacks: Array<() => Promise<void>> = [];
+vi.mock('next/server', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('next/server')>();
+  return { ...mod, after: (cb: () => Promise<void>) => afterCallbacks.push(cb) };
+});
+
+vi.mock('@/lib/email/sendEmail', () => ({ sendPatientEmail: vi.fn(async () => {}) }));
+vi.mock('@/lib/email/resolveClinicEmail', () => ({
+  resolveClinicEmail: vi.fn(async () => ({ senderName: 'X', subject: 'S', body: 'B' })),
+}));
+vi.mock('@/lib/auth/loginToken', () => ({ createLoginToken: vi.fn(async () => 'tok123') }));
+
 type SettingsRow = {
   customer_code: string;
   display_name: string | null;
@@ -85,6 +99,7 @@ describe('GET/POST /api/join/[slug]', () => {
   beforeEach(() => {
     settingsRow = null;
     insertError = null;
+    afterCallbacks.length = 0;
     updateSpy.mockReset();
     insertSpy.mockReset();
   });
@@ -181,9 +196,18 @@ describe('GET/POST /api/join/[slug]', () => {
     expect(updateSpy).toHaveBeenCalledWith({ signup_pin_failed_attempts: 0, signup_pin_locked_until: null });
   });
 
-  it('POST: 登録に失敗すれば500', async () => {
+  it('POST: メールアドレスが既に登録済み（unique制約違反）なら409で分かりやすいメッセージを返す', async () => {
     settingsRow = { customer_code: 'A000001', display_name: null, patient_background_url: null, signup_pin: '123456', signup_pin_failed_attempts: 0, signup_pin_locked_until: null };
-    insertError = { code: '23505', message: 'some db error' };
+    insertError = { code: '23505', message: 'duplicate key value violates unique constraint "patients_email_key"' };
+    const res = await POST(joinRequest(validBody), { params });
+    const body = await res.json();
+    expect(res.status).toBe(409);
+    expect(body.error).toContain('既に登録されています');
+  });
+
+  it('POST: その他のDBエラーなら500', async () => {
+    settingsRow = { customer_code: 'A000001', display_name: null, patient_background_url: null, signup_pin: '123456', signup_pin_failed_attempts: 0, signup_pin_locked_until: null };
+    insertError = { code: '99999', message: 'some db error' };
     const res = await POST(joinRequest(validBody), { params });
     expect(res.status).toBe(500);
   });

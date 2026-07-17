@@ -300,7 +300,7 @@ export default function AdminPatientsPage() {
               <div>
                 <label className="text-slate-700 text-base mb-1.5 block font-medium">{editItem ? 'パスワード再設定' : '初期パスワード'}</label>
                 <input type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder={editItem ? '変更する場合のみ入力' : '半角英数字'}
+                  placeholder={editItem ? '変更する場合のみ入力（8文字以上）' : '半角英数字8文字以上'}
                   className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400" />
               </div>
               <div>

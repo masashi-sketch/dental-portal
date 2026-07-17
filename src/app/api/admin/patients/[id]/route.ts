@@ -40,6 +40,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const body = await request.json();
   const { customerCode, name, password, status } = body ?? {};
 
+  // パスワード再設定時もQR自己登録と同じ最低文字数ルールに揃える
+  if (password && (typeof password !== 'string' || password.length < 8)) {
+    return NextResponse.json({ error: 'パスワードは8文字以上で設定してください。' }, { status: 400 });
+  }
+
   const update: Record<string, unknown> = {};
   // クリニックログインは自院の患者の得意先コードを他院へ付け替えられないようにする
   if (customerCode !== undefined && session.user.role !== 'clinic') update.customer_code = customerCode;

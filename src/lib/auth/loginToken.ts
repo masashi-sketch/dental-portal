@@ -9,8 +9,31 @@ import type { PatientLoginToken } from '@/lib/supabase/types';
 // ランダム値なので、パスワードと違って低速ハッシュ（scrypt等）は不要。
 // DB漏洩時に平文が読めないよう、SHA-256でハッシュ化してから保存するだけで十分。
 const TOKEN_TTL_MINUTES = 30;
+// 同一患者・同一用途への再発行を抑止する間隔（分）。/api/password-reset/requestは
+// 認証不要の公開APIのため、これが無いと第三者が実在メールアドレスへ無制限に
+// メールを送りつけられてしまう（メール爆撃）。
+const RESEND_COOLDOWN_MINUTES = 3;
 
 export type LoginTokenPurpose = PatientLoginToken['purpose'];
+
+// 直近RESEND_COOLDOWN_MINUTES以内に同一患者・同一用途のトークンを発行済みか。
+// trueの間は新規発行・メール送信をスキップする（呼び出し側は成功時と同じ
+// レスポンスを返し、外部から発行状況を観測できないようにする）。
+export async function hasRecentLoginToken(
+  supabase: SupabaseClient,
+  patientId: string,
+  purpose: LoginTokenPurpose,
+): Promise<boolean> {
+  const since = new Date(Date.now() - RESEND_COOLDOWN_MINUTES * 60_000).toISOString();
+  const { data } = await supabase
+    .from('patient_login_tokens')
+    .select('id')
+    .eq('patient_id', patientId)
+    .eq('purpose', purpose)
+    .gte('created_at', since)
+    .limit(1);
+  return (data?.length ?? 0) > 0;
+}
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');

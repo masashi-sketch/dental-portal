@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { hashPassword } from '@/lib/auth/password';
@@ -97,26 +98,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .single();
 
   if (error) {
+    // patients側のunique制約はlogin_id（自動採番で衝突しない）とemailのみのため、
+    // ここでの一意制約違反はメールアドレスの重複と判断できる。
+    if (error.code === '23505') {
+      return NextResponse.json({ error: 'このメールアドレスは既に登録されています。ログイン画面の「パスワードをお忘れの方」もご利用いただけます。' }, { status: 409 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // 初回登録メールの送信。失敗しても登録自体は成功済みなので、患者様には
-  // 発行されたログインIDで通常どおりログインできる（画面表示は継続する）。
-  try {
-    const { data: clinic } = await supabase.from('clinics').select('name').eq('customer_code', customerCode).maybeSingle<{ name: string }>();
-    const clinicName = clinic?.name ?? 'デンタルポータル';
-    const token = await createLoginToken(supabase, inserted.id, 'first_login');
-    const link = `${request.nextUrl.origin}/join/verify?token=${token}`;
-    const rendered = await resolveClinicEmail(supabase, customerCode, 'welcome', {
-      patientName: name,
-      loginId: inserted.login_id,
-      clinicName,
-      link,
-    });
-    await sendPatientEmail({ to: email, senderName: rendered.senderName, subject: rendered.subject, text: rendered.body });
-  } catch (emailError) {
-    console.error('POST /api/join/[slug] welcome email failed:', emailError);
-  }
+  // 初回登録メールの送信はSMTP接続で数秒かかることがあるため、レスポンス送信後に
+  // 実行する。失敗しても登録自体は成功済みで、患者様は画面に表示された
+  // ログインIDで通常どおりログインできる。
+  const origin = request.nextUrl.origin;
+  after(async () => {
+    try {
+      const { data: clinic } = await supabase.from('clinics').select('name').eq('customer_code', customerCode).maybeSingle<{ name: string }>();
+      const clinicName = clinic?.name ?? 'デンタルポータル';
+      const token = await createLoginToken(supabase, inserted.id, 'first_login');
+      const link = `${origin}/join/verify?token=${token}`;
+      const rendered = await resolveClinicEmail(supabase, customerCode, 'welcome', {
+        patientName: name,
+        loginId: inserted.login_id,
+        clinicName,
+        link,
+      });
+      await sendPatientEmail({ to: email, senderName: rendered.senderName, subject: rendered.subject, text: rendered.body });
+    } catch (emailError) {
+      console.error('POST /api/join/[slug] welcome email failed:', emailError);
+    }
+  });
 
   return NextResponse.json({ ok: true, loginId: inserted.login_id }, { status: 201 });
 }

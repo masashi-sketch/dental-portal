@@ -40,6 +40,10 @@ export async function POST(request: NextRequest) {
   if (!customerCode || !name || !password) {
     return NextResponse.json({ error: '必須項目が不足しています。' }, { status: 400 });
   }
+  // QR自己登録（/api/join/[slug]）と同じ最低文字数ルールに揃える
+  if (typeof password !== 'string' || password.length < 8) {
+    return NextResponse.json({ error: 'パスワードは8文字以上で設定してください。' }, { status: 400 });
+  }
 
   // login_idは手入力を認めず、patients.login_id（'BU' + 6桁のseq_no連番、
   // schema.sql参照）に自動採番させる。挿入時にこの列を指定するとPostgresが
