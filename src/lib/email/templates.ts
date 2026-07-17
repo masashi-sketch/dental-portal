@@ -1,6 +1,7 @@
 // 患者様向けメールの共通デフォルト文面と、プレースホルダの置換ロジック。
 // 得意先ごとのカスタム文面（clinic_email_templates）が未設定の項目はこちらを使う。
-// 実際の送信機能はまだ実装しておらず、現時点ではBGJポータルの編集・プレビュー画面のみで使用する。
+// クライアント側（BGJのメール設定プレビュー）でも使うため、'server-only'は付けない。
+// DBからカスタム文面を取得するサーバー専用ロジックはresolveClinicEmail.tsを使う。
 
 export type EmailTemplateVars = {
   patientName: string;

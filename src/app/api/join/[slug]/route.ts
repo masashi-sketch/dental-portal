@@ -3,6 +3,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { hashPassword } from '@/lib/auth/password';
 import { isSignupPinLocked, recordFailedSignupPinAttempt, resetSignupPinAttempts } from '@/lib/auth/signupPin';
+import { createLoginToken } from '@/lib/auth/loginToken';
+import { resolveClinicEmail } from '@/lib/email/resolveClinicEmail';
+import { sendPatientEmail } from '@/lib/email/sendEmail';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,10 +51,13 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const body = await request.json();
-  const { pin, name, password } = body ?? {};
+  const { pin, name, email, password } = body ?? {};
 
-  if (!pin || !name || !password) {
+  if (!pin || !name || !email || !password) {
     return NextResponse.json({ error: '必須項目が不足しています。' }, { status: 400 });
+  }
+  if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: 'メールアドレスの形式が正しくありません。' }, { status: 400 });
   }
   if (typeof password !== 'string' || password.length < 8) {
     return NextResponse.json({ error: 'パスワードは8文字以上で設定してください。' }, { status: 400 });
@@ -83,14 +89,34 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .insert({
       customer_code: customerCode,
       name,
+      email,
       password_hash: hashPassword(password),
       status: '有効',
     })
-    .select('login_id')
+    .select('id, login_id')
     .single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // 初回登録メールの送信。失敗しても登録自体は成功済みなので、患者様には
+  // 発行されたログインIDで通常どおりログインできる（画面表示は継続する）。
+  try {
+    const { data: clinic } = await supabase.from('clinics').select('name').eq('customer_code', customerCode).maybeSingle<{ name: string }>();
+    const clinicName = clinic?.name ?? 'デンタルポータル';
+    const token = await createLoginToken(supabase, inserted.id, 'first_login');
+    const link = `${request.nextUrl.origin}/join/verify?token=${token}`;
+    const rendered = await resolveClinicEmail(supabase, customerCode, 'welcome', {
+      patientName: name,
+      loginId: inserted.login_id,
+      clinicName,
+      link,
+    });
+    await sendPatientEmail({ to: email, senderName: rendered.senderName, subject: rendered.subject, text: rendered.body });
+  } catch (emailError) {
+    console.error('POST /api/join/[slug] welcome email failed:', emailError);
+  }
+
   return NextResponse.json({ ok: true, loginId: inserted.login_id }, { status: 201 });
 }

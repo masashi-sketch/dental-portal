@@ -41,6 +41,14 @@ vi.mock('@/lib/supabase/server', () => ({
           select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }),
         };
       }
+      if (table === 'clinic_email_templates') {
+        return {
+          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }),
+        };
+      }
+      if (table === 'patient_login_tokens') {
+        return { insert: async () => ({ error: null }) };
+      }
       if (table === 'patients') {
         return {
           insert: (row: Record<string, unknown>) => {
@@ -48,7 +56,9 @@ vi.mock('@/lib/supabase/server', () => ({
             return {
               select: () => ({
                 single: async () =>
-                  insertError ? { data: null, error: insertError } : { data: { login_id: 'BU000123' }, error: null },
+                  insertError
+                    ? { data: null, error: insertError }
+                    : { data: { id: 'patient-1', login_id: 'BU000123' }, error: null },
               }),
             };
           },
@@ -69,7 +79,7 @@ function joinRequest(body: Record<string, unknown>) {
 }
 
 const params = Promise.resolve({ slug: 'abc123' });
-const validBody = { pin: '123456', name: '山田太郎', password: 'password123' };
+const validBody = { pin: '123456', name: '山田太郎', email: 'yamada@example.com', password: 'password123' };
 
 describe('GET/POST /api/join/[slug]', () => {
   beforeEach(() => {
@@ -104,6 +114,20 @@ describe('GET/POST /api/join/[slug]', () => {
 
   it('POST: 必須項目が不足していれば400', async () => {
     const res = await POST(joinRequest({ pin: '123456' }), { params });
+    expect(res.status).toBe(400);
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+
+  it('POST: メールアドレスが不足していれば400', async () => {
+    settingsRow = { customer_code: 'A000001', display_name: null, patient_background_url: null, signup_pin: '123456', signup_pin_failed_attempts: 0, signup_pin_locked_until: null };
+    const res = await POST(joinRequest({ pin: validBody.pin, name: validBody.name, password: validBody.password }), { params });
+    expect(res.status).toBe(400);
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+
+  it('POST: メールアドレスの形式が不正なら400', async () => {
+    settingsRow = { customer_code: 'A000001', display_name: null, patient_background_url: null, signup_pin: '123456', signup_pin_failed_attempts: 0, signup_pin_locked_until: null };
+    const res = await POST(joinRequest({ ...validBody, email: 'not-an-email' }), { params });
     expect(res.status).toBe(400);
     expect(insertSpy).not.toHaveBeenCalled();
   });
@@ -151,7 +175,7 @@ describe('GET/POST /api/join/[slug]', () => {
     expect(res.status).toBe(201);
     expect(body.loginId).toBe('BU000123');
     expect(insertSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ customer_code: 'A000001', name: '山田太郎', status: '有効' }),
+      expect.objectContaining({ customer_code: 'A000001', name: '山田太郎', email: 'yamada@example.com', status: '有効' }),
     );
     expect(insertSpy.mock.calls[0][0]).not.toHaveProperty('login_id');
     expect(updateSpy).toHaveBeenCalledWith({ signup_pin_failed_attempts: 0, signup_pin_locked_until: null });

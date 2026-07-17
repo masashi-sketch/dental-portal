@@ -218,7 +218,7 @@ alter table public.patients
                   content: (
                     <>
                       <p>
-                        得意先ごとに患者様向けメール（初回登録メール・パスワード変更メール）の文面をカスタマイズできる機能。<strong>現時点ではBGJポータルでの編集・プレビュー画面のみ実装済みで、実際のメール送信機能はまだ実装していない。</strong>
+                        得意先ごとに患者様向けメール（初回登録メール・パスワード変更メール）の文面をカスタマイズできる機能。BGJ得意先詳細の「メール設定」タブ（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ClinicEmailTemplatesManager.tsx</code>）から編集・プレビューし、実際の送信まで実装済み。
                       </p>
                       <Code>{`create table public.clinic_email_templates (
   customer_code           text primary key references public.clinics (customer_code) on delete cascade,
@@ -230,10 +230,42 @@ alter table public.patients
   updated_at              timestamptz not null default now()
 );`}</Code>
                       <p>
-                        未設定（null）の項目は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/email/templates.ts</code>の共通デフォルト文面を使う。件名・本文には<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`{{患者名}}`}</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`{{ログインID}}`}</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`{{医院名}}`}</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`{{リンク}}`}</code>のプレースホルダを使え、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">renderEmailTemplate()</code>で実際の値に置換する。BGJ得意先詳細の「メール設定」タブ（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ClinicEmailTemplatesManager.tsx</code>）から編集・プレビューする。
+                        未設定（null）の項目は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/email/templates.ts</code>の共通デフォルト文面を使う。件名・本文には<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`{{患者名}}`}</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`{{ログインID}}`}</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`{{医院名}}`}</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`{{リンク}}`}</code>のプレースホルダを使え、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">renderEmailTemplate()</code>で実際の値に置換する。DBからカスタム文面を取得して置換まで行う共通ロジックは<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/email/resolveClinicEmail.ts</code>（サーバー専用）。
                       </p>
                       <p>
-                        <strong>送信予定の方式（未実装）：</strong>GoogleWorkSpaceの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">jyosys@biogaia.jp</code>のアプリパスワードでSMTP認証し、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">nodemailer</code>で送信する予定（新規の有料サービス契約は不要）。<strong>実際のメールアドレス自体は得意先ごとに変えず、共通のエイリアス1つに固定し、差出人表示名（<code className="bg-white px-1.5 py-0.5 rounded text-xs">sender_name</code>）だけを得意先ごとに変える</strong>設計にしている（実アドレスを得意先の数だけ用意するのはWorkSpace管理上非現実的なため）。
+                        <strong>送信方式：</strong>GoogleWorkSpaceの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">jyosys@biogaia.jp</code>のアプリパスワードでSMTP認証し、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">nodemailer</code>で送信する（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/email/sendEmail.ts</code>、新規の有料サービス契約は不要）。<strong>実際のメールアドレス自体は得意先ごとに変えず、共通のエイリアス1つ（<code className="bg-white px-1.5 py-0.5 rounded text-xs">no-reply@biogaia.jp</code>）に固定し、差出人表示名（<code className="bg-white px-1.5 py-0.5 rounded text-xs">sender_name</code>）だけを得意先ごとに変える</strong>設計にしている（実アドレスを得意先の数だけ用意するのはWorkSpace管理上非現実的なため）。環境変数：<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">WORKSPACE_SMTP_USER</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">WORKSPACE_SMTP_APP_PASSWORD</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">WORKSPACE_SENDER_ALIAS</code>。
+                      </p>
+                      <p>
+                        メール送信が失敗しても登録・パスワード再設定処理自体は失敗させない（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">try/catch</code>で囲みログのみ）。患者様は発行済みのログインIDで通常どおりログインできるため。
+                      </p>
+                    </>
+                  ),
+                },
+                {
+                  label: "8. ワンクリックログイン・パスワード再設定",
+                  content: (
+                    <>
+                      <p>
+                        患者様のQR自己登録（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/[slug]</code>系）でメールアドレスが必須項目になった（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patients.email</code>列、admin/patientsの手動発行では引き続き収集していない）。登録完了時に「初回登録メール」が届き、本文のリンクから<strong>パスワード入力なしでそのままログイン完了</strong>できる。
+                      </p>
+                      <Code>{`create table public.patient_login_tokens (
+  id          uuid primary key default gen_random_uuid(),
+  patient_id  uuid not null references public.patients (id) on delete cascade,
+  token_hash  text not null,
+  purpose     text not null check (purpose in ('first_login', 'password_reset')),
+  expires_at  timestamptz not null,
+  used_at     timestamptz,
+  created_at  timestamptz not null default now(),
+  unique (token_hash)
+);`}</Code>
+                      <p>
+                        トークンは30分間有効・使い捨て（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/loginToken.ts</code>）。平文はDBに保存せずSHA-256でハッシュ化してから保存する（パスワードと違い高エントロピーな値のため低速ハッシュは不要）。NextAuthに専用の認証方式<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient-magiclink</code>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/auth.ts</code>）を追加し、リンク先<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/verify?token=...</code>でトークンを検証してログイン状態にする。
+                      </p>
+                      <p>
+                        同じトークンの仕組みで「パスワードをお忘れの方」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/forgot-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/password-reset/request</code> → メール → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/reset-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/password-reset/confirm</code>）も実装済み。メールアドレスが登録されているかどうかに関わらず常に同じレスポンスを返し、登録有無を外部から探索されないようにしている。
+                      </p>
+                      <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
+                        <strong>ハマりどころ：</strong>新しい公開ページ・APIを追加したので、今回も<code className="bg-white px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>の許可リストに<code className="bg-white px-1.5 py-0.5 rounded text-xs">/forgot-password</code>・<code className="bg-white px-1.5 py-0.5 rounded text-xs">/reset-password</code>・<code className="bg-white px-1.5 py-0.5 rounded text-xs">/api/password-reset</code>を追加済み（<code className="bg-white px-1.5 py-0.5 rounded text-xs">/join/verify</code>は既存の<code className="bg-white px-1.5 py-0.5 rounded text-xs">/join/</code>許可で自動的にカバーされる）。
                       </p>
                     </>
                   ),
@@ -358,13 +390,17 @@ alter table public.patients
                       <li>患者様ポータルのトップページを開きます。</li>
                       <li>通院先の医院からお渡しされたログインID・パスワードを入力し、「ログイン」を押してください。</li>
                     </Steps>
+                    <Steps title="パスワードをお忘れの場合">
+                      <li>ログイン画面の「パスワードをお忘れの方」から、ご登録のメールアドレスを入力してください（QRコードで自己登録された方のみご利用いただけます）。</li>
+                      <li>再設定用のリンクが記載されたメールが届きますので、リンク先で新しいパスワードを設定してください（30分間有効）。</li>
+                    </Steps>
                     <Steps title="診断結果を確認する">
                       <li>ログイン後、「サプリメントの受け取り」を開きます。</li>
                       <li>歯周病の状態（ステージ・グレード）と、その内容の説明が表示されます。</li>
                       <li>まだ診断が登録されていない場合は、次回ご来院時に医院にてご確認ください。</li>
                     </Steps>
                     <div className="bg-slate-50 rounded-xl px-4 py-3 text-xs text-slate-500">
-                      一度ログインいただくと、次回からはログイン画面にも通院先医院に合わせた表示が出るようになります。ログインID・パスワードをお忘れの場合は、通院先の医院までお問い合わせください。
+                      一度ログインいただくと、次回からはログイン画面にも通院先医院に合わせた表示が出るようになります。メールアドレスをご登録でない場合（医院での窓口発行）のパスワード再設定は、通院先の医院までお問い合わせください。
                     </div>
                   </>
                 ),
@@ -403,9 +439,10 @@ alter table public.patients
                             <Steps title="患者様ご自身での登録手順">
                               <li>窓口に掲示されたQRコードを、ご自身のスマホのカメラで読み取ります。</li>
                               <li>開いた画面で、窓口でお伝えした受付PINを入力します。</li>
-                              <li>お名前・パスワードを入力し、「登録する」を押すと完了です。</li>
+                              <li>お名前・メールアドレス・パスワードを入力し、「登録する」を押すと完了です。</li>
                               <li>完了画面に、その場で発行された「あなたのログインID」（BU＋6桁の数字）が表示されます。次回以降のログインに必要なので必ず控えてください。</li>
-                              <li>そのまま表示される「ログイン画面へ」から、発行されたログインIDと設定したパスワードでログインできます。</li>
+                              <li>ご登録のメールアドレス宛にも登録完了メールが届きます。<strong>本文のリンクをクリックすると、パスワード入力なしでそのままログインできます</strong>（30分間有効）。</li>
+                              <li>次回以降は、通常どおり発行されたログインIDと設定したパスワードでもログインできます。</li>
                             </Steps>
                           ),
                         },

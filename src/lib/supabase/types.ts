@@ -21,12 +21,23 @@ export type Patient = {
   name: string;
   login_id: string;
   password_hash: string;
+  email: string | null;
   status: '有効' | '無効';
   registered_at: string;
   created_at: string;
   updated_at: string;
   failed_login_attempts: number;
   locked_until: string | null;
+};
+
+// 患者様のワンクリックログイン（初回登録メール）・パスワード再設定メール用の
+// 使い捨てトークン。src/lib/auth/loginToken.tsのみで扱う（クライアントへは返さない）。
+export type PatientLoginToken = {
+  id: string;
+  patient_id: string;
+  expires_at: string;
+  used_at: string | null;
+  purpose: 'first_login' | 'password_reset';
 };
 
 // クライアントへ返す用（password_hash・ログインロックアウト関連の内部情報を含まない）
@@ -235,11 +246,13 @@ export type ClinicUserPublic = Omit<ClinicUser, 'password_hash' | 'failed_login_
 
 // select('*') を避け、APIルート間で使う列指定をここに集約する。
 export const PATIENT_COLUMNS =
-  'id, customer_code, patient_no, name, login_id, password_hash, status, registered_at, created_at, updated_at, failed_login_attempts, locked_until';
+  'id, customer_code, patient_no, name, login_id, password_hash, email, status, registered_at, created_at, updated_at, failed_login_attempts, locked_until';
 
 // クライアントへ返す一覧・詳細用（password_hashを含めない）
 export const PATIENT_PUBLIC_COLUMNS =
-  'id, customer_code, patient_no, name, login_id, status, registered_at, created_at, updated_at';
+  'id, customer_code, patient_no, name, login_id, email, status, registered_at, created_at, updated_at';
+
+export const PATIENT_LOGIN_TOKEN_COLUMNS = 'id, patient_id, expires_at, used_at, purpose';
 
 export const PERIODONTAL_STAGE_COLUMNS = 'code, label, name, description, sort_order';
 

@@ -21,6 +21,7 @@ export default function PatientJoinPage({ params }: { params: Promise<{ slug: st
   const [clinicName, setClinicName] = useState(DEFAULT_CLINIC_NAME);
   const [pin, setPin] = useState('');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [error, setError] = useState('');
@@ -38,7 +39,7 @@ export default function PatientJoinPage({ params }: { params: Promise<{ slug: st
   }, [slug]);
 
   const handleSubmit = async () => {
-    if (!pin.trim() || !name.trim() || !password) {
+    if (!pin.trim() || !name.trim() || !email.trim() || !password) {
       setError('すべての項目を入力してください。');
       return;
     }
@@ -53,7 +54,7 @@ export default function PatientJoinPage({ params }: { params: Promise<{ slug: st
       const res = await fetch(`/api/join/${encodeURIComponent(slug)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: pin.trim(), name: name.trim(), password }),
+        body: JSON.stringify({ pin: pin.trim(), name: name.trim(), email: email.trim(), password }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -91,7 +92,9 @@ export default function PatientJoinPage({ params }: { params: Promise<{ slug: st
                 </svg>
               </div>
               <h2 className="text-lg font-bold text-gray-900 mb-1">登録が完了しました</h2>
-              <p className="text-gray-500 text-sm mb-4">こちらがあなたのログインIDです。次回以降のログインに必要ですので、必ず控えてください。</p>
+              <p className="text-gray-500 text-sm mb-4">
+                こちらがあなたのログインIDです。次回以降のログインに必要ですので、必ず控えてください。ご登録のメールアドレス宛にも、そのままログインできるリンク付きのご案内メールをお送りしました。
+              </p>
               <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-3">
                 <span className="font-mono text-lg font-bold text-blue-700 tracking-wider">{assignedLoginId}</span>
                 <button
@@ -144,6 +147,17 @@ export default function PatientJoinPage({ params }: { params: Promise<{ slug: st
                     placeholder="例）山田 太郎"
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors placeholder-gray-300 bg-gray-50"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">メールアドレス</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="例）yamada@example.com"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors placeholder-gray-300 bg-gray-50"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">登録完了メール・パスワード再設定に使います。</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">パスワード</label>

@@ -57,6 +57,13 @@ const MANAGED_APPS: ManagedApp[] = [
     requiredEnvVars: ["NEXT_PUBLIC_SENTRY_DSN"],
     dashboardUrl: "https://sentry.io",
   },
+  {
+    name: "Google WorkSpace（患者様向けメール送信）",
+    purpose: "初回登録メール・パスワード再設定メールの送信（jyosys@biogaia.jpのアプリパスワードでSMTP認証）",
+    planTier: "既存契約の範囲内（追加費用なし）",
+    requiredEnvVars: ["WORKSPACE_SMTP_USER", "WORKSPACE_SMTP_APP_PASSWORD", "WORKSPACE_SENDER_ALIAS"],
+    dashboardUrl: "https://myaccount.google.com/security",
+  },
 ];
 
 type EnvVarStatus = { name: string; configured: boolean };

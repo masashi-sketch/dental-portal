@@ -143,7 +143,7 @@ export default function PatientLoginPage() {
           </div>
 
           <div className="flex justify-between mt-4 text-xs text-gray-400">
-            <a href="#" className="hover:text-[#2563EB] transition-colors">パスワードをお忘れの方</a>
+            <Link href="/forgot-password" className="hover:text-[#2563EB] transition-colors">パスワードをお忘れの方</Link>
             <a href="#" className="hover:text-[#2563EB] transition-colors">ログインでお困りの方</a>
           </div>
 

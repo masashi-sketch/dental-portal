@@ -312,6 +312,9 @@ create table public.patients (
   -- によらず必ずこの1つの採番ロジックを通る（詳細はCLAUDE.md参照）。
   login_id      text generated always as ('BU' || lpad(seq_no::text, 6, '0')) stored,
   password_hash text not null,
+  -- QR自己登録（/join/[slug]）で収集。初回登録メール・パスワード再設定メールの送信に使う。
+  -- 医院/BGJによる手動発行では収集していないためnull許容。
+  email         text,
   status        text not null default '有効' check (status in ('有効','無効')),
   registered_at date not null default current_date,
   created_at    timestamptz not null default now(),
@@ -323,6 +326,21 @@ create table public.patients (
 );
 
 create index idx_patients_customer_code on public.patients (customer_code);
+
+-- 患者様のワンクリックログイン（初回登録メール）・パスワード再設定メールで使う
+-- 使い捨て・期限付きトークン。平文は保存せずハッシュ化して持つ（src/lib/auth/loginToken.ts）。
+create table public.patient_login_tokens (
+  id          uuid primary key default gen_random_uuid(),
+  patient_id  uuid not null references public.patients (id) on delete cascade,
+  token_hash  text not null,
+  purpose     text not null check (purpose in ('first_login', 'password_reset')),
+  expires_at  timestamptz not null,
+  used_at     timestamptz,
+  created_at  timestamptz not null default now(),
+  unique (token_hash)
+);
+
+create index idx_patient_login_tokens_patient_id on public.patient_login_tokens (patient_id);
 
 create or replace function public.set_updated_at()
 returns trigger language plpgsql as $$
@@ -473,6 +491,8 @@ alter table public.clinic_terms           enable row level security;
 alter table public.clinic_users           enable row level security;
 alter table public.clinic_staff           enable row level security;
 alter table public.clinic_qa              enable row level security;
+alter table public.clinic_email_templates enable row level security;
+alter table public.patient_login_tokens   enable row level security;
 
 -- ============================================================
 -- 11. フェーズ3b：患者ポータルの歯周病診断読み取り経路のみ、

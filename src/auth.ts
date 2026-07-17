@@ -5,6 +5,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { CLINIC_USER_COLUMNS, PATIENT_COLUMNS } from "@/lib/supabase/types";
 import { verifyPassword } from "@/lib/auth/password";
 import { isLocked, recordFailedLoginAttempt, resetLoginAttempts } from "@/lib/auth/loginLockout";
+import { consumeLoginToken } from "@/lib/auth/loginToken";
 import type { ClinicUser, Patient } from "@/lib/supabase/types";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -82,6 +83,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (data.failed_login_attempts > 0 || data.locked_until) {
           await resetLoginAttempts(supabase, "patients", data.id);
         }
+
+        return {
+          id: data.id,
+          name: data.name,
+          role: "patient" as const,
+          customerCode: data.customer_code,
+          patientId: data.id,
+        };
+      },
+    }),
+    // 患者様のワンクリックログイン（初回登録メール本文のリンク）専用。
+    // パスワードの代わりに使い捨てトークン（src/lib/auth/loginToken.ts）を検証する。
+    Credentials({
+      id: "patient-magiclink",
+      name: "患者様ワンクリックログイン",
+      credentials: {
+        token: { label: "token", type: "text" },
+      },
+      async authorize(credentials) {
+        const token = credentials?.token as string | undefined;
+        if (!token) return null;
+
+        const supabase = getSupabaseServerClient();
+        const result = await consumeLoginToken(supabase, token, "first_login");
+        if (!result) return null;
+
+        const { data } = await supabase
+          .from("patients")
+          .select(PATIENT_COLUMNS)
+          .eq("id", result.patientId)
+          .eq("status", "有効")
+          .maybeSingle<Patient>();
+        if (!data) return null;
 
         return {
           id: data.id,

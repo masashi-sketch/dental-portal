@@ -27,6 +27,9 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   // （/api/join/[slug]）。QRをスマホで読み取って未認証のまま開く前提のため認証不要。
   const isJoinPath = pathname.startsWith("/join/");
   const isJoinApiPath = pathname.startsWith("/api/join/");
+  // パスワードを忘れた患者様向けの自己リセット画面・API。ログイン前提のため認証不要。
+  const isPasswordResetPath = pathname.startsWith("/forgot-password") || pathname.startsWith("/reset-password");
+  const isPasswordResetApiPath = pathname.startsWith("/api/password-reset");
 
   if (isApiAuth) return NextResponse.next();
   if (isAuthPath) return NextResponse.next();
@@ -36,6 +39,8 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   if (isPublicClinicBrandingPath) return NextResponse.next();
   if (isJoinPath) return NextResponse.next();
   if (isJoinApiPath) return NextResponse.next();
+  if (isPasswordResetPath) return NextResponse.next();
+  if (isPasswordResetApiPath) return NextResponse.next();
 
   const role = req.auth?.user?.role;
   const isPatientPortalPath = PATIENT_PORTAL_PATHS.some(

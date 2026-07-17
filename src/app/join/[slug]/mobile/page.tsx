@@ -15,7 +15,9 @@ const DEFAULT_BACKGROUND = '/patient-login-bg.jpg';
 //
 // 【重要な運用方針】このフォームの入力項目（氏名・パスワード）は、
 // 医院用ポータルの患者様登録フォーム（src/app/admin/patients/page.tsx）・
-// 登録API（src/app/api/admin/patients/route.ts）と同じ項目に揃えている。
+// 登録API（src/app/api/admin/patients/route.ts）と同じ項目に揃えている
+// （メールアドレスはこのQR登録フローだけの追加項目。初回登録メール・パスワード
+// 再設定に使うため、admin/patientsの手動発行では収集していない）。
 // 患者様の登録項目を追加・変更した場合は、このページと/join/[slug]/page.tsx・
 // 送信先API（src/app/api/join/[slug]/route.ts）も必ず連動して更新すること。
 // ログインIDは手入力させない（全クリニック共通の連番をDB側で自動採番、
@@ -26,6 +28,7 @@ export default function PatientJoinMobilePage({ params }: { params: Promise<{ sl
   const [backgroundUrl, setBackgroundUrl] = useState(DEFAULT_BACKGROUND);
   const [pin, setPin] = useState('');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [error, setError] = useState('');
@@ -44,7 +47,7 @@ export default function PatientJoinMobilePage({ params }: { params: Promise<{ sl
   }, [slug]);
 
   const handleSubmit = async () => {
-    if (!pin.trim() || !name.trim() || !password) {
+    if (!pin.trim() || !name.trim() || !email.trim() || !password) {
       setError('すべての項目を入力してください。');
       return;
     }
@@ -59,7 +62,7 @@ export default function PatientJoinMobilePage({ params }: { params: Promise<{ sl
       const res = await fetch(`/api/join/${encodeURIComponent(slug)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: pin.trim(), name: name.trim(), password }),
+        body: JSON.stringify({ pin: pin.trim(), name: name.trim(), email: email.trim(), password }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -108,7 +111,9 @@ export default function PatientJoinMobilePage({ params }: { params: Promise<{ sl
                   </svg>
                 </div>
                 <h2 className="text-lg font-bold text-gray-900 mb-1">登録が完了しました</h2>
-                <p className="text-gray-500 text-sm mb-4">こちらがあなたのログインIDです。次回以降のログインに必要ですので、必ず控えてください。</p>
+                <p className="text-gray-500 text-sm mb-4">
+                  こちらがあなたのログインIDです。次回以降のログインに必要ですので、必ず控えてください。ご登録のメールアドレス宛にも、そのままログインできるリンク付きのご案内メールをお送りしました。
+                </p>
                 <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-3">
                   <span className="font-mono text-lg font-bold text-blue-700 tracking-wider">{assignedLoginId}</span>
                   <button
@@ -162,6 +167,18 @@ export default function PatientJoinMobilePage({ params }: { params: Promise<{ sl
                       placeholder="例）山田 太郎"
                       className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors placeholder-gray-300 bg-gray-50"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">メールアドレス</label>
+                    <input
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="例）yamada@example.com"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors placeholder-gray-300 bg-gray-50"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">登録完了メール・パスワード再設定に使います。</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">パスワード</label>
