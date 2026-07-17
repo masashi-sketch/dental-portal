@@ -11,88 +11,15 @@ import ClinicEmailTemplatesManager from "@/components/ClinicEmailTemplatesManage
 import ClinicLoginManager from "@/components/ClinicLoginManager";
 import ClinicTermsManager from "@/components/ClinicTermsManager";
 import ClinicSalesOrders from "@/components/ClinicSalesOrders";
+import ClinicBasicInfoTab from "@/components/ClinicBasicInfoTab";
+import ClinicBusinessInfoTab from "@/components/ClinicBusinessInfoTab";
 import { useToast } from "@/hooks/useToast";
-import type { Clinic, ClinicIntroInfo, ClinicPatientSettings, ClinicStatus, ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
+import type { ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
+import { clinicToForm, type ClinicFormState, type ClinicWithStaff } from "@/lib/clinicForm";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 
-type ClinicWithStaff = Clinic & ClinicPatientSettings & ClinicIntroInfo & { staff: SalesRepWithMaster | null };
-
 const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "訪問記録", "ログイン管理", "接続情報", "メール設定", "クリニック紹介", "Q&A"];
-
-type ClinicFormState = {
-  name: string;
-  area: string;
-  staffId: string;
-  status: ClinicStatus;
-  address: string;
-  tel: string;
-  contactPerson: string;
-  contractSince: string;
-  chairs: string;
-  patientType: string;
-  clinicType: string;
-  waitingRoom: string;
-  counselingRoom: boolean;
-  closedDay: string;
-  fullTimeDr: string;
-  partTimeDr: string;
-  hygienist: string;
-  receptionist: string;
-  assistant: string;
-  technician: string;
-  nurse: string;
-  nutritionist: string;
-  childcare: string;
-  mainReferrer: string;
-  displayName: string;
-  patientBackgroundUrl: string;
-  clinicHoursWeekday: string;
-  clinicHoursSaturday: string;
-  clinicClosedDay: string;
-  clinicPhone: string;
-  clinicAddress: string;
-  clinicNearestStation: string;
-  clinicParking: string;
-};
-
-function clinicToForm(c: ClinicWithStaff): ClinicFormState {
-  return {
-    name: c.name,
-    area: c.area,
-    staffId: c.staff_id ?? "",
-    status: c.status,
-    address: c.address ?? "",
-    tel: c.tel ?? "",
-    contactPerson: c.contact_person ?? "",
-    contractSince: c.contract_since ?? "",
-    chairs: String(c.chairs),
-    patientType: c.patient_type ?? "",
-    clinicType: c.clinic_type ?? "",
-    waitingRoom: c.waiting_room ?? "",
-    counselingRoom: c.counseling_room,
-    closedDay: c.closed_day ?? "",
-    fullTimeDr: String(c.full_time_dr),
-    partTimeDr: String(c.part_time_dr),
-    hygienist: String(c.hygienist),
-    receptionist: String(c.receptionist),
-    assistant: String(c.assistant),
-    technician: String(c.technician),
-    nurse: String(c.nurse),
-    nutritionist: String(c.nutritionist),
-    childcare: String(c.childcare),
-    mainReferrer: c.main_referrer ?? "",
-    displayName: c.display_name ?? "",
-    patientBackgroundUrl: c.patient_background_url ?? "",
-    clinicHoursWeekday: c.clinic_hours_weekday ?? "",
-    clinicHoursSaturday: c.clinic_hours_saturday ?? "",
-    clinicClosedDay: c.clinic_closed_day ?? "",
-    clinicPhone: c.clinic_phone ?? "",
-    clinicAddress: c.clinic_address ?? "",
-    clinicNearestStation: c.clinic_nearest_station ?? "",
-    clinicParking: c.clinic_parking ?? "",
-  };
-}
 
 type VisitFormState = { visitDate: string; purpose: string; memo: string; nextVisitDate: string };
 const EMPTY_VISIT_FORM: VisitFormState = { visitDate: "", purpose: "", memo: "", nextVisitDate: "" };
@@ -337,240 +264,31 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
 
           {/* 基本情報 */}
           {activeTab === "基本情報" && (
-            <Card className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-bold text-slate-700">基本情報</h2>
-                {!editingClinic ? (
-                  <button onClick={() => setEditingClinic(true)}
-                    className="text-xs text-violet-600 hover:text-violet-800 font-semibold">編集する</button>
-                ) : (
-                  <div className="flex gap-2">
-                    <button onClick={() => { setEditingClinic(false); setClinicForm(clinicToForm(clinic)); }}
-                      className="text-xs text-slate-500 hover:text-slate-700 font-semibold">キャンセル</button>
-                    <button onClick={handleSaveClinic} disabled={savingClinic}
-                      className="text-xs text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 font-semibold px-3 py-1.5 rounded-lg">
-                      {savingClinic ? "保存中..." : "保存する"}
-                    </button>
-                  </div>
-                )}
-              </div>
-              {!editingClinic ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
-                  {[
-                    ["医院名", clinic.name],
-                    ["得意先コード", clinic.customer_code],
-                    ["エリア", clinic.area],
-                    ["住所", clinic.address || "—"],
-                    ["電話番号", clinic.tel || "—"],
-                    ["担当者", clinic.contact_person || "—"],
-                    ["取引開始日", clinic.contract_since || "—"],
-                    ["ポータル表示名", clinic.display_name || "（未設定・医院名を表示）"],
-                    ["患者ポータル背景画像URL", clinic.patient_background_url || "（未設定・標準画像を使用）"],
-                    ["患者様向け・平日診療時間", clinic.clinic_hours_weekday || "（未設定）"],
-                    ["患者様向け・土曜診療時間", clinic.clinic_hours_saturday || "（未設定）"],
-                    ["患者様向け・休診日", clinic.clinic_closed_day || "（未設定）"],
-                    ["患者様向け・電話番号", clinic.clinic_phone || "（未設定）"],
-                    ["患者様向け・住所", clinic.clinic_address || "（未設定）"],
-                    ["患者様向け・最寄駅", clinic.clinic_nearest_station || "（未設定）"],
-                    ["患者様向け・駐車場", clinic.clinic_parking || "（未設定）"],
-                  ].map(([label, value]) => (
-                    <div key={label}>
-                      <p className="text-xs text-slate-400 mb-0.5">{label}</p>
-                      <p className="text-sm text-slate-800 font-semibold break-all">{value}</p>
-                    </div>
-                  ))}
-                  <div>
-                    <p className="text-xs text-slate-400 mb-0.5">担当営業</p>
-                    {clinic.staff ? (
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <SalesRepAvatar name={clinic.staff.name} photoUrl={clinic.staff.photo_url} size={28} className="text-xs" />
-                        <p className="text-sm text-slate-800 font-semibold">{clinic.staff.name}</p>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-800 font-semibold">未割当</p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">医院名</label>
-                    <input value={clinicForm.name} onChange={(e) => setClinicForm({ ...clinicForm, name: e.target.value })}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">エリア</label>
-                    <input value={clinicForm.area} onChange={(e) => setClinicForm({ ...clinicForm, area: e.target.value })}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">住所</label>
-                    <input value={clinicForm.address} onChange={(e) => setClinicForm({ ...clinicForm, address: e.target.value })}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">電話番号</label>
-                    <input value={clinicForm.tel} onChange={(e) => setClinicForm({ ...clinicForm, tel: e.target.value })}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">担当者</label>
-                    <input value={clinicForm.contactPerson} onChange={(e) => setClinicForm({ ...clinicForm, contactPerson: e.target.value })}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">担当営業</label>
-                    <select value={clinicForm.staffId} onChange={(e) => setClinicForm({ ...clinicForm, staffId: e.target.value })}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white">
-                      <option value="">未割当</option>
-                      {salesReps.map((r) => (
-                        <option key={r.id} value={r.id}>{r.name}（{r.role?.name || "—"}）</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">取引開始日</label>
-                    <input type="date" value={clinicForm.contractSince} onChange={(e) => setClinicForm({ ...clinicForm, contractSince: e.target.value })}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">ステータス</label>
-                    <select value={clinicForm.status} onChange={(e) => setClinicForm({ ...clinicForm, status: e.target.value as ClinicStatus })}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white">
-                      <option value="活性">活性</option>
-                      <option value="休眠">休眠</option>
-                      <option value="解約リスク">解約リスク</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">ポータル表示名（医院自身も設定可）</label>
-                    <input value={clinicForm.displayName} onChange={(e) => setClinicForm({ ...clinicForm, displayName: e.target.value })}
-                      placeholder={clinic.name}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者ポータル背景画像URL（医院自身も設定可）</label>
-                    <input value={clinicForm.patientBackgroundUrl} onChange={(e) => setClinicForm({ ...clinicForm, patientBackgroundUrl: e.target.value })}
-                      placeholder="https://..."
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・平日診療時間（医院自身も設定可）</label>
-                    <input value={clinicForm.clinicHoursWeekday} onChange={(e) => setClinicForm({ ...clinicForm, clinicHoursWeekday: e.target.value })}
-                      placeholder="例）9:00〜18:00"
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・土曜診療時間（医院自身も設定可）</label>
-                    <input value={clinicForm.clinicHoursSaturday} onChange={(e) => setClinicForm({ ...clinicForm, clinicHoursSaturday: e.target.value })}
-                      placeholder="例）9:00〜13:00"
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・休診日（医院自身も設定可）</label>
-                    <input value={clinicForm.clinicClosedDay} onChange={(e) => setClinicForm({ ...clinicForm, clinicClosedDay: e.target.value })}
-                      placeholder="例）水・日・祝日"
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・電話番号（医院自身も設定可）</label>
-                    <input value={clinicForm.clinicPhone} onChange={(e) => setClinicForm({ ...clinicForm, clinicPhone: e.target.value })}
-                      placeholder="例）00-0000-0000"
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・住所（医院自身も設定可）</label>
-                    <input value={clinicForm.clinicAddress} onChange={(e) => setClinicForm({ ...clinicForm, clinicAddress: e.target.value })}
-                      placeholder="例）〒000-0000 ◯◯県◯◯市◯◯"
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・最寄駅（医院自身も設定可）</label>
-                    <input value={clinicForm.clinicNearestStation} onChange={(e) => setClinicForm({ ...clinicForm, clinicNearestStation: e.target.value })}
-                      placeholder="例）◯◯線「◯◯駅」徒歩◯分"
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様向け・駐車場（医院自身も設定可）</label>
-                    <input value={clinicForm.clinicParking} onChange={(e) => setClinicForm({ ...clinicForm, clinicParking: e.target.value })}
-                      placeholder="例）専用駐車場3台あり"
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  </div>
-                </div>
-              )}
-            </Card>
+            <ClinicBasicInfoTab
+              clinic={clinic}
+              clinicForm={clinicForm}
+              editingClinic={editingClinic}
+              savingClinic={savingClinic}
+              salesReps={salesReps}
+              onEdit={() => setEditingClinic(true)}
+              onCancel={() => { setEditingClinic(false); setClinicForm(clinicToForm(clinic)); }}
+              onSave={handleSaveClinic}
+              onFormChange={setClinicForm}
+            />
           )}
 
           {/* 経営情報 */}
           {activeTab === "経営情報" && (
-            <Card className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-bold text-slate-700">経営情報</h2>
-                {!editingClinic ? (
-                  <button onClick={() => setEditingClinic(true)}
-                    className="text-xs text-violet-600 hover:text-violet-800 font-semibold">編集する</button>
-                ) : (
-                  <div className="flex gap-2">
-                    <button onClick={() => { setEditingClinic(false); setClinicForm(clinicToForm(clinic)); }}
-                      className="text-xs text-slate-500 hover:text-slate-700 font-semibold">キャンセル</button>
-                    <button onClick={handleSaveClinic} disabled={savingClinic}
-                      className="text-xs text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 font-semibold px-3 py-1.5 rounded-lg">
-                      {savingClinic ? "保存中..." : "保存する"}
-                    </button>
-                  </div>
-                )}
-              </div>
-              {!editingClinic ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-8">
-                  {[
-                    ["患者層分類", clinic.patient_type || "—"],
-                    ["診療区分", clinic.clinic_type || "—"],
-                    ["チェア数", `${clinic.chairs}台`],
-                    ["待合室規模", clinic.waiting_room || "—"],
-                    ["カウンセリングルーム", clinic.counseling_room ? "あり" : "なし"],
-                    ["休診日", clinic.closed_day || "—"],
-                    ["常勤医師数", `${clinic.full_time_dr}名`],
-                    ["非常勤医師数", `${clinic.part_time_dr}名`],
-                    ["歯科衛生士数", `${clinic.hygienist}名`],
-                    ["受付・TC数", `${clinic.receptionist}名`],
-                    ["歯科助手数", `${clinic.assistant}名`],
-                    ["歯科技工士数", `${clinic.technician}名`],
-                    ["看護師数", `${clinic.nurse}名`],
-                    ["管理栄養士数", `${clinic.nutritionist}名`],
-                    ["保育士数", `${clinic.childcare}名`],
-                    ["主な紹介者", clinic.main_referrer || "—"],
-                  ].map(([label, value]) => (
-                    <div key={label}>
-                      <p className="text-xs text-slate-400 mb-0.5">{label}</p>
-                      <p className="text-sm text-slate-800 font-semibold">{value}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {([
-                    ["患者層分類", "patientType"], ["診療区分", "clinicType"], ["チェア数", "chairs"],
-                    ["待合室規模", "waitingRoom"], ["休診日", "closedDay"],
-                    ["常勤医師数", "fullTimeDr"], ["非常勤医師数", "partTimeDr"], ["歯科衛生士数", "hygienist"],
-                    ["受付・TC数", "receptionist"], ["歯科助手数", "assistant"], ["歯科技工士数", "technician"],
-                    ["看護師数", "nurse"], ["管理栄養士数", "nutritionist"], ["保育士数", "childcare"],
-                    ["主な紹介者", "mainReferrer"],
-                  ] as [string, keyof ClinicFormState][]).map(([label, key]) => (
-                    <div key={key}>
-                      <label className="text-xs font-semibold text-slate-500 mb-1 block">{label}</label>
-                      <input value={clinicForm[key] as string} onChange={(e) => setClinicForm({ ...clinicForm, [key]: e.target.value })}
-                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                    </div>
-                  ))}
-                  <div className="flex items-center gap-2 pt-6">
-                    <input type="checkbox" checked={clinicForm.counselingRoom}
-                      onChange={(e) => setClinicForm({ ...clinicForm, counselingRoom: e.target.checked })}
-                      className="w-4 h-4" />
-                    <label className="text-sm text-slate-600">カウンセリングルームあり</label>
-                  </div>
-                </div>
-              )}
-            </Card>
+            <ClinicBusinessInfoTab
+              clinic={clinic}
+              clinicForm={clinicForm}
+              editingClinic={editingClinic}
+              savingClinic={savingClinic}
+              onEdit={() => setEditingClinic(true)}
+              onCancel={() => { setEditingClinic(false); setClinicForm(clinicToForm(clinic)); }}
+              onSave={handleSaveClinic}
+              onFormChange={setClinicForm}
+            />
           )}
 
           {/* 売上・注文 */}
