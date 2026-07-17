@@ -1,8 +1,7 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import nextDynamic from "next/dynamic";
 import { formatTimestampCompact } from "@/lib/formatTimestamp";
 import SignupQrCard from "@/components/SignupQrCard";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
@@ -11,15 +10,11 @@ import ClinicQaManager from "@/components/ClinicQaManager";
 import ClinicEmailTemplatesManager from "@/components/ClinicEmailTemplatesManager";
 import ClinicLoginManager from "@/components/ClinicLoginManager";
 import ClinicTermsManager from "@/components/ClinicTermsManager";
+import ClinicSalesOrders from "@/components/ClinicSalesOrders";
 import { useToast } from "@/hooks/useToast";
-import type { Clinic, ClinicIntroInfo, ClinicOrder, ClinicPatientSettings, ClinicStatus, ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
+import type { Clinic, ClinicIntroInfo, ClinicPatientSettings, ClinicStatus, ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-
-const SalesHistoryChart = nextDynamic(() => import("./SalesHistoryChart"), {
-  ssr: false,
-  loading: () => <p className="text-slate-400 text-sm text-center py-12">グラフを読み込み中...</p>,
-});
 
 type ClinicWithStaff = Clinic & ClinicPatientSettings & ClinicIntroInfo & { staff: SalesRepWithMaster | null };
 
@@ -116,9 +111,6 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   const [error, setError] = useState<string | null>(null);
   const [salesReps, setSalesReps] = useState<SalesRepWithMaster[]>([]);
 
-  // 注文履歴
-  const [orders, setOrders] = useState<ClinicOrder[]>([]);
-
   // 訪問記録
   const [visits, setVisits] = useState<ClinicVisit[]>([]);
   const [showVisitModal, setShowVisitModal] = useState(false);
@@ -141,22 +133,19 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   const fetchAll = useCallback(() => {
     Promise.all([
       fetch(`/api/bgj/clinics/${code}`),
-      fetch(`/api/bgj/clinics/${code}/orders`),
       fetch(`/api/bgj/clinics/${code}/visits`),
     ])
-      .then(([clinicRes, ordersRes, visitsRes]) => {
+      .then(([clinicRes, visitsRes]) => {
         if (!clinicRes.ok) throw new Error("得意先情報の取得に失敗しました");
         return Promise.all([
           clinicRes.json(),
-          ordersRes.ok ? ordersRes.json() : Promise.resolve(null),
           visitsRes.ok ? visitsRes.json() : Promise.resolve(null),
         ]);
       })
-      .then(([clinicData, ordersData, visitsData]) => {
+      .then(([clinicData, visitsData]) => {
         const { clinic } = clinicData;
         setClinic(clinic);
         if (clinic) setClinicForm(clinicToForm(clinic));
-        if (ordersData) setOrders(ordersData.orders ?? []);
         if (visitsData) setVisits(visitsData.visits ?? []);
         setError(null);
       })
@@ -174,21 +163,6 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
       .then((data) => setSalesReps(data.salesReps ?? []))
       .catch(() => setSalesReps([]));
   }, []);
-
-  const salesHistory = useMemo(() => {
-    const months: { key: string; month: string; sales: number }[] = [];
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({ key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, month: `${d.getMonth() + 1}月`, sales: 0 });
-    }
-    for (const o of orders) {
-      const key = o.order_date.slice(0, 7);
-      const bucket = months.find((m) => m.key === key);
-      if (bucket) bucket.sales += o.amount;
-    }
-    return months;
-  }, [orders]);
 
   const handleSaveClinic = async () => {
     if (!clinicForm) return;
@@ -600,46 +574,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
           )}
 
           {/* 売上・注文 */}
-          {activeTab === "売上・注文" && (
-            <div className="flex flex-col gap-4">
-              <Card className="p-5">
-                <h3 className="text-sm font-bold text-slate-700 mb-4">月次売上推移（円）</h3>
-                <SalesHistoryChart data={salesHistory} />
-              </Card>
-              <Card className="overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100">
-                  <h3 className="text-sm font-bold text-slate-700">注文履歴</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        {["日付", "商品", "数量", "金額", "ステータス"].map((h) => (
-                          <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orders.length === 0 && (
-                        <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400 text-sm">注文履歴はまだありません</td></tr>
-                      )}
-                      {orders.map((o) => (
-                        <tr key={o.id} className="border-t border-slate-50 hover:bg-slate-50">
-                          <td className="px-4 py-3 text-slate-400 text-xs">{o.order_date}</td>
-                          <td className="px-4 py-3 text-slate-700 text-xs">{o.product_name}</td>
-                          <td className="px-4 py-3 text-slate-600 text-xs text-center">{o.quantity}</td>
-                          <td className="px-4 py-3 font-semibold text-slate-700">¥{o.amount.toLocaleString()}</td>
-                          <td className="px-4 py-3">
-                            <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">{o.status}</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            </div>
-          )}
+          {activeTab === "売上・注文" && <ClinicSalesOrders customerCode={code} />}
 
           {/* 取引条件 */}
           {activeTab === "取引条件" && <ClinicTermsManager customerCode={code} theme="violet" />}
