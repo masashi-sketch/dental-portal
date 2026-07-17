@@ -13,6 +13,7 @@ import ClinicTermsManager from "@/components/ClinicTermsManager";
 import ClinicSalesOrders from "@/components/ClinicSalesOrders";
 import ClinicBasicInfoTab from "@/components/ClinicBasicInfoTab";
 import ClinicBusinessInfoTab from "@/components/ClinicBusinessInfoTab";
+import ClinicVisitList from "@/components/ClinicVisitList";
 import { useToast } from "@/hooks/useToast";
 import type { ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
 import { clinicToForm, type ClinicFormState, type ClinicWithStaff } from "@/lib/clinicForm";
@@ -298,29 +299,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
           {activeTab === "取引条件" && <ClinicTermsManager customerCode={code} theme="violet" />}
 
           {/* 訪問記録 */}
-          {activeTab === "訪問記録" && (
-            <div className="flex flex-col gap-3">
-              {visits.length === 0 && (
-                <Card className="p-5 text-center text-slate-400 text-sm">
-                  訪問記録はまだありません
-                </Card>
-              )}
-              {visits.map((v) => (
-                <Card key={v.id} className="p-5">
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div>
-                      <span className="text-xs text-slate-400">{v.visit_date}</span>
-                      <p className="text-sm font-bold text-slate-700 mt-0.5">{v.purpose}</p>
-                    </div>
-                    {v.next_visit_date && (
-                      <span className="text-xs text-slate-400 shrink-0">次回予定：{v.next_visit_date}</span>
-                    )}
-                  </div>
-                  {v.memo && <p className="text-sm text-slate-600 bg-slate-50 rounded-xl px-3 py-2">{v.memo}</p>}
-                </Card>
-              ))}
-            </div>
-          )}
+          {activeTab === "訪問記録" && <ClinicVisitList visits={visits} />}
 
           {/* ログイン管理 */}
           {activeTab === "ログイン管理" && (
