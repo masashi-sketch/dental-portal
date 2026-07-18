@@ -391,6 +391,35 @@ create table public.clinic_inquiry_replies (
                     </>
                   ),
                 },
+                {
+                  label: "11. お知らせ機能",
+                  content: (
+                    <>
+                      <p>
+                        医院用ポータル「お知らせ管理」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/news</code>）は元々見た目だけのモック（ローカルstateのみ、DB未連携・患者ポータル未反映）だったが、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_qa</code>（Q&amp;A機能）と同じ設計で実データ連携する機能として実装した。医院が入力したお知らせは、患者ポータルのホーム画面（デスクトップ・モバイル両方）に表示される。
+                      </p>
+                      <Code>{`create table public.clinic_announcements (
+  id uuid primary key default gen_random_uuid(),
+  customer_code text not null references public.clinics (customer_code) on delete cascade,
+  announcement_date date not null default current_date,
+  tag text not null default 'お知らせ' check (tag in ('重要','お知らせ','キャンペーン')),
+  text text not null,
+  status text not null default '公開' check (status in ('公開','下書き')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);`}</Code>
+                      <p>
+                        Q&amp;A機能と異なり<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">sort_order</code>による手動並び替えは持たず、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">announcement_date</code>の新しい順に自動表示する。
+                      </p>
+                      <p>
+                        <strong>実装の流れ：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/admin/clinic-announcements</code>（GET/POST）・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/[id]</code>（PATCH/DELETE）が管理用CRUD（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">resolveScopedCustomerCode</code>で医院は自院固定・BGJは代理編集）、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/patient-portal/announcements</code>が患者ポータル向けの公開read専用API（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">status=&apos;公開&apos;</code>のみ返す）。共有コンポーネント<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ClinicAnnouncementManager.tsx</code>を医院用ポータルとBGJポータル（得意先詳細「お知らせ」タブ、代理編集）の両方から使う。
+                      </p>
+                      <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
+                        患者ポータルのホーム画面はお知らせ取得に失敗しても欄ごと非表示になり、ホーム画面の他の機能（メニューカード等）には影響しない設計にしている。
+                      </p>
+                    </>
+                  ),
+                },
               ]}
             />
           </Card>
@@ -453,6 +482,10 @@ create table public.clinic_inquiry_replies (
                       <li>Slack通知内のリンクを開くと、BGJポータルの返信専用画面が開きます（未ログインの場合は先にログインが必要です）。そこで返信を入力して送信してください。</li>
                       <li>問い合わせ・返信の履歴は、得意先詳細画面の「行動履歴」タブでも確認できます（訪問記録と時系列で統合表示されます）。</li>
                     </Steps>
+                    <Steps title="医院様に代わってお知らせを編集する（サポート対応）">
+                      <li>「得意先一覧」→対象医院→「お知らせ」タブで、患者様ポータルのホーム画面に表示するお知らせを、医院様に代わって追加・編集・削除できます。</li>
+                      <li>ステータスを「下書き」にすると患者様ポータルには表示されません。</li>
+                    </Steps>
                   </>
                 ),
               },
@@ -510,6 +543,11 @@ create table public.clinic_inquiry_replies (
                       <li>サイドバーの「Q &amp; A」を開きます。</li>
                       <li>「＋Q&amp;Aを追加」から、カテゴリ・質問・回答を入力して登録します。ステータスを「下書き」にすると患者様ポータルには表示されません。</li>
                       <li>患者様ポータルのカテゴリタブは、ここで登録したカテゴリから自動的に作られます。</li>
+                    </Steps>
+                    <Steps title="お知らせを編集する">
+                      <li>サイドバーの「お知らせ管理」を開きます。</li>
+                      <li>「＋ 追加」から、日付・タグ（重要／お知らせ／キャンペーン）・内容を入力して登録します。ステータスを「下書き」にすると患者様ポータルには表示されません。</li>
+                      <li>登録したお知らせは、患者様ポータルのホーム画面に日付の新しい順に表示されます。</li>
                     </Steps>
                     <Steps title="バイオガイア担当者へ問い合わせる">
                       <li>サイドバーの「お問い合わせ」を開きます。</li>
