@@ -170,6 +170,7 @@ vercel --prod
 - DB：Supabase。サーバー専用クライアント（`src/lib/supabase/server.ts`）のみを使用し、`@supabase/ssr`は導入しない。クライアント（ブラウザ）に秘密鍵を一切露出しない設計。患者の歯周病診断読み取りのみ、`src/lib/auth/scopedSupabaseClient.ts`経由でRLSも効くDBレベルの多層防御を追加済み。
 - 残っているデモ用cookie：`portal-selected`（ポータル種別）、`demo-patient-id`（スタッフが患者ポータルをプレビューするための対象患者ID、`resolveEffectivePatientId`で検証）、`patient-last-clinic`（患者ログイン画面の表示ブランディングだけに使う非機密cookie）。`active-customer-code`（旧・BGJ職員が医院用ポータルで得意先を選択する仕組み）は廃止済み。
 - **エラー監視は`@sentry/nextjs`を導入済み**（`src/instrumentation.ts` / `src/instrumentation-client.ts` / `sentry.server.config.ts` / `sentry.edge.config.ts` / `src/app/global-error.tsx`）。`.env.local`の`NEXT_PUBLIC_SENTRY_DSN`が未設定の間はSentry SDKが自動的に無効化され、何も送信されない（sentry.ioで無料プロジェクトを作成しDSNを設定すると有効化される）。`sendDefaultPii`は無効のまま（Cookie/Authorizationヘッダーは送信しない）で、`src/lib/sentryScrub.ts`のbeforeSendでメール文字列も多層防御的にマスクしている。
+- **`rm -rf`はツール権限で一律ブロックされる**（ユーザーがチャットで承認しても解除されない）。`node_modules`等をクリーンに作り直す必要がある場合は`rm -r`（`-f`なし）を使う。このプロジェクトパスはGoogle Drive同期フォルダのため、同期ロックにより`Directory not empty`で一度失敗することがあるが、大抵は同じ`rm -r`コマンドをもう一度実行するだけで解消する（`rm -rf`を使うための回避策を探さないこと）。
 
 # セキュリティ方針
 
@@ -306,6 +307,13 @@ DB変更SQLを提示するときは、以下をセットにする。
 - 現状のカバレッジ：`src/lib/auth/`配下・`src/lib/patientNav.ts`・`src/lib/clinicForm.ts`のロジック、APIルート数本（clinic-staff・patients・diagnoses・env-check・branding・join・password-reset）、UIコンポーネント（`src/components/ui/`のButton/Card/LoadingState/ConfirmDialog、`PatientSidebarNav`、得意先詳細から抽出したClinicVisitList/ClinicBasicInfoTab/ClinicBusinessInfoTab/ClinicTermsManager/ClinicLoginManager/ClinicSalesOrders）、`useToast`。
 - **CI（GitHub Actions、`.github/workflows/ci.yml`）でpush/pull_request時にlint/tsc/testを自動実行する**。git pre-commitフックは未設定。
 - 新しいテストを追加する場合は既存の書き方（`vitest`のdescribe/it、上記のmockパターン）を踏襲する。
+
+## CI失敗通知を受け取ったときの対応方針（2026-07-18にユーザーが明示）
+
+- CI失敗メール（GitHub Actionsからの`Run failed`通知）を見せられたら、憶測で答えず必ず`gh run list --branch main --limit 5`で単発の失敗か継続的な失敗かをまず確認する。直近複数回が失敗していれば、直前の1コミットではなく共通原因（依存関係・環境）を疑う。
+- `gh run view <ID>`でどのステップ（lint/tsc/test/build）が落ちているかを特定し、`gh run view <ID> --log-failed`で実際のログを読んでから対応する。
+- **既知パターン**：`vitest`はvite本体をpeerDependencyとしてバージョン範囲だけ指定しており、npmは範囲内の最新版を自動解決する。この解決先が実験的な最新メジャー版（例：Rolldownベースのvite 8系）に浮くと、npmのoptionalDependencies多重プラットフォーム解決バグ（[npm/cli#4828](https://github.com/npm/cli/issues/4828)）でLinux（CI）環境だけネイティブバイナリが見つからず`npm run test`が起動時エラーになることがある（macOSローカルでは`npm run test`が通ってしまうため気づきにくい）。対処は`package.json`で`vite`・関連プラグイン（`@vitejs/plugin-react`等）を安定版に明示固定し、`package-lock.json`をクリーン再生成する（`rm -r node_modules` → `rm package-lock.json` → `npm install`）。
+- 修正をpushしたら`gh run watch <実行ID> --exit-status`等で**実際にCIがグリーンになったことを確認してから**完了報告する。pushしただけで「直りました」と報告しない。
 
 # 評価観点と次のおすすめ
 
