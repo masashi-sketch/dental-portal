@@ -88,6 +88,44 @@ export default function ManualPage() {
             <SubTabs
               items={[
                 {
+                  label: "0. 全体構成",
+                  content: (
+                    <>
+                      <p className="font-bold text-slate-800">3ポータル構成</p>
+                      <ul className="list-disc list-inside pl-2">
+                        <li><strong>患者様ポータル</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/</code>, <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/home</code>, <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/medication</code>など）：患者様がご自身の診断結果等を確認する画面。</li>
+                        <li><strong>医院用ポータル</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/*</code>）：医院スタッフが患者様ID発行・診断登録・表示設定を行う画面。</li>
+                        <li><strong>BGJポータル</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/*</code>）：バイオガイア社員が得意先・営業マスタ・システムを管理する画面。</li>
+                      </ul>
+                      <p className="font-bold text-slate-800 mt-2">認証（NextAuth v5、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/auth.ts</code>）</p>
+                      <ul className="list-disc list-inside pl-2">
+                        <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">bgj</code>：Google OAuth。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">@biogaia.jp</code>ドメインのみ許可。</li>
+                        <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic</code>：ログインID・パスワード（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>テーブル、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-login</code>）。自分の得意先コードに固定される。</li>
+                        <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient</code>：ログインID・パスワード（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patients</code>テーブル）。自分の患者ID・得意先コードに固定される。</li>
+                        <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient-magiclink</code>：メール内リンクの使い捨てトークンによるワンクリックログイン（システム手順「8」参照）。</li>
+                      </ul>
+                      <p>
+                        いずれのログインも5回連続で失敗すると15分間ロックされる（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/loginLockout.ts</code>、clinic/patientのみ）。
+                        ほぼ全パスは<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>（Next.js 16でのmiddleware）が認証必須にしており、公開ページは明示的な許可リストで管理する。
+                      </p>
+                      <p className="font-bold text-slate-800 mt-2">データベース（Supabase）</p>
+                      <p>
+                        テーブル定義は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">supabase/schema.sql</code>が唯一のDB定義書。全テーブルで<strong>RLS有効・ポリシーなし</strong>（anon/authenticatedキーからは一切読み書き不可）とし、アクセスは必ずサーバー側の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">service_role</code>キー経由のAPIルートを介す。ブラウザに秘密鍵は一切出さない。列は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">select(&apos;*&apos;)</code>禁止で、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/supabase/types.ts</code>の列指定定数を使う。
+                      </p>
+                      <p className="font-bold text-slate-800 mt-2">エラー監視（Sentry）</p>
+                      <p>
+                        <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">@sentry/nextjs</code>導入済み。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">NEXT_PUBLIC_SENTRY_DSN</code>が未設定の間は自動的に無効化され何も送信されない。メール等の個人情報は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/sentryScrub.ts</code>でマスクしている。
+                      </p>
+                      <p className="font-bold text-slate-800 mt-2">開発環境</p>
+                      <Code>{`npm run dev    # 開発サーバー（--webpack固定。Turbopackは日本語パスでクラッシュするため）
+npm run lint   # ESLint
+npx tsc --noEmit  # 型チェック
+npm run test   # ユニットテスト（Vitest）
+npm run build  # 本番ビルド`}</Code>
+                    </>
+                  ),
+                },
+                {
                   label: "1. Supabase準備",
                   content: (
                     <>
@@ -276,6 +314,33 @@ alter table public.patients
                     </>
                   ),
                 },
+                {
+                  label: "9. テストとCI",
+                  content: (
+                    <>
+                      <p className="bg-violet-50 border border-violet-200 text-violet-800 text-xs px-4 py-2.5 rounded-xl">
+                        <strong>方針：新しい機能・コンポーネント・APIルートを作成するときは、必ず同時にテストケースも作成する。</strong>
+                        「あとでまとめて書く」は行わず、実装とテストを同じコミット（または同じ作業単位）に含める。既存機能の修正時も、修正した箇所にテストが無ければ追加する。
+                      </p>
+                      <p>
+                        テスト基盤は<strong>Vitest + React Testing Library + jsdom</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">vitest.config.ts</code> / <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">vitest.setup.ts</code>）。テストファイルはテスト対象と同じディレクトリに<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">◯◯.test.ts</code>（UIは<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">.test.tsx</code>）の名前で置く。
+                      </p>
+                      <Code>{`npm run test               # 全テストを実行
+npx vitest run <ファイルパス>  # 特定のテストだけ実行`}</Code>
+                      <p className="font-bold text-slate-800 mt-1">書き方の雛形（既存テストを参照）</p>
+                      <ul className="list-disc list-inside pl-2">
+                        <li><strong>純粋関数</strong>：そのままimportして入出力を検証（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/patientNav.test.ts</code>）。</li>
+                        <li><strong>サーバー専用モジュール</strong>：ファイル先頭に<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`// @vitest-environment node`}</code>を書く（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/loginToken.test.ts</code>）。</li>
+                        <li><strong>APIルート</strong>：<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">@/auth</code>と<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">@/lib/supabase/server</code>を<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">vi.mock</code>し、ハンドラ関数を直接呼ぶ（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/app/api/admin/clinic-staff/[id]/route.test.ts</code>が雛形）。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>を使うルートは<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">next/server</code>をmockしてコールバックを溜めて明示実行する（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/app/api/join/[slug]/route.test.ts</code>が雛形）。</li>
+                        <li><strong>UIコンポーネント</strong>：<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">render()</code>して表示・クリック時のコールバックを検証（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/PatientSidebarNav.test.tsx</code>が雛形）。fetchするコンポーネントは<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">global.fetch</code>を<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">vi.stubGlobal</code>でmockする。</li>
+                      </ul>
+                      <p className="font-bold text-slate-800 mt-1">CI（自動実行）</p>
+                      <p>
+                        GitHub Actions（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">.github/workflows/ci.yml</code>）で、push / pull_request のたびに lint・型チェック・テストが自動実行される。ローカルでもコミット前に<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">npm run lint</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">npx tsc --noEmit</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">npm run test</code>を通すこと。
+                      </p>
+                    </>
+                  ),
+                },
               ]}
             />
           </Card>
@@ -319,6 +384,15 @@ alter table public.patients
                       <li>「得意先一覧」→対象医院→「クリニック紹介」タブで、スタッフ紹介の追加・編集・削除・並び替えができます。</li>
                       <li>「Q&amp;A」タブで、質問・回答の追加・編集・削除・並び替えができます。</li>
                       <li>いずれも医院様ご自身で編集いただける項目ですが、お問い合わせがあった場合はこちらから代理で編集できます。</li>
+                    </Steps>
+                    <Steps title="患者様向けメールの文面を得意先ごとにカスタマイズする">
+                      <li>「得意先一覧」→対象医院→「メール設定」タブを開きます。</li>
+                      <li>初回登録メール・パスワード変更メールそれぞれの差出人表示名・件名・本文を編集できます（未設定の項目は共通の標準文面が使われます）。</li>
+                      <li>本文には「患者名」「ログインID」「医院名」「リンク」の差し込み項目（二重波かっこで囲む）が使えます。プレビューで実際の見え方を確認してから保存してください。</li>
+                    </Steps>
+                    <Steps title="システムの状態を確認する（システム管理）">
+                      <li>サイドバーの「システム管理」→「DB管理」で、データベースの使用容量・テーブルごとの内訳を確認できます。</li>
+                      <li>「システム管理」→「アプリ管理」で、連携している外部サービスの一覧と、環境変数の設定漏れがないかを確認できます（設定値そのものは表示されません）。</li>
                     </Steps>
                   </>
                 ),
