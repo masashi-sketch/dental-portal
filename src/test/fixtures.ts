@@ -65,6 +65,7 @@ export function makeClinicWithStaff(overrides: Partial<ClinicWithStaff> = {}): C
       phone: null,
       email: null,
       photo_url: null,
+      slack_user_id: null,
       created_at: '2024-04-01T00:00:00Z',
       updated_at: '2024-04-01T00:00:00Z',
       role: { id: 'role-1', name: '主任', created_at: '', updated_at: '' },
