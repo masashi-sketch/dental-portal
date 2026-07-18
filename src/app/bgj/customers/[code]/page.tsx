@@ -13,14 +13,14 @@ import ClinicTermsManager from "@/components/ClinicTermsManager";
 import ClinicSalesOrders from "@/components/ClinicSalesOrders";
 import ClinicBasicInfoTab from "@/components/ClinicBasicInfoTab";
 import ClinicBusinessInfoTab from "@/components/ClinicBusinessInfoTab";
-import ClinicVisitList from "@/components/ClinicVisitList";
+import ClinicActivityFeed from "@/components/ClinicActivityFeed";
 import { useToast } from "@/hooks/useToast";
-import type { ClinicVisit, SalesRepWithMaster } from "@/lib/supabase/types";
+import type { SalesRepWithMaster } from "@/lib/supabase/types";
 import { clinicToForm, type ClinicFormState, type ClinicWithStaff } from "@/lib/clinicForm";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 
-const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "訪問記録", "ログイン管理", "接続情報", "メール設定", "クリニック紹介", "Q&A"];
+const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "行動履歴", "ログイン管理", "接続情報", "メール設定", "クリニック紹介", "Q&A"];
 
 type VisitFormState = { visitDate: string; purpose: string; memo: string; nextVisitDate: string };
 const EMPTY_VISIT_FORM: VisitFormState = { visitDate: "", purpose: "", memo: "", nextVisitDate: "" };
@@ -39,11 +39,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   const [error, setError] = useState<string | null>(null);
   const [salesReps, setSalesReps] = useState<SalesRepWithMaster[]>([]);
 
-  // 訪問記録
-  const [visits, setVisits] = useState<ClinicVisit[]>([]);
+  // 行動履歴（訪問記録・問い合わせの統合表示はClinicActivityFeedが自己fetchする）
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [visitForm, setVisitForm] = useState<VisitFormState>(EMPTY_VISIT_FORM);
   const [savingVisit, setSavingVisit] = useState(false);
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0);
 
   // 接続情報（患者様の自己登録用QR + 受付PIN）。得意先コードは連番で推測可能なため
   // URLには使わず、無関係なランダム文字列であるsignup_slugを使う。originはSSR時に
@@ -59,22 +59,15 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   const qrValue = joinUrl && signupPinIssuedAt ? `${joinUrl}?t=${signupPinIssuedAt}` : joinUrl;
 
   const fetchAll = useCallback(() => {
-    Promise.all([
-      fetch(`/api/bgj/clinics/${code}`),
-      fetch(`/api/bgj/clinics/${code}/visits`),
-    ])
-      .then(([clinicRes, visitsRes]) => {
+    fetch(`/api/bgj/clinics/${code}`)
+      .then((clinicRes) => {
         if (!clinicRes.ok) throw new Error("得意先情報の取得に失敗しました");
-        return Promise.all([
-          clinicRes.json(),
-          visitsRes.ok ? visitsRes.json() : Promise.resolve(null),
-        ]);
+        return clinicRes.json();
       })
-      .then(([clinicData, visitsData]) => {
+      .then((clinicData) => {
         const { clinic } = clinicData;
         setClinic(clinic);
         if (clinic) setClinicForm(clinicToForm(clinic));
-        if (visitsData) setVisits(visitsData.visits ?? []);
         setError(null);
       })
       .catch((e) => {
@@ -144,11 +137,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "保存に失敗しました");
       }
-      const { visit } = await res.json();
-      setVisits((prev) => [visit, ...prev]);
       showToast("訪問記録を追加しました");
       setShowVisitModal(false);
       setVisitForm(EMPTY_VISIT_FORM);
+      setActivityRefreshKey((k) => k + 1);
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -298,8 +290,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
           {/* 取引条件 */}
           {activeTab === "取引条件" && <ClinicTermsManager customerCode={code} theme="violet" />}
 
-          {/* 訪問記録 */}
-          {activeTab === "訪問記録" && <ClinicVisitList visits={visits} />}
+          {/* 行動履歴（訪問記録＋問い合わせの統合表示） */}
+          {activeTab === "行動履歴" && <ClinicActivityFeed customerCode={code} refreshKey={activityRefreshKey} />}
 
           {/* ログイン管理 */}
           {activeTab === "ログイン管理" && (
