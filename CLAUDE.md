@@ -11,10 +11,12 @@
 1. `git status --short --branch` を見る
 2. 調査依頼か実装依頼か判断する
 3. Next.jsコード変更なら `node_modules/next/dist/docs/` の関連ガイドを読む（このプロジェクトのNext.jsは一般知識と異なる可能性があるため）
-4. 変更は小さく、1責務に絞る
-5. 必要に応じて `npm run lint` / `npx tsc --noEmit` / `npm run test` / `npm run build` を実行する（下記「自動テスト方針」参照）
-6. commit / push 方針を確認する
-7. デプロイは明示指示がある時だけ行う
+4. 見慣れない環境エラー・応答なし・ハング等に遭遇したら、まず`TROUBLESHOOTING.md`に同じ症状が無いか確認する
+5. 変更は小さく、1責務に絞る
+6. 必要に応じて `npm run lint` / `npx tsc --noEmit` / `npm run test` / `npm run build` を実行する（下記「自動テスト方針」参照）
+7. commit / push 方針を確認する
+8. デプロイは明示指示がある時だけ行う
+9. 自分（Claude）の作業ミス・環境起因の問題を解決したら、`TROUBLESHOOTING.md`に追記してから次に進む（再発防止のためのユーザー方針、詳細は同ファイル末尾「今後の運用方針」参照）
 
 ## プロジェクト情報
 

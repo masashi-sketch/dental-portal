@@ -1,8 +1,13 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // ホームディレクトリ直下に別プロジェクトのpackage-lock.jsonが存在するため、
+  // Next.jsがワークスペースルートをホームディレクトリ全体と誤検出することがある
+  // （その場合、初回リクエストの応答が極端に遅くなる/固まる）。明示的にこの
+  // プロジェクトのディレクトリをルートに固定する。
+  outputFileTracingRoot: path.join(__dirname),
 };
 
 // SENTRY_AUTH_TOKENが無い場合はソースマップアップロードをスキップする
