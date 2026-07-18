@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/useToast";
 import type { StaffArea } from "@/lib/supabase/types";
+import { PREFECTURES } from "@/lib/prefectures";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import LoadingState from "@/components/ui/LoadingState";
@@ -27,7 +28,12 @@ export default function StaffAreasMasterPage() {
         return res.json();
       })
       .then((data) => {
-        setAreas(data.staffAreas ?? []);
+        const sorted = [...(data.staffAreas ?? [])].sort(
+          (a: StaffArea, b: StaffArea) =>
+            PREFECTURES.indexOf(a.name as (typeof PREFECTURES)[number]) -
+            PREFECTURES.indexOf(b.name as (typeof PREFECTURES)[number])
+        );
+        setAreas(sorted);
         setError(null);
       })
       .catch((e) => {
@@ -144,10 +150,12 @@ export default function StaffAreasMasterPage() {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6">
             <h2 className="text-lg font-bold text-slate-800 mb-5">{editItem ? "エリアを編集" : "エリアを追加"}</h2>
             <div>
-              <label className="text-xs font-semibold text-slate-500 mb-1 block">エリア名</label>
-              <input type="text" placeholder="例）東京・関東" value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+              <label className="text-xs font-semibold text-slate-500 mb-1 block">エリア名（都道府県）</label>
+              <select value={name} onChange={(e) => setName(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white">
+                <option value="">選択してください</option>
+                {PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowModal(false)}
