@@ -420,6 +420,35 @@ create table public.clinic_inquiry_replies (
                     </>
                   ),
                 },
+                {
+                  label: "12. BGJポータル使い勝手改善（マスタ一覧化・LINKマスタ）",
+                  content: (
+                    <>
+                      <p>
+                        BGJポータルの運用改善として、以下5点をまとめて実施した。
+                      </p>
+                      <ul className="list-disc list-inside pl-2">
+                        <li>「マスタ &gt; 営業担当」をカード表示から一覧（テーブル）表示に変更（氏名・役職・担当エリア・電話・メール・Slack連携有無・得意先数・今月売上・操作）。</li>
+                        <li>「マスタ &gt; 担当エリア」を自由入力から都道府県セレクトに変更（1エリア＝1都道府県、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/prefectures.ts</code>のPREFECTURESから選択。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">staff_areas.name</code>にもCHECK制約を追加）。</li>
+                        <li>サイドバーの「マスタ」「システム管理」配下を枠・背景で囲んでグループとして視認しやすくした（常時展開のまま、開閉式にはしていない）。見出しラベルの視認性も強化。</li>
+                        <li>新設「マスタ &gt; LINKマスタ」：医院用ポータルのサイドバー「LINKS」欄（従来ハードコード3件）を、BGJが表示名称・リンクURLを自由に追加・編集・削除できるようにした。</li>
+                      </ul>
+                      <Code>{`create table public.bgj_external_links (
+  id uuid primary key default gen_random_uuid(),
+  label text not null,
+  url text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);`}</Code>
+                      <p>
+                        <strong>実装の流れ：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/external-links</code>（GET/POST）・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/[id]</code>（PATCH/DELETE）で、GETのみBGJ限定にせず任意の認証済みセッションに開放している（医院用ポータルの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">AdminSidebar.tsx</code>から参照するため）。書き込み（POST/PATCH/DELETE）は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">requireBgjSession</code>必須で、医院用ポータル側は表示のみ（編集不可）という制約を守っている。
+                      </p>
+                      <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
+                        現在は開発中のため、担当エリアの都道府県制約導入にあたって既存データの移行は行っていない。本番運用開始前に、登録済みのエリア名が47都道府県名と一致しているか要確認。
+                      </p>
+                    </>
+                  ),
+                },
               ]}
             />
           </Card>
@@ -452,7 +481,12 @@ create table public.clinic_inquiry_replies (
                     </Steps>
                     <Steps title="営業担当者・役職・担当エリアを管理する">
                       <li>サイドバーの「マスタ」配下から、それぞれの追加・編集・削除ができます。</li>
-                      <li>営業担当者には顔写真（画像URL）・役職・担当エリアを設定できます。</li>
+                      <li>営業担当者には顔写真（画像URL）・役職・担当エリアを設定できます。担当エリアは都道府県から選択します（自由入力はできません）。</li>
+                      <li>営業担当は一覧（テーブル）で表示され、Slack連携の設定有無もひと目で確認できます。</li>
+                    </Steps>
+                    <Steps title="医院用ポータルのLINKS欄を管理する（LINKマスタ）">
+                      <li>サイドバーの「マスタ」→「LINKマスタ」を開きます。</li>
+                      <li>表示名称とリンクURLを入力して追加すると、全医院の医院用ポータル・サイドバー「LINKS」欄に反映されます（医院様側は表示のみで編集はできません）。</li>
                     </Steps>
                     <Steps title="医院様に代わって表示名・背景画像を設定する（サポート対応）">
                       <li>「得意先一覧」→対象医院→「基本情報」タブに、ポータル表示名・患者様ポータルの背景画像URLの入力欄があります。</li>
