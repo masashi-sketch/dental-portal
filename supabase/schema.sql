@@ -338,7 +338,7 @@ create table public.clinic_inquiries (
   subject            text not null,
   body               text not null,
   status             text not null default '未対応' check (status in ('未対応','対応中','完了')),
-  created_by         text,              -- 送信した医院ログインID
+  created_by         text,              -- 送信した医院スタッフの表示名（clinic_users.name、無ければlogin_id）
   slack_notified_at  timestamptz,       -- Slack通知の送信有無・時刻（デバッグ・監査用）
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now()

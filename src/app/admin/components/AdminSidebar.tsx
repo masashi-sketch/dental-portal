@@ -7,7 +7,7 @@ import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { useActiveClinic } from '@/hooks/useActiveClinic';
 import type { SalesRepWithMaster } from '@/lib/supabase/types';
 
-export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'clinicContract' | 'clinicConfig' | 'clinicQr' | 'clinicIntro' | 'clinicQa';
+export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'clinicContract' | 'clinicConfig' | 'clinicQr' | 'clinicIntro' | 'clinicQa' | 'inquiry';
 
 // モック：未読件数と最終更新日時
 const CONTENT_UNREAD: Partial<Record<AdminPage, { updatedAt: string; count: number }>> = {
@@ -72,6 +72,9 @@ function IconClinicInfo() {
 function IconQA() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
 }
+function IconInquiry() {
+  return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>;
+}
 
 type LinkNavItem = { type: 'link'; key: AdminPage; label: string; href: string; icon: React.ReactNode; dividerBefore?: boolean };
 type GroupNavItem = {
@@ -99,6 +102,7 @@ const navItems: (LinkNavItem | GroupNavItem)[] = [
   { type: 'link',  key: 'news',       label: 'お知らせ管理',     href: '/admin/news',        icon: <IconBell />, dividerBefore: true },
   { type: 'link',  key: 'clinicIntro', label: 'クリニック紹介',  href: '/admin/clinic-intro', icon: <IconClinicInfo /> },
   { type: 'link',  key: 'clinicQa',   label: 'Q & A',            href: '/admin/qa',          icon: <IconQA /> },
+  { type: 'link',  key: 'inquiry',    label: 'お問い合わせ',     href: '/admin/inquiry',     icon: <IconInquiry /> },
   { type: 'link',  key: 'orders',     label: '定期購入管理',     href: '/admin/orders',      icon: <IconRefresh /> },
   { type: 'link',  key: 'products',   label: '商品管理',         href: '/admin/products',    icon: <IconBag /> },
   { type: 'link',  key: 'campaign',   label: 'キャンペーン情報', href: '/admin/campaign',    icon: <IconCampaign />,   dividerBefore: true },
