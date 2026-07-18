@@ -5,12 +5,21 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 
+type ChildNavItem = {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+};
+
 type NavItem = {
   label: string;
   href: string;
   icon: React.ReactNode;
   dividerAfter?: boolean;
   sectionLabel?: string;
+  // 普段は折りたたまれ、開閉トグルをクリックした時・子項目のページを開いている時
+  // だけ表示される子項目（例：「営業担当」配下の「役職マスタ」「担当エリア」）。
+  children?: ChildNavItem[];
 };
 
 const navItems: NavItem[] = [
@@ -35,16 +44,18 @@ const navItems: NavItem[] = [
     href: "/bgj/master/staff",
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
     sectionLabel: "マスタ",
-  },
-  {
-    label: "役職マスタ",
-    href: "/bgj/master/roles",
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5.586a1 1 0 01.707.293l6.414 6.414a1 1 0 010 1.414l-7.586 7.586a1 1 0 01-1.414 0l-6.414-6.414A1 1 0 014 11.586V6a3 3 0 013-3z" /></svg>,
-  },
-  {
-    label: "担当エリア",
-    href: "/bgj/master/areas",
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+    children: [
+      {
+        label: "役職マスタ",
+        href: "/bgj/master/roles",
+        icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5.586a1 1 0 01.707.293l6.414 6.414a1 1 0 010 1.414l-7.586 7.586a1 1 0 01-1.414 0l-6.414-6.414A1 1 0 014 11.586V6a3 3 0 013-3z" /></svg>,
+      },
+      {
+        label: "担当エリア",
+        href: "/bgj/master/areas",
+        icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+      },
+    ],
   },
   {
     label: "LINKマスタ",
@@ -93,6 +104,106 @@ const navGroups: NavGroup[] = navItems.reduce<NavGroup[]>((groups, item) => {
   return groups;
 }, []);
 
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      className={`w-3.5 h-3.5 shrink-0 transition-transform ${expanded ? "rotate-90" : ""}`}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2.5}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+    </svg>
+  );
+}
+
+// 子項目を持つnavItem用の行。子項目（例：「役職マスタ」「担当エリア」）は
+// 普段は折りたたまれて非表示で、開閉トグルをクリックした時、または子項目の
+// ページを開いている時だけ表示する。
+function NavItemRow({
+  item,
+  pathname,
+  onNavClick,
+}: {
+  item: NavItem;
+  pathname: string;
+  onNavClick: () => void;
+}) {
+  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+  const childActive =
+    item.children?.some((c) => pathname === c.href || pathname.startsWith(c.href + "/")) ?? false;
+  const [expanded, setExpanded] = useState(childActive);
+
+  if (!item.children || item.children.length === 0) {
+    return (
+      <div>
+        <Link
+          href={item.href}
+          onClick={onNavClick}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+            isActive
+              ? "bg-white/20 text-white font-semibold shadow-sm"
+              : "text-violet-200 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          <span className="shrink-0">{item.icon}</span>
+          <span className="flex-1 leading-snug">{item.label}</span>
+        </Link>
+        {item.dividerAfter && <div className="my-2 border-t border-violet-700/40" />}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div
+        className={`flex items-center rounded-xl text-sm transition-all ${
+          isActive
+            ? "bg-white/20 text-white font-semibold shadow-sm"
+            : "text-violet-200 hover:bg-white/10 hover:text-white"
+        }`}
+      >
+        <Link href={item.href} onClick={onNavClick} className="flex-1 flex items-center gap-3 px-3 py-2.5 min-w-0">
+          <span className="shrink-0">{item.icon}</span>
+          <span className="flex-1 leading-snug">{item.label}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-label={expanded ? `${item.label}の詳細を閉じる` : `${item.label}の詳細を開く`}
+          className="px-2.5 py-2.5 shrink-0 text-violet-300/80 hover:text-white"
+        >
+          <ChevronIcon expanded={expanded} />
+        </button>
+      </div>
+      {expanded && (
+        <div className="flex flex-col gap-0.5 pl-4 mt-0.5">
+          {item.children.map((child) => {
+            const childIsActive = pathname === child.href || pathname.startsWith(child.href + "/");
+            return (
+              <Link
+                key={child.href}
+                href={child.href}
+                onClick={onNavClick}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${
+                  childIsActive
+                    ? "bg-white/20 text-white font-semibold shadow-sm"
+                    : "text-violet-200/80 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <span className="shrink-0">{child.icon}</span>
+                <span className="flex-1 leading-snug">{child.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+      {item.dividerAfter && <div className="my-2 border-t border-violet-700/40" />}
+    </div>
+  );
+}
+
 function SidebarContent({
   pathname,
   userName,
@@ -131,26 +242,9 @@ function SidebarContent({
             {group.sectionLabel && (
               <p className="text-violet-200 text-[11px] font-bold tracking-widest px-2 pt-1 pb-1.5">{group.sectionLabel}</p>
             )}
-            {group.items.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <div key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={onNavClick}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
-                      isActive
-                        ? "bg-white/20 text-white font-semibold shadow-sm"
-                        : "text-violet-200 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <span className="shrink-0">{item.icon}</span>
-                    <span className="flex-1 leading-snug">{item.label}</span>
-                  </Link>
-                  {item.dividerAfter && <div className="my-2 border-t border-violet-700/40" />}
-                </div>
-              );
-            })}
+            {group.items.map((item) => (
+              <NavItemRow key={item.href} item={item} pathname={pathname} onNavClick={onNavClick} />
+            ))}
           </div>
         ))}
       </nav>
