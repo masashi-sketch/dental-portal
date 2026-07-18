@@ -61,9 +61,21 @@ create table public.staff_roles (
   updated_at timestamptz not null default now()
 );
 
+-- name は1エリア＝1都道府県に制約する（src/lib/prefectures.ts の PREFECTURES と同期させる）。
 create table public.staff_areas (
   id         uuid primary key default gen_random_uuid(),
-  name       text not null unique,
+  name       text not null unique check (name in (
+    '北海道',
+    '青森県','岩手県','宮城県','秋田県','山形県','福島県',
+    '茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',
+    '新潟県','富山県','石川県','福井県','山梨県','長野県',
+    '岐阜県','静岡県','愛知県','三重県',
+    '滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県',
+    '鳥取県','島根県','岡山県','広島県','山口県',
+    '徳島県','香川県','愛媛県','高知県',
+    '福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県',
+    '沖縄県'
+  )),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -82,6 +94,20 @@ create trigger trg_staff_roles_updated_at
 
 create trigger trg_staff_areas_updated_at
   before update on public.staff_areas
+  for each row execute function public.set_updated_at_generic();
+
+-- BGJポータル「マスタ > LINKマスタ」で管理する、医院用ポータルのサイドバー
+-- 「LINKS」欄に表示する外部リンク。医院用ポータル側は表示のみ（編集不可）。
+create table public.bgj_external_links (
+  id         uuid primary key default gen_random_uuid(),
+  label      text not null,
+  url        text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create trigger trg_bgj_external_links_updated_at
+  before update on public.bgj_external_links
   for each row execute function public.set_updated_at_generic();
 
 -- ============================================================
@@ -571,6 +597,7 @@ alter table public.periodontal_stages     enable row level security;
 alter table public.periodontal_grades     enable row level security;
 alter table public.staff_roles            enable row level security;
 alter table public.staff_areas            enable row level security;
+alter table public.bgj_external_links     enable row level security;
 alter table public.sales_reps             enable row level security;
 alter table public.clinics                enable row level security;
 alter table public.clinic_patient_settings enable row level security;

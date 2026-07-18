@@ -105,6 +105,14 @@ export type SalesRepWithMaster = SalesRep & {
   area: StaffArea | null;
 };
 
+export type ExternalLink = {
+  id: string;
+  label: string;
+  url: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Clinic = {
   customer_code: string;
   name: string;
@@ -359,6 +367,8 @@ export const SALES_REP_COLUMNS =
   'id, name, role_id, area_id, phone, email, photo_url, slack_user_id, created_at, updated_at';
 
 export const STAFF_ROLE_COLUMNS = 'id, name, created_at, updated_at';
+
+export const EXTERNAL_LINK_COLUMNS = 'id, label, url, created_at, updated_at';
 
 export const STAFF_AREA_COLUMNS = 'id, name, created_at, updated_at';
 
