@@ -77,8 +77,14 @@ const navItems: NavItem[] = [
 
 type NavGroup = { sectionLabel: string | null; items: NavItem[] };
 
-// sectionLabelを起点にnavItemsをグループ化する（配列自体はフラットなまま、
-// 描画側だけをグループ単位にまとめて枠で囲む）。
+// sectionLabelを起点にnavItemsを自動的にグループ化し、描画側でグループ単位に
+// 枠で囲む。今後navItemsに項目を追加するときの方針：
+// ・既存グループ（マスタ／システム管理／ヘルプ）に項目を追加する場合は、
+//   そのグループの末尾（次のsectionLabel項目の手前）に、sectionLabelを
+//   付けずに追加するだけで自動的に同じ枠に入る。
+// ・新しいグループを作る場合は、そのグループの最初の項目にだけ
+//   sectionLabelを付ける（以降の項目は付けない）。
+// navGroups自体やレンダリング側のコードを手で書き換える必要はない。
 const navGroups: NavGroup[] = navItems.reduce<NavGroup[]>((groups, item) => {
   if (item.sectionLabel || groups.length === 0) {
     groups.push({ sectionLabel: item.sectionLabel ?? null, items: [] });
@@ -120,7 +126,7 @@ function SidebarContent({
         {navGroups.map((group, groupIndex) => (
           <div
             key={groupIndex}
-            className={group.sectionLabel ? "bg-white/5 rounded-xl p-1.5 mb-1" : undefined}
+            className={group.sectionLabel ? "bg-violet-950/40 border border-violet-700/40 rounded-xl p-1.5 mb-2" : undefined}
           >
             {group.sectionLabel && (
               <p className="text-violet-200 text-[11px] font-bold tracking-widest px-2 pt-1 pb-1.5">{group.sectionLabel}</p>
