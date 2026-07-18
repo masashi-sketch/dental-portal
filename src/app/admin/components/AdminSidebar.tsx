@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { useActiveClinic } from '@/hooks/useActiveClinic';
-import type { SalesRepWithMaster } from '@/lib/supabase/types';
+import type { ExternalLink, SalesRepWithMaster } from '@/lib/supabase/types';
 
 export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'clinicContract' | 'clinicConfig' | 'clinicQr' | 'clinicIntro' | 'clinicQa' | 'inquiry';
 
@@ -42,17 +42,13 @@ function IconCampaign() {
 function IconNewsletter() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>;
 }
-function IconAcademy() {
-  return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>;
-}
-function IconResearch() {
-  return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg>;
-}
 function IconExternal() {
   return <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>;
 }
-function IconChildHealth() {
-  return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2z" /><path d="M12 12c-5 0-9 2.5-9 5v1h18v-1c0-2.5-4-5-9-5z" /></svg>;
+// LINKマスタ（BGJが自由に追加する外部リンク）はリンクごとに個別アイコンを
+// 持てないため、全リンク共通の汎用アイコンを使う。
+function IconLink() {
+  return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>;
 }
 function IconMenu() {
   return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>;
@@ -107,12 +103,6 @@ const navItems: (LinkNavItem | GroupNavItem)[] = [
   { type: 'link',  key: 'products',   label: '商品管理',         href: '/admin/products',    icon: <IconBag /> },
   { type: 'link',  key: 'campaign',   label: 'キャンペーン情報', href: '/admin/campaign',    icon: <IconCampaign />,   dividerBefore: true },
   { type: 'link',  key: 'biogaia',    label: 'バイオガイア通信', href: '/admin/biogaia',     icon: <IconNewsletter /> },
-];
-
-const externalLinks = [
-  { label: 'BiogaiaAcademy',    href: 'https://biogaia-academy.jp/?srsltid=AfmBOooyuVnGxUjZSqUif84eLmsf6y8F-hE-UilcU9wz2vTtBTJo6QdN', icon: <IconAcademy /> },
-  { label: 'Biogaia学術情報',   href: 'https://reuteri-lab.jp/post/research', icon: <IconResearch /> },
-  { label: 'こどもヘルスラボ', href: 'https://childhealth.jp/?srsltid=AfmBOorq5Na8WlWqf7GTOwMNK1Y1Urk_EgwCL0extO5FY_N_gE8SUtkw', icon: <IconChildHealth /> },
 ];
 
 function GroupNavRow({
@@ -172,10 +162,12 @@ function NavItems({
   active,
   onNavClick,
   unreadCounts,
+  externalLinks,
 }: {
   active: AdminPage;
   onNavClick?: () => void;
   unreadCounts: Map<AdminPage, number>;
+  externalLinks: ExternalLink[];
 }) {
   return (
     <>
@@ -217,23 +209,25 @@ function NavItems({
         );
       })}
 
-      <div className="mt-4 pt-4 border-t border-sky-800/50">
-        <p className="text-sky-300/60 text-xs font-semibold tracking-widest px-3 pb-2">LINKS</p>
-        {externalLinks.map((item) => (
-          <a
-            key={item.label}
-            href={item.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 px-3 py-3 rounded-xl text-lg font-medium text-sky-100/80 hover:bg-sky-800/50 hover:text-white transition-colors"
-          >
-            <span className="text-sky-300/70 shrink-0">{item.icon}</span>
-            {/* 折り返して全体表示（truncate なし） */}
-            <span className="flex-1 leading-snug">{item.label}</span>
-            <span className="text-sky-400/60 shrink-0"><IconExternal /></span>
-          </a>
-        ))}
-      </div>
+      {externalLinks.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-sky-800/50">
+          <p className="text-sky-300/60 text-xs font-semibold tracking-widest px-3 pb-2">LINKS</p>
+          {externalLinks.map((item) => (
+            <a
+              key={item.id}
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-3 py-3 rounded-xl text-lg font-medium text-sky-100/80 hover:bg-sky-800/50 hover:text-white transition-colors"
+            >
+              <span className="text-sky-300/70 shrink-0"><IconLink /></span>
+              {/* 折り返して全体表示（truncate なし） */}
+              <span className="flex-1 leading-snug">{item.label}</span>
+              <span className="text-sky-400/60 shrink-0"><IconExternal /></span>
+            </a>
+          ))}
+        </div>
+      )}
     </>
   );
 }
@@ -306,7 +300,19 @@ function SalesRepCard({ salesRep, loaded }: { salesRep: SalesRepWithMaster | nul
 export default function AdminSidebar({ active }: { active: AdminPage }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Map<AdminPage, number>>(new Map());
+  const [externalLinks, setExternalLinks] = useState<ExternalLink[]>([]);
   const { clinicName, salesRep, loaded: clinicLoaded } = useActiveClinic();
+
+  const fetchExternalLinks = useCallback(() => {
+    fetch('/api/bgj/external-links')
+      .then((res) => (res.ok ? res.json() : Promise.resolve({ externalLinks: [] })))
+      .then((data) => setExternalLinks(data.externalLinks ?? []))
+      .catch(() => setExternalLinks([]));
+  }, []);
+
+  useEffect(() => {
+    fetchExternalLinks();
+  }, [fetchExternalLinks]);
 
   useEffect(() => {
     const counts = new Map<AdminPage, number>();
@@ -383,7 +389,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
           <LogoBlock clinicName={clinicName} />
         </div>
         <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-          <NavItems active={active} unreadCounts={unreadCounts} />
+          <NavItems active={active} unreadCounts={unreadCounts} externalLinks={externalLinks} />
         </nav>
         {portalSection()}
         {logoutSection()}
@@ -436,7 +442,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
           </button>
         </div>
         <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-          <NavItems active={active} onNavClick={() => setMobileOpen(false)} unreadCounts={unreadCounts} />
+          <NavItems active={active} onNavClick={() => setMobileOpen(false)} unreadCounts={unreadCounts} externalLinks={externalLinks} />
         </nav>
         {portalSection(() => setMobileOpen(false))}
         {logoutSection(() => setMobileOpen(false))}
