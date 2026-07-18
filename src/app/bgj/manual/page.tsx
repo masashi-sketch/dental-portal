@@ -115,6 +115,7 @@ export default function ManualPage() {
                       <p className="font-bold text-slate-800 mt-2">エラー監視（Sentry）</p>
                       <p>
                         <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">@sentry/nextjs</code>導入済み。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">NEXT_PUBLIC_SENTRY_DSN</code>が未設定の間は自動的に無効化され何も送信されない。メール等の個人情報は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/sentryScrub.ts</code>でマスクしている。
+                        BGJポータルの「システム管理」→「アプリ管理」画面には、Sentry API（Auth Token方式）経由で未解決issue一覧を表示する機能もある（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/app/api/bgj/system/sentry-issues/route.ts</code>）。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">SENTRY_AUTH_TOKEN</code>（scope: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">project:read</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">event:read</code>）が未設定の間はエラーにせず「未設定」表示になる。組織スラッグ・プロジェクトIDはDSNから判明する非秘密情報のためコード内に定数として埋め込んでいる。
                       </p>
                       <p className="font-bold text-slate-800 mt-2">開発環境</p>
                       <Code>{`npm run dev    # 開発サーバー（--webpack固定。Turbopackは日本語パスでクラッシュするため）
@@ -392,7 +393,7 @@ npx vitest run <ファイルパス>  # 特定のテストだけ実行`}</Code>
                     </Steps>
                     <Steps title="システムの状態を確認する（システム管理）">
                       <li>サイドバーの「システム管理」→「DB管理」で、データベースの使用容量・テーブルごとの内訳を確認できます。</li>
-                      <li>「システム管理」→「アプリ管理」で、連携している外部サービスの一覧と、環境変数の設定漏れがないかを確認できます（設定値そのものは表示されません）。</li>
+                      <li>「システム管理」→「アプリ管理」で、連携している外部サービスの一覧と、環境変数の設定漏れがないかを確認できます（設定値そのものは表示されません）。同じ画面の「エラー監視状況」欄に、Sentryで検知した未解決エラーの一覧（直近14日・頻度順）が表示されます。詳しく調べたい場合は欄内のリンクからSentry本体を開いてください。</li>
                     </Steps>
                   </>
                 ),

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
 import LoadingState from "@/components/ui/LoadingState";
+import SentryIssuesPanel from "@/components/SentryIssuesPanel";
 
 type ManagedApp = {
   name: string;
@@ -52,10 +53,10 @@ const MANAGED_APPS: ManagedApp[] = [
   },
   {
     name: "Sentry",
-    purpose: "エラー監視（DSN未設定の間は自動的に無効化される）",
+    purpose: "エラー監視（DSN未設定の間は自動的に無効化される）。SENTRY_AUTH_TOKENは下記「エラー監視状況」欄にissue一覧を表示するために使う",
     planTier: "Developer（無料）",
-    requiredEnvVars: ["NEXT_PUBLIC_SENTRY_DSN"],
-    dashboardUrl: "https://sentry.io",
+    requiredEnvVars: ["NEXT_PUBLIC_SENTRY_DSN", "SENTRY_AUTH_TOKEN"],
+    dashboardUrl: "https://biogaiajp.sentry.io",
   },
   {
     name: "Google WorkSpace（患者様向けメール送信）",
@@ -129,6 +130,9 @@ export default function BgjSystemAppsPage() {
             )}
           </Card>
         ))}
+
+        {/* Sentryのエラー監視状況（未解決issue一覧） */}
+        <SentryIssuesPanel />
 
         {/* 環境変数の設定状況 */}
         <Card className="overflow-hidden">
