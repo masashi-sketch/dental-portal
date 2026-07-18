@@ -146,63 +146,58 @@ export default function StaffMasterPage() {
         <div className="mb-4 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
       )}
 
-      {/* 担当者カード */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {loading && <LoadingState variant="grid-cell" />}
-        {!loading && salesReps.length === 0 && (
-          <p className="text-slate-400 col-span-full text-center py-8">営業担当者がまだ登録されていません</p>
-        )}
-        {salesReps.map((s) => {
-          const stats = statsFor(s.id);
-          return (
-            <Card key={s.id} className="p-5">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <SalesRepAvatar name={s.name} photoUrl={s.photo_url} size={44} className="text-lg" />
-                  <div>
-                    <p className="font-bold text-slate-800">{s.name}</p>
-                    <p className="text-xs text-violet-600 font-semibold">{s.role?.name || "—"}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => openEdit(s)} className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">編集</button>
-                  <button onClick={() => setDeleteId(s.id)} className="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">削除</button>
-                </div>
-              </div>
-              <div className="flex flex-col gap-1.5 mb-4">
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  </svg>
-                  {s.area?.name || "—"}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  {s.phone || "—"}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  {s.email || "—"}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100">
-                <div className="text-center">
-                  <p className="text-lg font-bold text-violet-600">{stats.customers}</p>
-                  <p className="text-xs text-slate-400">得意先</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-lg font-bold text-emerald-600">¥{stats.monthSales.toLocaleString()}</p>
-                  <p className="text-xs text-slate-400">今月売上</p>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+      {/* 担当者一覧 */}
+      <Card className="overflow-hidden mb-6">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                {["氏名", "役職", "担当エリア", "電話番号", "メールアドレス", "Slack連携", "得意先", "今月売上", ""].map((h) => (
+                  <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-slate-500 whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading && <LoadingState variant="table-row" colSpan={9} />}
+              {!loading && salesReps.length === 0 && (
+                <tr><td colSpan={9} className="px-5 py-8 text-center text-slate-400">営業担当者がまだ登録されていません</td></tr>
+              )}
+              {salesReps.map((s) => {
+                const stats = statsFor(s.id);
+                return (
+                  <tr key={s.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <SalesRepAvatar name={s.name} photoUrl={s.photo_url} size={32} className="text-sm shrink-0" />
+                        <span className="font-semibold text-slate-800 whitespace-nowrap">{s.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-slate-600 whitespace-nowrap">{s.role?.name || "—"}</td>
+                    <td className="px-5 py-3 text-slate-600 whitespace-nowrap">{s.area?.name || "—"}</td>
+                    <td className="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">{s.phone || "—"}</td>
+                    <td className="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">{s.email || "—"}</td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      {s.slack_user_id ? (
+                        <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-600">設定済み</span>
+                      ) : (
+                        <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-400">未設定</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-slate-700 font-semibold whitespace-nowrap">{stats.customers}</td>
+                    <td className="px-5 py-3 text-emerald-600 font-semibold whitespace-nowrap">¥{stats.monthSales.toLocaleString()}</td>
+                    <td className="px-5 py-3 text-right whitespace-nowrap">
+                      <div className="flex items-center gap-2 justify-end">
+                        <button onClick={() => openEdit(s)} className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">編集</button>
+                        <button onClick={() => setDeleteId(s.id)} className="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">削除</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       {/* 担当変更テーブル */}
       <Card className="overflow-hidden">
