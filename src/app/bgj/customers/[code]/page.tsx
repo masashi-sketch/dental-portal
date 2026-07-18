@@ -7,6 +7,7 @@ import SignupQrCard from "@/components/SignupQrCard";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
 import ClinicStaffManager from "@/components/ClinicStaffManager";
 import ClinicQaManager from "@/components/ClinicQaManager";
+import ClinicAnnouncementManager from "@/components/ClinicAnnouncementManager";
 import ClinicEmailTemplatesManager from "@/components/ClinicEmailTemplatesManager";
 import ClinicLoginManager from "@/components/ClinicLoginManager";
 import ClinicTermsManager from "@/components/ClinicTermsManager";
@@ -20,7 +21,7 @@ import { clinicToForm, type ClinicFormState, type ClinicWithStaff } from "@/lib/
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 
-const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "行動履歴", "ログイン管理", "接続情報", "メール設定", "クリニック紹介", "Q&A"];
+const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "行動履歴", "ログイン管理", "接続情報", "メール設定", "クリニック紹介", "お知らせ", "Q&A"];
 
 type VisitFormState = { visitDate: string; purpose: string; memo: string; nextVisitDate: string };
 const EMPTY_VISIT_FORM: VisitFormState = { visitDate: "", purpose: "", memo: "", nextVisitDate: "" };
@@ -360,6 +361,16 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                 患者様ポータルの「クリニック紹介」画面に表示するスタッフ紹介を、医院様に代わって編集できます。診療時間・アクセス情報は「基本情報」タブから編集してください。
               </p>
               <ClinicStaffManager customerCode={code} theme="violet" />
+            </Card>
+          )}
+
+          {/* お知らせ（代理編集） */}
+          {activeTab === "お知らせ" && (
+            <Card className="p-5">
+              <p className="text-xs text-slate-400 mb-4">
+                患者様ポータルのホーム画面に表示するお知らせを、医院様に代わって編集できます。
+              </p>
+              <ClinicAnnouncementManager customerCode={code} theme="violet" />
             </Card>
           )}
 

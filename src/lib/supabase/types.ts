@@ -207,6 +207,20 @@ export type ClinicQa = {
   updated_at: string;
 };
 
+// 医院用ポータル「お知らせ管理」（/admin/news）から入力し、患者ポータルの
+// ホーム画面に表示するお知らせ。sort_orderは持たず、announcement_dateの
+// 新しい順に表示する。
+export type ClinicAnnouncement = {
+  id: string;
+  customer_code: string;
+  announcement_date: string;
+  tag: '重要' | 'お知らせ' | 'キャンペーン';
+  text: string;
+  status: '公開' | '下書き';
+  created_at: string;
+  updated_at: string;
+};
+
 export type ClinicOrder = {
   id: string;
   customer_code: string;
@@ -321,6 +335,9 @@ export const CLINIC_STAFF_COLUMNS =
 
 export const CLINIC_QA_COLUMNS =
   'id, customer_code, category, question, answer, sort_order, status, created_at, updated_at';
+
+export const CLINIC_ANNOUNCEMENT_COLUMNS =
+  'id, customer_code, announcement_date, tag, text, status, created_at, updated_at';
 
 export const CLINIC_ORDER_COLUMNS =
   'id, customer_code, order_date, product_name, quantity, amount, status, created_at';

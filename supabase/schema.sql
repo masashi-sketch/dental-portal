@@ -539,6 +539,27 @@ create trigger trg_clinic_qa_updated_at
   before update on public.clinic_qa
   for each row execute function public.set_updated_at_generic();
 
+-- 医院用ポータル「お知らせ管理」（/admin/news）から入力し、患者ポータルの
+-- ホーム画面（デスクトップ・モバイル両方）に表示するお知らせ。sort_orderは
+-- 持たず、announcement_date（日付）の新しい順に表示する。
+create table public.clinic_announcements (
+  id                 uuid primary key default gen_random_uuid(),
+  customer_code      text not null references public.clinics (customer_code) on delete cascade,
+  announcement_date  date not null default current_date,
+  tag                text not null default 'お知らせ' check (tag in ('重要','お知らせ','キャンペーン')),
+  text               text not null,
+  status             text not null default '公開' check (status in ('公開','下書き')),
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
+);
+
+create index idx_clinic_announcements_customer_code
+  on public.clinic_announcements (customer_code, announcement_date desc);
+
+create trigger trg_clinic_announcements_updated_at
+  before update on public.clinic_announcements
+  for each row execute function public.set_updated_at_generic();
+
 -- ============================================================
 -- 10. RLS：原則ポリシーを一切定義せず有効化するのみ。
 --    anon/authenticated からは読み書き一切不可。service_role キーのみアクセス可能。
@@ -567,6 +588,7 @@ alter table public.patient_login_tokens   enable row level security;
 alter table public.app_settings           enable row level security;
 alter table public.clinic_inquiries       enable row level security;
 alter table public.clinic_inquiry_replies enable row level security;
+alter table public.clinic_announcements   enable row level security;
 
 -- ============================================================
 -- 11. フェーズ3b：患者ポータルの歯周病診断読み取り経路のみ、

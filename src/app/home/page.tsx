@@ -1,13 +1,47 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import BottomNav from '../components/BottomNav';
 import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import { isPatientNavKeyVisible, type PatientNavKey } from '@/lib/patientNav';
+import type { ClinicAnnouncement } from '@/lib/supabase/types';
+
+const ANNOUNCEMENT_TAG_COLORS: Record<ClinicAnnouncement['tag'], string> = {
+  重要: 'bg-red-50 text-red-500',
+  お知らせ: 'bg-blue-50 text-blue-500',
+  キャンペーン: 'bg-amber-50 text-amber-500',
+};
+
+function formatAnnouncementDate(date: string) {
+  return date.replaceAll('-', '.');
+}
+
+// デスクトップ用サイドバー内・モバイル用カードの両方で使う、お知らせ一覧の表示。
+// announcementsがnull（未取得・取得失敗）の間は何も描画せず、ホーム画面の主機能に
+// 影響を与えない（お知らせ取得の失敗でページ全体を壊さないため）。
+function AnnouncementList({ announcements }: { announcements: ClinicAnnouncement[] | null }) {
+  if (announcements === null) return null;
+  if (announcements.length === 0) {
+    return <p className="text-xs text-gray-400 py-2">お知らせはありません</p>;
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      {announcements.map((a) => (
+        <div key={a.id} className="flex flex-col gap-1 py-2 border-b border-gray-50 last:border-0 px-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-gray-400">{formatAnnouncementDate(a.announcement_date)}</span>
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ANNOUNCEMENT_TAG_COLORS[a.tag]}`}>{a.tag}</span>
+          </div>
+          <p className="text-[11px] text-gray-600 leading-snug break-all">{a.text}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function IconMenu() {
   return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
@@ -126,6 +160,14 @@ const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス',
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { clinicName, navVisibility } = usePatientClinicBranding();
+  const [announcements, setAnnouncements] = useState<ClinicAnnouncement[] | null>(null);
+
+  useEffect(() => {
+    fetch('/api/patient-portal/announcements')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data) setAnnouncements(data.announcements ?? []); })
+      .catch(() => {});
+  }, []);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'おはようございます' : hour < 18 ? 'こんにちは' : 'こんばんは';
@@ -203,21 +245,7 @@ export default function HomePage() {
             {/* お知らせ */}
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-xs text-gray-400 font-medium mb-3 px-1">お知らせ</p>
-              <div className="flex flex-col gap-1">
-                {[
-                  { date: '2026.06.01', tag: '重要', tagColor: 'bg-red-50 text-red-500', text: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯' },
-                  { date: '2026.05.20', tag: 'お知らせ', tagColor: 'bg-blue-50 text-blue-500', text: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯' },
-                  { date: '2026.05.10', tag: 'お知らせ', tagColor: 'bg-gray-50 text-gray-500', text: '◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯◯' },
-                ].map((n, i) => (
-                  <div key={i} className="flex flex-col gap-1 py-2 border-b border-gray-50 last:border-0 px-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-gray-400">{n.date}</span>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${n.tagColor}`}>{n.tag}</span>
-                    </div>
-                    <p className="text-[11px] text-gray-600 leading-snug break-all">{n.text}</p>
-                  </div>
-                ))}
-              </div>
+              <AnnouncementList announcements={announcements} />
             </div>
 
           </div>
@@ -237,6 +265,14 @@ export default function HomePage() {
               <span>次回のご予約：<span className="font-semibold">◯月◯日（◯）◯◯:◯◯</span></span>
             </div>
           </div>
+
+          {/* お知らせ（モバイルのみ。デスクトップはサイドバー内に表示） */}
+          {announcements !== null && (
+            <div className="md:hidden bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+              <p className="text-xs text-gray-400 font-medium mb-2 px-1">お知らせ</p>
+              <AnnouncementList announcements={announcements} />
+            </div>
+          )}
 
           {/* メニューカードグリッド */}
           <div>
