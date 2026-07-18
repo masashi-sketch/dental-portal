@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { name, roleId, areaId, phone, email, photoUrl } = body ?? {};
+  const { name, roleId, areaId, phone, email, photoUrl, slackUserId } = body ?? {};
   if (!name) {
     return NextResponse.json({ error: '氏名は必須です。' }, { status: 400 });
   }
@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
       phone: phone || null,
       email: email || null,
       photo_url: photoUrl || null,
+      slack_user_id: slackUserId || null,
     })
     .select(SALES_REP_COLUMNS)
     .single();

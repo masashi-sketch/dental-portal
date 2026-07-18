@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const { id } = await params;
   const body = await request.json();
-  const { name, roleId, areaId, phone, email, photoUrl } = body ?? {};
+  const { name, roleId, areaId, phone, email, photoUrl, slackUserId } = body ?? {};
 
   const update: Record<string, unknown> = {};
   if (name !== undefined) update.name = name;
@@ -23,6 +23,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (phone !== undefined) update.phone = phone;
   if (email !== undefined) update.email = email;
   if (photoUrl !== undefined) update.photo_url = photoUrl;
+  if (slackUserId !== undefined) update.slack_user_id = slackUserId || null;
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase

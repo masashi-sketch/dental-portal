@@ -229,8 +229,10 @@ export type ClinicVisit = {
   created_at: string;
 };
 
-// 得意先（医院）からの問い合わせ（Slack連携）。医院用ポータル（/admin/inquiry）から
-// 送信され、Slackへ通知される。slack_thread_tsで返信（ClinicInquiryReply）と紐づく。
+// 得意先（医院）からの問い合わせ。医院用ポータル（/admin/inquiry）から送信され、
+// Slack（Incoming Webhookによる一方向通知）へ担当営業メンション＋返信URL付きで
+// 通知される。返信はBGJポータル（/bgj/inquiries/[id]）でのみ行う設計のため、
+// Slack側の返信を自動取り込みする仕組みは持たない。
 export type ClinicInquiry = {
   id: string;
   customer_code: string;
@@ -238,32 +240,27 @@ export type ClinicInquiry = {
   body: string;
   status: '未対応' | '対応中' | '完了';
   created_by: string | null;
-  slack_channel_id: string | null;
-  slack_thread_ts: string | null;
+  slack_notified_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
-// Slackでの返信（source: 'slack'）とBGJ職員によるポータル内返信（source: 'portal'）の
-// 両方を保持する会話ログ。src/app/api/slack/events/route.tsのみがsource: 'slack'を書き込む。
+// BGJ職員が/bgj/inquiries/[id]で行う返信の会話ログ。
 export type ClinicInquiryReply = {
   id: string;
   inquiry_id: string;
-  source: 'slack' | 'portal';
   author_name: string | null;
-  author_slack_user_id: string | null;
+  author_email: string | null;
   body: string;
-  slack_message_ts: string | null;
   created_at: string;
 };
 
 // アプリ全体の共通設定（シングルトン、常に1行のみ）。BGJポータル「システム管理 >
-// 共通マスタ」で編集する。slack_bot_tokenはクライアントへ絶対に生値を返さないこと
+// 共通マスタ」で編集する。slack_webhook_urlはクライアントへ絶対に生値を返さないこと
 // （src/app/api/bgj/system/settings/route.tsでマスクして返す）。
 export type AppSettings = {
   id: 1;
-  slack_bot_token: string | null;
-  slack_channel_id: string | null;
+  slack_webhook_url: string | null;
   updated_by: string | null;
   updated_at: string;
 };
@@ -332,14 +329,14 @@ export const CLINIC_VISIT_COLUMNS =
   'id, customer_code, visit_date, purpose, memo, next_visit_date, created_by, created_at';
 
 export const CLINIC_INQUIRY_COLUMNS =
-  'id, customer_code, subject, body, status, created_by, slack_channel_id, slack_thread_ts, created_at, updated_at';
+  'id, customer_code, subject, body, status, created_by, slack_notified_at, created_at, updated_at';
 
 export const CLINIC_INQUIRY_REPLY_COLUMNS =
-  'id, inquiry_id, source, author_name, author_slack_user_id, body, slack_message_ts, created_at';
+  'id, inquiry_id, author_name, author_email, body, created_at';
 
-// slack_bot_tokenは値そのものをクライアントへ返さないため、APIルート側で
+// slack_webhook_urlは値そのものをクライアントへ返さないため、APIルート側で
 // マスク処理してからレスポンスに含める（このAPP_SETTINGS_COLUMNSはDB取得専用）。
-export const APP_SETTINGS_COLUMNS = 'id, slack_bot_token, slack_channel_id, updated_by, updated_at';
+export const APP_SETTINGS_COLUMNS = 'id, slack_webhook_url, updated_by, updated_at';
 
 export const SALES_REP_COLUMNS =
   'id, name, role_id, area_id, phone, email, photo_url, slack_user_id, created_at, updated_at';

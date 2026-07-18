@@ -120,18 +120,18 @@ create trigger trg_sales_reps_updated_at
 -- ============================================================
 -- 3c. アプリ全体の共通設定（シングルトン、常に1行のみ）。
 --     BGJポータル「システム管理 > 共通マスタ」で編集する。
---     Slack Bot Token・投稿先チャンネルIDをUIから自己管理できるようにするための
+--     Slack Incoming Webhook URLをUIから自己管理できるようにするための
 --     テーブル（Vercel環境変数の再設定・再デプロイを不要にする設計判断）。
---     Bot Tokenは平文で保存される点に注意（.env.local管理の秘密情報とは性質が
---     異なるトレードオフ。詳細はCLAUDE.md参照）。将来Slack以外の全社共通設定も
---     このテーブルに同居させる想定のため、汎用的な名前にしている。
+--     Incoming Webhook URLは平文で保存される点に注意（.env.local管理の秘密情報
+--     とは性質が異なるトレードオフだが、Bot Tokenと違い漏洩しても特定チャンネル
+--     への投稿しかできず影響は限定的。詳細はCLAUDE.md参照）。将来Slack以外の
+--     全社共通設定も同居させる想定のため、汎用的な名前にしている。
 -- ============================================================
 create table public.app_settings (
-  id               smallint primary key default 1 check (id = 1),
-  slack_bot_token  text,
-  slack_channel_id text,
-  updated_by       text,
-  updated_at       timestamptz not null default now()
+  id                 smallint primary key default 1 check (id = 1),
+  slack_webhook_url  text,
+  updated_by         text,
+  updated_at         timestamptz not null default now()
 );
 
 insert into public.app_settings (id) values (1) on conflict (id) do nothing;
@@ -325,50 +325,41 @@ create table public.clinic_visits (
 create index idx_clinic_visits_customer_code on public.clinic_visits (customer_code, visit_date desc);
 
 -- ============================================================
--- 5b. 得意先（医院）からの問い合わせ（Slack連携）。
---    医院用ポータル（/admin/inquiry）から送信され、Slackへ担当営業メンション付きで
---    通知される。Slack上での返信はSlack Events API（/api/slack/events）経由で
---    clinic_inquiry_repliesに自動反映される。BGJポータルの得意先詳細「行動履歴」
---    タブで訪問記録（clinic_visits）と統合表示する。
+-- 5b. 得意先（医院）からの問い合わせ（Slack通知連携）。
+--    医院用ポータル（/admin/inquiry）から送信され、Slack（Incoming Webhookに
+--    よる一方向通知）へ担当営業メンション＋返信URL付きで通知される。営業担当者は
+--    そのURL（/bgj/inquiries/[id]）からBGJポータル上で返信する（Slack上での
+--    返信は自動取り込みしない）。BGJポータルの得意先詳細「行動履歴」タブで
+--    訪問記録（clinic_visits）と統合表示する。
 -- ============================================================
 create table public.clinic_inquiries (
-  id               uuid primary key default gen_random_uuid(),
-  customer_code    text not null references public.clinics (customer_code) on delete cascade,
-  subject          text not null,
-  body             text not null,
-  status           text not null default '未対応' check (status in ('未対応','対応中','完了')),
-  created_by       text,              -- 送信した医院ログインID
-  slack_channel_id text,              -- 送信当時の投稿先チャンネル
-  slack_thread_ts  text,              -- Slackスレッドts（返信の突き合わせに使用）
-  created_at       timestamptz not null default now(),
-  updated_at       timestamptz not null default now()
+  id                 uuid primary key default gen_random_uuid(),
+  customer_code      text not null references public.clinics (customer_code) on delete cascade,
+  subject            text not null,
+  body               text not null,
+  status             text not null default '未対応' check (status in ('未対応','対応中','完了')),
+  created_by         text,              -- 送信した医院ログインID
+  slack_notified_at  timestamptz,       -- Slack通知の送信有無・時刻（デバッグ・監査用）
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
 );
 
 create index idx_clinic_inquiries_customer_code on public.clinic_inquiries (customer_code, created_at desc);
-
--- 1つのSlackスレッドは1つの問い合わせにのみ対応する（返信の突き合わせに使うため）
-create unique index clinic_inquiries_slack_thread_ts_key
-  on public.clinic_inquiries (slack_thread_ts) where slack_thread_ts is not null;
 
 create trigger trg_clinic_inquiries_updated_at
   before update on public.clinic_inquiries
   for each row execute function public.set_updated_at_generic();
 
+-- 返信はBGJポータル（/bgj/inquiries/[id]）からのみ行われる（Slack上での返信の
+-- 自動取り込みは行わない設計のため、Slack由来かどうかを区別する列は持たない）。
 create table public.clinic_inquiry_replies (
-  id                    uuid primary key default gen_random_uuid(),
-  inquiry_id            uuid not null references public.clinic_inquiries (id) on delete cascade,
-  source                text not null check (source in ('slack','portal')),
-  author_name           text,
-  author_slack_user_id  text,
-  body                  text not null,
-  -- SlackはEvents APIの応答がタイムアウトすると同一イベントを再送するため、
-  -- このuniqueインデックスが無いと返信が重複登録される。
-  slack_message_ts      text,
-  created_at            timestamptz not null default now()
+  id            uuid primary key default gen_random_uuid(),
+  inquiry_id    uuid not null references public.clinic_inquiries (id) on delete cascade,
+  author_name   text,   -- 返信したBGJ職員の表示名
+  author_email  text,   -- session.user.email
+  body          text not null,
+  created_at    timestamptz not null default now()
 );
-
-create unique index clinic_inquiry_replies_slack_message_ts_key
-  on public.clinic_inquiry_replies (slack_message_ts) where slack_message_ts is not null;
 
 create index idx_clinic_inquiry_replies_inquiry_id
   on public.clinic_inquiry_replies (inquiry_id, created_at);

@@ -11,7 +11,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 type ClinicSummary = { staff: { id: string } | null; month_sales: number };
 
-const EMPTY_FORM = { name: "", roleId: "", areaId: "", phone: "", email: "", photoUrl: "" };
+const EMPTY_FORM = { name: "", roleId: "", areaId: "", phone: "", email: "", photoUrl: "", slackUserId: "" };
 
 export default function StaffMasterPage() {
   const [salesReps, setSalesReps] = useState<SalesRepWithMaster[]>([]);
@@ -80,6 +80,7 @@ export default function StaffMasterPage() {
       phone: rep.phone ?? "",
       email: rep.email ?? "",
       photoUrl: rep.photo_url ?? "",
+      slackUserId: rep.slack_user_id ?? "",
     });
     setShowModal(true);
   };
@@ -280,6 +281,13 @@ export default function StaffMasterPage() {
                 <input type="text" placeholder="https://..." value={form.photoUrl}
                   onChange={(e) => setForm({ ...form, photoUrl: e.target.value })}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 mb-1 block">Slackユーザーid（任意）</label>
+                <input type="text" placeholder="U0123ABCD" value={form.slackUserId}
+                  onChange={(e) => setForm({ ...form, slackUserId: e.target.value })}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                <p className="text-[11px] text-slate-400 mt-1">問い合わせのSlack通知でこの担当者をメンションするために使用します。Slackのプロフィール「その他」→「メンバーIDをコピー」で取得できます。</p>
               </div>
             </div>
             <div className="flex gap-3 mt-6">
