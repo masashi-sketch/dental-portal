@@ -342,6 +342,55 @@ npx vitest run <ファイルパス>  # 特定のテストだけ実行`}</Code>
                     </>
                   ),
                 },
+                {
+                  label: "10. クリニック問い合わせ→Slack連携",
+                  content: (
+                    <>
+                      <p>
+                        医院用ポータル（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/inquiry</code>）から送信された問い合わせを、Slackへ<strong>一方向のIncoming Webhook通知</strong>として送る機能。BGJ職員はSlack通知内のリンクからBGJポータルの専用画面（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/inquiries/[id]</code>）へ遷移して返信する。Slack上での返信をアプリ側へ自動的に取り込む仕組みは持たない（Bot Token・Events APIは使わない、意図的にシンプルな設計）。
+                      </p>
+                      <Code>{`create table public.app_settings (
+  id smallint primary key default 1 check (id = 1),
+  slack_webhook_url text,
+  updated_by text,
+  updated_at timestamptz not null default now()
+);
+
+create table public.clinic_inquiries (
+  id uuid primary key default gen_random_uuid(),
+  customer_code text not null references public.clinics (customer_code) on delete cascade,
+  subject text not null,
+  body text not null,
+  status text not null default '未対応' check (status in ('未対応','対応中','完了')),
+  created_by text,
+  slack_notified_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.clinic_inquiry_replies (
+  id uuid primary key default gen_random_uuid(),
+  inquiry_id uuid not null references public.clinic_inquiries (id) on delete cascade,
+  author_name text,
+  author_email text,
+  body text not null,
+  created_at timestamptz not null default now()
+);`}</Code>
+                      <p>
+                        <strong>Slack側の準備（外部作業）：</strong>対象チャンネルで「アプリを追加」→「Incoming Webhooks」を検索して追加するか、<a href="https://api.slack.com/apps" target="_blank" rel="noreferrer" className="text-violet-600 underline">api.slack.com/apps</a>で新規App作成→Incoming Webhooks機能を有効化してチャンネルを選び、Webhook URL（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">https://hooks.slack.com/services/...</code>）を発行する。発行したURLはBGJポータルの「システム管理 &gt; 共通マスタ」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/system/settings</code>）に貼り付けて保存する。
+                      </p>
+                      <p>
+                        <strong>担当営業のメンション：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">sales_reps.slack_user_id</code>（BGJポータル「マスタ &gt; 営業担当」で編集）にSlackのメンバーidを設定すると、その営業担当が割り当てられている得意先からの問い合わせ通知で<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`<@USER_ID>`}</code>形式でメンションされる。未設定の担当者は氏名のみ表示される。
+                      </p>
+                      <p>
+                        <strong>実装の流れ：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">POST /api/admin/inquiries</code>（clinicロール限定、自分のcustomerCodeに固定して登録）→<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/slack/postWebhookMessage.ts</code>でWebhook送信（医院名・担当者・問い合わせ内容・返信URLを含む）。Slack送信はベストエフォートで、失敗しても問い合わせ自体の登録は成功として扱う（送信成功時のみ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">slack_notified_at</code>を記録）。返信は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">POST /api/bgj/inquiries/[id]/replies</code>で保存し、初回返信時に自動的にステータスを「未対応」→「対応中」に更新する。
+                      </p>
+                      <p>
+                        訪問記録と問い合わせは、得意先詳細画面の「行動履歴」タブ（旧「訪問記録」タブを改称）で日付降順の1つのフィードとして統合表示される（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ClinicActivityFeed.tsx</code>）。
+                      </p>
+                    </>
+                  ),
+                },
               ]}
             />
           </Card>
@@ -394,6 +443,15 @@ npx vitest run <ファイルパス>  # 特定のテストだけ実行`}</Code>
                     <Steps title="システムの状態を確認する（システム管理）">
                       <li>サイドバーの「システム管理」→「DB管理」で、データベースの使用容量・テーブルごとの内訳を確認できます。</li>
                       <li>「システム管理」→「アプリ管理」で、連携している外部サービスの一覧と、環境変数の設定漏れがないかを確認できます（設定値そのものは表示されません）。同じ画面の「エラー監視状況」欄に、Sentryで検知した未解決エラーの一覧（直近14日・頻度順）が表示されます。詳しく調べたい場合は欄内のリンクからSentry本体を開いてください。</li>
+                    </Steps>
+                    <Steps title="Slack通知の設定を行う（共通マスタ）">
+                      <li>サイドバーの「システム管理」→「共通マスタ」で、クリニックからの問い合わせを受け取るSlack Incoming Webhook URLを設定できます。</li>
+                      <li>「マスタ」→「営業担当」で、各営業担当者の編集画面に「Slackユーザーid」欄があります。設定しておくと、担当する得意先からの問い合わせ通知でその担当者がメンションされます。</li>
+                    </Steps>
+                    <Steps title="クリニックからの問い合わせに返信する">
+                      <li>問い合わせがあると、設定したSlackチャンネルに医院名・担当者・問い合わせ内容・返信用リンクが通知されます。</li>
+                      <li>Slack通知内のリンクを開くと、BGJポータルの返信専用画面が開きます（未ログインの場合は先にログインが必要です）。そこで返信を入力して送信してください。</li>
+                      <li>問い合わせ・返信の履歴は、得意先詳細画面の「行動履歴」タブでも確認できます（訪問記録と時系列で統合表示されます）。</li>
                     </Steps>
                   </>
                 ),
@@ -452,6 +510,11 @@ npx vitest run <ファイルパス>  # 特定のテストだけ実行`}</Code>
                       <li>サイドバーの「Q &amp; A」を開きます。</li>
                       <li>「＋Q&amp;Aを追加」から、カテゴリ・質問・回答を入力して登録します。ステータスを「下書き」にすると患者様ポータルには表示されません。</li>
                       <li>患者様ポータルのカテゴリタブは、ここで登録したカテゴリから自動的に作られます。</li>
+                    </Steps>
+                    <Steps title="バイオガイア担当者へ問い合わせる">
+                      <li>サイドバーの「お問い合わせ」を開きます。</li>
+                      <li>件名・本文を入力して「送信する」を押すと、担当営業へSlackで通知が届きます。</li>
+                      <li>担当者からの返信は、次回このメニューを開いたときではなく、担当者から直接ご連絡（メール・電話等）が来る形になります。急ぎの場合はサイドバー最下部の担当営業カードから直接お電話・メールでもご連絡いただけます。</li>
                     </Steps>
                     <div className="bg-slate-50 rounded-xl px-4 py-3 text-xs text-slate-500">
                       ログインID・パスワードがご不明な場合や再発行をご希望の場合は、バイオガイア担当者までお問い合わせください。基本情報・取引条件（医院契約情報）の変更は、バイオガイア担当者までご連絡ください。
