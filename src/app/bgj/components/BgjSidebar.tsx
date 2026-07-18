@@ -75,6 +75,18 @@ const navItems: NavItem[] = [
   },
 ];
 
+type NavGroup = { sectionLabel: string | null; items: NavItem[] };
+
+// sectionLabelを起点にnavItemsをグループ化する（配列自体はフラットなまま、
+// 描画側だけをグループ単位にまとめて枠で囲む）。
+const navGroups: NavGroup[] = navItems.reduce<NavGroup[]>((groups, item) => {
+  if (item.sectionLabel || groups.length === 0) {
+    groups.push({ sectionLabel: item.sectionLabel ?? null, items: [] });
+  }
+  groups[groups.length - 1].items.push(item);
+  return groups;
+}, []);
+
 function SidebarContent({
   pathname,
   userName,
@@ -105,29 +117,36 @@ function SidebarContent({
 
       {/* ナビゲーション */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-          return (
-            <div key={item.href}>
-              {item.sectionLabel && (
-                <p className="text-violet-400/60 text-[10px] font-bold tracking-widest px-3 pt-3 pb-1">{item.sectionLabel}</p>
-              )}
-              <Link
-                href={item.href}
-                onClick={onNavClick}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
-                  isActive
-                    ? "bg-white/20 text-white font-semibold shadow-sm"
-                    : "text-violet-200 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <span className="shrink-0">{item.icon}</span>
-                <span className="flex-1 leading-snug">{item.label}</span>
-              </Link>
-              {item.dividerAfter && <div className="my-2 border-t border-violet-700/40" />}
-            </div>
-          );
-        })}
+        {navGroups.map((group, groupIndex) => (
+          <div
+            key={groupIndex}
+            className={group.sectionLabel ? "bg-white/5 rounded-xl p-1.5 mb-1" : undefined}
+          >
+            {group.sectionLabel && (
+              <p className="text-violet-200 text-[11px] font-bold tracking-widest px-2 pt-1 pb-1.5">{group.sectionLabel}</p>
+            )}
+            {group.items.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+              return (
+                <div key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={onNavClick}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                      isActive
+                        ? "bg-white/20 text-white font-semibold shadow-sm"
+                        : "text-violet-200 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <span className="shrink-0">{item.icon}</span>
+                    <span className="flex-1 leading-snug">{item.label}</span>
+                  </Link>
+                  {item.dividerAfter && <div className="my-2 border-t border-violet-700/40" />}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* ポータル切替 */}
