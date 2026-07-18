@@ -297,10 +297,13 @@ DB変更SQLを提示するときは、以下をセットにする。
 
 # 自動テスト方針
 
-- テスト基盤は**Vitest + React Testing Library + jsdom**（`vitest.config.ts`・`vitest.setup.ts`）。`npm run test`（= `npx vitest run`）で実行する。
+- **最重要ルール：新しい機能・コンポーネント・APIルート・libモジュールを新規作成するときは、必ず同じ作業単位（同じコミットまたは同じ一連の作業）でテストケースも作成する。**「あとでまとめて書く」はしない。既存コードの修正時も、修正箇所にテストが無ければ追加する。ユーザーからの機能追加依頼にテスト作成の指示が含まれていなくても、この方針に従ってテストを作成すること（2026-07-18にユーザーが明示した方針）。
+- テスト基盤は**Vitest + React Testing Library + jsdom**（`vitest.config.ts`・`vitest.setup.ts`）。`npm run test`（= `npx vitest run`）で実行する。テストファイルはテスト対象と同じディレクトリに`◯◯.test.ts`（UIは`.test.tsx`）で置く。
 - `server-only`パッケージはテスト実行時のみ無害な`empty.js`にエイリアスしている（`vitest.config.ts`の`resolve.alias`）。サーバー専用ファイル（`import 'server-only'`を含む）のテストは、jsdomの`window`と衝突しないようファイル先頭に`// @vitest-environment node`を書く。
 - Supabaseや`next/headers`等の外部依存は直接叩かず、mock/fakeを使う（`src/lib/auth/*.test.ts`、`src/app/api/**/*.test.ts`を参照）。APIルートハンドラ（`route.ts`のPATCH/DELETE等）は`@/auth`と`@/lib/supabase/server`を`vi.mock`し、ハンドラ関数を直接呼び出してテストできる（`src/app/api/admin/clinic-staff/[id]/route.test.ts`が雛形）。
-- 現状のカバレッジは`src/lib/auth/`配下（`clinicScope.ts`・`password.ts`・`patientScope.ts`・`scopedSupabaseClient.ts`）・`src/lib/patientNav.ts`の認可・認証・可視化ロジックと、APIルート1本（雛形）。UIコンポーネントのテストはまだ無い。
+- **fetchするクライアントコンポーネントのテスト**は`vi.stubGlobal('fetch', fetchMock)`でURL・HTTPメソッド分岐のmockを組み、`afterEach`で`vi.unstubAllGlobals()`する（`src/components/ClinicTermsManager.test.tsx`・`ClinicLoginManager.test.tsx`が雛形）。rechartsなどjsdomで描画できない部品は`vi.mock`で差し替える（`ClinicSalesOrders.test.tsx`が雛形）。
+- フィールド数の多い`ClinicWithStaff`等の共通フィクスチャは`src/test/fixtures.ts`のファクトリ（`makeClinicWithStaff()`）を使う。テスト専用ファイルであり、アプリ本体からはimportしない。
+- 現状のカバレッジ：`src/lib/auth/`配下・`src/lib/patientNav.ts`・`src/lib/clinicForm.ts`のロジック、APIルート数本（clinic-staff・patients・diagnoses・env-check・branding・join・password-reset）、UIコンポーネント（`src/components/ui/`のButton/Card/LoadingState/ConfirmDialog、`PatientSidebarNav`、得意先詳細から抽出したClinicVisitList/ClinicBasicInfoTab/ClinicBusinessInfoTab/ClinicTermsManager/ClinicLoginManager/ClinicSalesOrders）、`useToast`。
 - **CI（GitHub Actions、`.github/workflows/ci.yml`）でpush/pull_request時にlint/tsc/testを自動実行する**。git pre-commitフックは未設定。
 - 新しいテストを追加する場合は既存の書き方（`vitest`のdescribe/it、上記のmockパターン）を踏襲する。
 
@@ -317,7 +320,7 @@ DB変更SQLを提示するときは、以下をセットにする。
 
 ## 次のおすすめ
 
-1. テストカバレッジのさらなる拡大。現状`src/lib/auth/`（`clinicScope.ts`・`password.ts`・`patientScope.ts`・`scopedSupabaseClient.ts`）・`src/lib/patientNav.ts`・APIルート数本・`useToast`/`PatientSidebarNav`のコンポーネントテストをカバー済み。次点候補：他のAPIルート、新設した`src/components/ui/`配下のコンポーネントテスト
+1. テストカバレッジのさらなる拡大。`src/components/ui/`全部・得意先詳細から抽出した6コンポーネント・`src/lib/clinicForm.ts`まで拡大済み（詳細は「自動テスト方針」の現状カバレッジ参照）。**以後は「新規作成時にテストも同時作成」ルール（自動テスト方針の最重要ルール）で自然に増やす。**次点候補：残りのAPIルート（bgj/clinics系・clinic-terms・sales-reps等）、既存の大きめコンポーネント（ClinicStaffManager・ClinicQaManager・ClinicEmailTemplatesManager・SignupQrCard）
 2. `clinics`テーブルは`clinic_patient_settings`・`clinic_intro_info`に分割済み（正規化完了。詳細はメモリ`project_db_normalization_policy`参照）
 3. CI（GitHub Actions、`.github/workflows/ci.yml`）導入済み。push/pull_request時にlint/tsc/testを自動実行する。pre-commitフック（husky等）の追加は未実施・要否は都度確認
 4. レスポンス改善：`periodontal/master`のキャッシュ化・recharts4ページの遅延読み込みは完了。次点候補はクライアント側フェッチのキャッシュ層（SWR/React Query）導入（今回は意図的にスコープ外）
