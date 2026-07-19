@@ -68,6 +68,13 @@
 - **対処**：2026-07-19に3設定ファイルすべてへ`enabled: process.env.NODE_ENV === 'production'`を追加し、開発環境ではSDK自体を無効化した。
 - **気づくためのチェック**：Sentry通知メールを見たら、まず本文の「View on Sentry」またはSentry APIのイベント詳細で`url`とスタックトレース中のファイルパスを確認する。`localhost`やローカルの絶対パス（`/Users/...`）が含まれていれば、本番障害ではなくローカル作業由来。`SENTRY_AUTH_TOKEN`を使えば`curl https://sentry.io/api/0/organizations/{org}/issues/{id}/events/latest/ -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"`でメール本文より詳しい生イベントを取得できる。
 
+## 医院用ポータル右下の「お問い合わせ」ボタンがクリックしても無反応
+
+- **症状**：医院用ポータル（`/admin/*`）で画面右下に固定表示される営業担当カード内の「お問い合わせ」ボタンをクリックしても何も起きない。
+- **原因**：`src/app/admin/components/AdminSidebar.tsx`の`SalesRepCard`内で`href={salesRep.email ? `mailto:${salesRep.email}` : undefined}`としていた。`sales_reps.email`はnullable列（`supabase/schema.sql`）で、担当営業のメールアドレスが未登録の場合`href`が`undefined`になり、`<a>`タグが「見た目だけボタン風の死んだリンク」になっていた。同じサイドバー内に別の「お問い合わせ」リンク（`/admin/inquiry`固定）が存在するため紛らわしいが、両者は別物。
+- **対処**：`email`が無い場合は`/admin/inquiry`（既存の問い合わせフォーム）にフォールバックするよう修正（2026-07-19）。
+- **気づくためのチェック**：`<a>`タグに`href={条件 ? 値 : undefined}`のような書き方をした場合、条件がfalseになるケース（マスタ未登録・NULL等）で必ずクリック無反応になる。`href`を出し分けるときは、両方の分岐で有効なURLになるようにする（`mailto:`が無理なら内部リンク等のフォールバック先を必ず用意する）。
+
 ---
 
 ## 今後の運用方針

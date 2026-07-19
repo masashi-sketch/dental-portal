@@ -284,9 +284,11 @@ function SalesRepCard({ salesRep, loaded }: { salesRep: SalesRepWithMaster | nul
             <span className="font-bold text-base tracking-wide">{salesRep.phone || '—'}</span>
           </div>
         </div>
-        {/* お問い合わせ（枠の中、最下部） */}
+        {/* お問い合わせ（枠の中、最下部）：担当者のemailが未登録の医院では
+            mailto:リンクが張れないため、既存の問い合わせフォーム（/admin/inquiry）に
+            フォールバックする（クリックしても無反応になることを防ぐ） */}
         <a
-          href={salesRep.email ? `mailto:${salesRep.email}` : undefined}
+          href={salesRep.email ? `mailto:${salesRep.email}` : '/admin/inquiry'}
           className="flex items-center justify-center gap-2 w-full bg-teal-500 hover:bg-teal-400 text-white text-sm font-bold py-3 transition-colors border-t border-teal-500/40"
         >
           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>

@@ -7,8 +7,9 @@ vi.mock('next-auth/react', () => ({
   signOut: vi.fn(),
 }));
 
+const useActiveClinicMock = vi.fn();
 vi.mock('@/hooks/useActiveClinic', () => ({
-  useActiveClinic: () => ({ clinicName: 'テストデンタル', salesRep: null, loaded: true }),
+  useActiveClinic: () => useActiveClinicMock(),
 }));
 
 const fetchMock = vi.fn();
@@ -27,6 +28,7 @@ const link = {
 
 describe('AdminSidebar 外部リンク（LINKS）', () => {
   beforeEach(() => {
+    useActiveClinicMock.mockReturnValue({ clinicName: 'テストデンタル', salesRep: null, loaded: true });
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
   });
@@ -55,5 +57,60 @@ describe('AdminSidebar 外部リンク（LINKS）', () => {
     render(<AdminSidebar active="dashboard" />);
     await screen.findAllByText('ダッシュボード');
     expect(screen.queryByText('LINKS')).not.toBeInTheDocument();
+  });
+});
+
+describe('AdminSidebar 営業担当カードのお問い合わせボタン', () => {
+  const salesRep = {
+    id: 'rep-1',
+    name: '営業太郎',
+    role_id: null,
+    area_id: null,
+    phone: '03-1234-5678',
+    photo_url: null,
+    slack_user_id: null,
+    created_at: '',
+    updated_at: '',
+    role: null,
+    area: null,
+  };
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue(jsonResponse({ externalLinks: [] }));
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('担当者のemailが登録されていればmailto:リンクになる', async () => {
+    useActiveClinicMock.mockReturnValue({
+      clinicName: 'テストデンタル',
+      salesRep: { ...salesRep, email: 'rep@example.com' },
+      loaded: true,
+    });
+    render(<AdminSidebar active="dashboard" />);
+
+    // サイドバーナビにも同名「お問い合わせ」リンク（/admin/inquiry固定）が別途存在するため、
+    // mailto:リンクが含まれることをhrefベースで確認する。
+    const links = await screen.findAllByRole('link', { name: /お問い合わせ/ });
+    const hrefs = links.map((el) => el.getAttribute('href'));
+    expect(hrefs).toContain('mailto:rep@example.com');
+  });
+
+  it('担当者のemailが未登録の場合は/admin/inquiryへのリンクになる（クリック無反応の回帰防止）', async () => {
+    useActiveClinicMock.mockReturnValue({
+      clinicName: 'テストデンタル',
+      salesRep: { ...salesRep, email: null },
+      loaded: true,
+    });
+    render(<AdminSidebar active="dashboard" />);
+
+    const links = await screen.findAllByRole('link', { name: /お問い合わせ/ });
+    const hrefs = links.map((el) => el.getAttribute('href'));
+    // 営業担当カード側・サイドバーナビ側の両方が/admin/inquiryを指す
+    expect(hrefs.filter((h) => h === '/admin/inquiry').length).toBeGreaterThanOrEqual(2);
   });
 });
