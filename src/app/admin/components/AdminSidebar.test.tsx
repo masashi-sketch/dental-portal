@@ -93,8 +93,8 @@ describe('AdminSidebar 営業担当カードのお問い合わせボタン', () 
     });
     render(<AdminSidebar active="dashboard" />);
 
-    // サイドバーナビにも同名「お問い合わせ」リンク（/admin/inquiry固定）が別途存在するため、
-    // mailto:リンクが含まれることをhrefベースで確認する。
+    // サイドバーナビにも「患者様用お問い合わせ」リンク（/admin/inquiry固定、名前に「お問い合わせ」を含む）が
+    // 別途存在するため、mailto:リンクが含まれることをhrefベースで確認する。
     const links = await screen.findAllByRole('link', { name: /お問い合わせ/ });
     const hrefs = links.map((el) => el.getAttribute('href'));
     expect(hrefs).toContain('mailto:rep@example.com');

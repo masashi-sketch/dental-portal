@@ -56,7 +56,7 @@ export default function AdminInquiryPage() {
         )}
 
         <header className="bg-white border-b border-sky-100 px-4 sm:px-6 py-4 shadow-sm">
-          <h1 className="text-slate-800 font-bold text-xl">お問い合わせ</h1>
+          <h1 className="text-slate-800 font-bold text-xl">BGJへのお問い合わせ</h1>
           <p className="text-slate-600 text-sm mt-0.5">担当営業へ問い合わせを送信します</p>
         </header>
 
