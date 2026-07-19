@@ -6,7 +6,9 @@ import { signOut } from 'next-auth/react';
 import BottomNav from '../components/BottomNav';
 import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
+import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
+import { usePrimaryDoctor } from '@/hooks/usePrimaryDoctor';
 import { isPatientNavKeyVisible, type PatientNavKey } from '@/lib/patientNav';
 import type { ClinicAnnouncement } from '@/lib/supabase/types';
 
@@ -160,6 +162,7 @@ const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス',
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { clinicName, navVisibility } = usePatientClinicBranding();
+  const { doctor } = usePrimaryDoctor();
   const [announcements, setAnnouncements] = useState<ClinicAnnouncement[] | null>(null);
 
   useEffect(() => {
@@ -265,6 +268,22 @@ export default function HomePage() {
               <span>次回のご予約：<span className="font-semibold">◯月◯日（◯）◯◯:◯◯</span></span>
             </div>
           </div>
+
+          {/* 先生からのメッセージ */}
+          {doctor && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
+              <SalesRepAvatar name={doctor.name} photoUrl={doctor.photo_url} size={56} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="text-sm font-bold text-gray-900">{doctor.name}</span>
+                  <span className="text-[11px] font-semibold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-full">{doctor.role_label}</span>
+                </div>
+                <p className="text-xs sm:text-sm text-gray-500 leading-relaxed break-all">
+                  {doctor.description || '患者様一人ひとりに合わせたケアをご提案しています。気になることがあればいつでもご相談ください。'}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* お知らせ（モバイルのみ。デスクトップはサイドバー内に表示） */}
           {announcements !== null && (

@@ -5,8 +5,10 @@ import { useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import PatientSidebarNav, { IconBag, IconLogout } from '@/components/PatientSidebarNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
+import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
-import { useToast } from '@/hooks/useToast';
+import { usePrimaryDoctor } from '@/hooks/usePrimaryDoctor';
+import { DOCTOR_RECOMMENDATIONS } from './doctorContent';
 
 /* ── ヘッダー共通アイコン ── */
 function IconBell() {
@@ -20,14 +22,6 @@ function IconUser() {
   return (
     <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-function IconCartHeader() {
-  return (
-    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-      <line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
     </svg>
   );
 }
@@ -45,17 +39,6 @@ function IconX() {
     </svg>
   );
 }
-/* ── サイドバー以外のアイコン ── */
-function IconCheck() {
-  return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>;
-}
-function IconPlus() {
-  return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
-}
-function IconStar() {
-  return <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>;
-}
-
 /* ── ダミー商品画像（グラデーション＋SVGアイコン） ── */
 function ProductImage({ type }: { type: string }) {
   const config: Record<string, { from: string; to: string; icon: React.ReactNode }> = {
@@ -227,16 +210,11 @@ const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス',
 export default function ShopPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { clinicName, navVisibility } = usePatientClinicBranding();
+  const { doctor } = usePrimaryDoctor();
   const [activeCategory, setActiveCategory] = useState<string>('すべて');
-  const [cart, setCart] = useState<Record<number, number>>({});
-  const { toast, showToast } = useToast();
 
-  const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
-
-  const addToCart = (product: Product) => {
-    setCart((prev) => ({ ...prev, [product.id]: (prev[product.id] ?? 0) + 1 }));
-    showToast(`「${product.name}」をカートに追加しました`);
-  };
+  const doctorLabel = doctor ? `${doctor.name}先生` : `${clinicName ?? 'デンタルポータル'} 院長`;
+  const recommendationById = new Map(DOCTOR_RECOMMENDATIONS.map((r) => [r.productId, r]));
 
   const filtered =
     activeCategory === 'すべて'
@@ -247,14 +225,6 @@ export default function ShopPage() {
     <div className="min-h-screen flex flex-col bg-gray-50 pb-20 md:pb-0">
 
       <PreviewModeBanner />
-
-      {/* トースト通知 */}
-      {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-gray-900 text-white text-sm px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 max-w-xs sm:max-w-sm text-center">
-          <span className="text-emerald-400 shrink-0"><IconCheck /></span>
-          <span>{toast}</span>
-        </div>
-      )}
 
       {/* アナウンスバー */}
       <div className="bg-[#F0F7FF] text-[#2563EB] text-xs text-center py-2 px-4">
@@ -282,14 +252,6 @@ export default function ShopPage() {
           <div className="flex items-center gap-4 text-gray-500">
             <button className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconBell /></button>
             <button className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconUser /></button>
-            <button className="relative hover:text-[#2563EB] transition-colors">
-              <IconCartHeader />
-              {totalItems > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] min-w-[16px] h-4 rounded-full flex items-center justify-center font-bold px-0.5">
-                  {totalItems}
-                </span>
-              )}
-            </button>
             <button className="md:hidden hover:text-[#2563EB] transition-colors" onClick={() => setMenuOpen(!menuOpen)}>
               {menuOpen ? <IconX /> : <IconMenu />}
             </button>
@@ -323,17 +285,6 @@ export default function ShopPage() {
               </Link>
             </PatientSidebarNav>
           </div>
-
-          {/* カートサマリー */}
-          {totalItems > 0 && (
-            <div className="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-              <p className="text-xs font-semibold text-gray-700 mb-2">カート</p>
-              <p className="text-2xl font-bold text-[#2563EB]">{totalItems}<span className="text-sm font-normal text-gray-400 ml-1">点</span></p>
-              <button className="mt-3 w-full bg-[#2563EB] text-white text-sm font-semibold py-2 rounded-xl hover:bg-[#1d4ed8] transition-colors">
-                カートを見る
-              </button>
-            </div>
-          )}
         </aside>
 
         {/* メインコンテンツ */}
@@ -348,27 +299,27 @@ export default function ShopPage() {
                 </div>
                 <div>
                   <h1 className="text-lg font-bold text-gray-900">おすすめ商品</h1>
-                  <p className="text-xs text-gray-400 mt-0.5">歯科医師・歯科衛生士が厳選したオーラルケア用品</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {doctor ? `${doctorLabel}が日々の診療でおすすめしている製品です` : '歯科医師・歯科衛生士が厳選したオーラルケア用品'}
+                  </p>
                 </div>
               </div>
-              {totalItems > 0 && (
-                <button className="flex items-center gap-2 bg-[#2563EB] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-[#1d4ed8] transition-colors">
-                  <IconCartHeader />
-                  カートを見る ({totalItems})
-                </button>
-              )}
             </div>
           </div>
 
           {/* 先生からのおすすめバナー */}
           <div className="bg-gradient-to-r from-[#2563EB] to-[#60a5fa] rounded-2xl p-5 sm:p-6 text-white flex items-start gap-4">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-              <svg width="26" height="26" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-              </svg>
-            </div>
+            {doctor ? (
+              <SalesRepAvatar name={doctor.name} photoUrl={doctor.photo_url} size={48} className="!rounded-full mt-0.5" />
+            ) : (
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                <svg width="26" height="26" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+            )}
             <div className="flex-1 min-w-0">
-              <p className="text-blue-100 text-xs font-semibold mb-0.5">{clinicName ?? 'デンタルポータル'} 院長より</p>
+              <p className="text-blue-100 text-xs font-semibold mb-0.5">{doctorLabel}より</p>
               <p className="font-bold text-base sm:text-lg leading-snug mb-2">
                 L.ロイテリ菌で、口腔ケアを習慣に
               </p>
@@ -380,6 +331,42 @@ export default function ShopPage() {
                 <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full font-medium">歯科医師監修</span>
                 <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full font-medium">定期購入対応</span>
               </div>
+            </div>
+          </div>
+
+          {/* 先生のおすすめ一覧 */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <p className="text-sm font-bold text-gray-900">{doctorLabel}のおすすめ一覧</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">日々の診療をふまえた、セルフケア用品のご案内です</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs sm:text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-gray-400 text-[11px]">
+                    <th className="text-left font-medium px-4 py-2 whitespace-nowrap">商品名</th>
+                    <th className="text-left font-medium px-3 py-2 hidden md:table-cell">主な働き</th>
+                    <th className="text-left font-medium px-3 py-2 whitespace-nowrap">1日の目安</th>
+                    <th className="text-center font-medium px-3 py-2 whitespace-nowrap">推奨度</th>
+                    <th className="text-left font-medium px-3 py-2 hidden sm:table-cell">先生のコメント</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {DOCTOR_RECOMMENDATIONS.map((r) => {
+                    const product = products.find((p) => p.id === r.productId);
+                    if (!product) return null;
+                    return (
+                      <tr key={r.productId} className="hover:bg-gray-50/60">
+                        <td className="px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap">{product.name}</td>
+                        <td className="px-3 py-2.5 text-gray-500 hidden md:table-cell">{r.workingPoint}</td>
+                        <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">{r.dailyAmount}</td>
+                        <td className="px-3 py-2.5 text-center text-amber-500 font-bold">{r.recommendationLevel}</td>
+                        <td className="px-3 py-2.5 text-gray-500 hidden sm:table-cell">{r.comment}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -410,7 +397,7 @@ export default function ShopPage() {
           {/* 商品グリッド */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filtered.map((product) => {
-              const inCart = cart[product.id] ?? 0;
+              const rec = recommendationById.get(product.id);
               return (
                 <div
                   key={product.id}
@@ -424,11 +411,6 @@ export default function ShopPage() {
                         {product.badge}
                       </span>
                     )}
-                    {inCart > 0 && (
-                      <span className="absolute top-3 right-3 bg-emerald-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
-                        ×{inCart}
-                      </span>
-                    )}
                   </Link>
 
                   {/* 商品情報 */}
@@ -439,18 +421,14 @@ export default function ShopPage() {
                     </Link>
                     <p className="text-xs text-gray-500 leading-relaxed mb-3 line-clamp-2 sm:line-clamp-3 flex-1 break-all">{product.desc}</p>
 
-                    {/* 評価 */}
-                    <div className="flex items-center gap-1 mb-3">
-                      <div className="flex text-amber-400">
-                        {[...Array(5)].map((_, i) => (
-                          <span key={i} className={i < Math.floor(product.rating) ? 'text-amber-400' : 'text-gray-200'}>
-                            <IconStar />
-                          </span>
-                        ))}
+                    {/* 先生の一言コメント */}
+                    {rec && (
+                      <div className="flex items-start gap-1.5 mb-3 bg-blue-50/60 border border-blue-100/60 rounded-lg px-2.5 py-2">
+                        <span className="text-[10px] font-bold text-[#2563EB] shrink-0">{doctorLabel}</span>
+                        <span className="text-[10px] text-amber-500 font-bold shrink-0">{rec.recommendationLevel}</span>
+                        <p className="text-[11px] text-gray-600 leading-snug break-all">{rec.comment}</p>
                       </div>
-                      <span className="text-xs text-gray-500 ml-0.5">{product.rating}</span>
-                      <span className="text-xs text-gray-400">({product.reviews}件)</span>
-                    </div>
+                    )}
 
                     {product.tag && (
                       <span className="inline-block text-[11px] text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5 mb-3 w-fit">
@@ -458,22 +436,18 @@ export default function ShopPage() {
                       </span>
                     )}
 
-                    {/* 価格＋購入ボタン */}
+                    {/* 価格＋相談導線 */}
                     <div className="flex flex-col gap-2 mt-auto">
                       <div>
-                        <span className="text-lg sm:text-xl font-bold text-gray-900">¥{product.price.toLocaleString()}</span>
+                        <span className="text-sm font-semibold text-gray-700">¥{product.price.toLocaleString()}</span>
                         <span className="text-xs text-gray-400 ml-1">/{product.unit}</span>
                       </div>
-                      <button
-                        onClick={() => addToCart(product)}
-                        className={`w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                          inCart > 0
-                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
-                            : 'bg-[#2563EB] text-white hover:bg-[#1d4ed8]'
-                        }`}
+                      <Link
+                        href={product.tag === '定期購入対応' ? '/subscription' : '/clinic'}
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold border border-[#2563EB] text-[#2563EB] hover:bg-[#EFF6FF] transition-all"
                       >
-                        {inCart > 0 ? <><IconCheck />追加する</>: <><IconPlus />カートへ追加</>}
-                      </button>
+                        {product.tag === '定期購入対応' ? '定期購入について相談する' : '医院に相談する'}
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -483,9 +457,9 @@ export default function ShopPage() {
 
           {/* 注意書き */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 text-xs text-gray-400 leading-relaxed">
-            ※ 掲載商品はすべて歯科医師・歯科衛生士が使用感・効果を確認した製品です。<br />
-            ※ 商品は患者様ご本人のご使用を目的として販売しております。<br />
-            ※ 価格は税込表示です。送料は330円（3,000円以上のご購入で無料）。
+            ※ 掲載しているのは、当院で歯科医師・歯科衛生士が実際に使用感を確認した製品です。<br />
+            ※ ご自身に合うか分からない場合は、次回の受診時にお気軽にご相談ください。<br />
+            ※ 価格は税込表示です。
           </div>
 
         </main>
