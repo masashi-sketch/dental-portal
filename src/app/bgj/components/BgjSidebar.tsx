@@ -67,20 +67,15 @@ const navItems: NavItem[] = [
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5M10.172 13.828a4 4 0 010-5.656l3-3a4 4 0 015.656 5.656l-1.5 1.5" /></svg>,
   },
   {
-    label: "DB管理",
-    href: "/bgj/system/db",
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><ellipse cx="12" cy="5" rx="8" ry="3" /><path strokeLinecap="round" strokeLinejoin="round" d="M4 5v6c0 1.657 3.582 3 8 3s8-1.343 8-3V5M4 11v6c0 1.657 3.582 3 8 3s8-1.343 8-3v-6" /></svg>,
+    label: "システムダッシュボード",
+    href: "/bgj/system/dashboard",
+    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M8 17V9m4 8V5m4 12v-6" /></svg>,
     sectionLabel: "システム管理",
-  },
-  {
-    label: "アプリ管理",
-    href: "/bgj/system/apps",
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>,
-  },
-  {
-    label: "共通マスタ",
-    href: "/bgj/system/settings",
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+    children: [
+      { label: "DB管理", href: "/bgj/system/db" },
+      { label: "アプリ管理", href: "/bgj/system/apps" },
+      { label: "共通マスタ", href: "/bgj/system/settings" },
+    ],
   },
   {
     label: "マニュアル",
@@ -117,6 +112,7 @@ const navItems: NavItem[] = [
           { label: "11. お知らせ機能", href: "/bgj/manual?tab=procedure&step=11" },
           { label: "12. BGJポータル使い勝手改善（マスタ一覧化・LINKマスタ）", href: "/bgj/manual?tab=procedure&step=12" },
           { label: "13. 得意先ステータスのマスタ化", href: "/bgj/manual?tab=procedure&step=13" },
+          { label: "14. システムダッシュボード", href: "/bgj/manual?tab=procedure&step=14" },
         ],
       },
     ],
@@ -383,27 +379,6 @@ function SidebarContent({
           </div>
         ))}
       </nav>
-
-      {/* ポータル切替 */}
-      <div className="px-3 pt-2 pb-1 border-t border-violet-700/50">
-        <p className="text-violet-400/60 text-[10px] font-bold tracking-widest px-3 pt-2 pb-1">ポータル切替</p>
-        <Link
-          href="/"
-          onClick={onNavClick}
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-violet-200/80 hover:bg-white/10 hover:text-white transition-colors"
-        >
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-          患者様ポータル
-        </Link>
-        <Link
-          href="/admin"
-          onClick={onNavClick}
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-violet-200/80 hover:bg-white/10 hover:text-white transition-colors"
-        >
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-          医院用ポータル
-        </Link>
-      </div>
 
       {/* ユーザー情報 */}
       <div className="px-3 pt-2 pb-3 border-t border-violet-700/50">

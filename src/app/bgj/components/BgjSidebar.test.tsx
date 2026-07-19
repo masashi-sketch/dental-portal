@@ -27,6 +27,31 @@ describe('BgjSidebar', () => {
     expect(screen.getAllByRole('link', { name: /LINKマスタ/ })[0]).toHaveAttribute('href', '/bgj/master/links');
   });
 
+  it('システム管理グループの先頭にシステムダッシュボードへのリンクを表示する', () => {
+    usePathnameMock.mockReturnValue('/bgj/dashboard');
+    useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    render(<BgjSidebar />);
+    expect(screen.getAllByRole('link', { name: 'システムダッシュボード' })[0]).toHaveAttribute(
+      'href',
+      '/bgj/system/dashboard'
+    );
+  });
+
+  it('DB管理・アプリ管理・共通マスタは普段は非表示で、システムダッシュボードのトグルをクリックすると表示される', () => {
+    usePathnameMock.mockReturnValue('/bgj/dashboard');
+    useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    render(<BgjSidebar />);
+    expect(screen.queryByText('DB管理')).not.toBeInTheDocument();
+    expect(screen.queryByText('アプリ管理')).not.toBeInTheDocument();
+    expect(screen.queryByText('共通マスタ')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByLabelText('システムダッシュボードの詳細を開く')[0]);
+
+    expect(screen.getAllByRole('link', { name: 'DB管理' })[0]).toHaveAttribute('href', '/bgj/system/db');
+    expect(screen.getAllByRole('link', { name: 'アプリ管理' })[0]).toHaveAttribute('href', '/bgj/system/apps');
+    expect(screen.getAllByRole('link', { name: '共通マスタ' })[0]).toHaveAttribute('href', '/bgj/system/settings');
+  });
+
   it('役職マスタ・担当エリアは普段は非表示で、営業担当のトグルをクリックすると表示される', () => {
     usePathnameMock.mockReturnValue('/bgj/dashboard');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
@@ -103,7 +128,7 @@ describe('BgjSidebar', () => {
     );
   });
 
-  it('システム手順を開くと13ステップのリンクが表示される', () => {
+  it('システム手順を開くと0〜14ステップのリンクが表示される', () => {
     usePathnameMock.mockReturnValue('/bgj/dashboard');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
     render(<BgjSidebar />);
@@ -114,9 +139,10 @@ describe('BgjSidebar', () => {
       'href',
       '/bgj/manual?tab=procedure&step=0'
     );
-    expect(
-      screen.getAllByRole('link', { name: '12. BGJポータル使い勝手改善（マスタ一覧化・LINKマスタ）' })[0]
-    ).toHaveAttribute('href', '/bgj/manual?tab=procedure&step=12');
+    expect(screen.getAllByRole('link', { name: '14. システムダッシュボード' })[0]).toHaveAttribute(
+      'href',
+      '/bgj/manual?tab=procedure&step=14'
+    );
   });
 
   it('?tab=procedure&step=6 の状態ではマニュアル→システム手順→該当ステップまで自動的に展開されている', () => {

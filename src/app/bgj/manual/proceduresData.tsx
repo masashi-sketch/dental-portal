@@ -406,4 +406,24 @@ alter table public.clinics
       </>
     ),
   },
+  {
+    key: "14",
+    label: "14. システムダッシュボード",
+    content: (
+      <>
+        <p>
+          BGJポータル「システム管理」配下に、システム運用状況を1画面で把握できる「システムダッシュボード」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/system/dashboard</code>）を新設した。既存の「ダッシュボード」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/dashboard</code>、営業観点のKPI・現状ダミーデータ）とは目的が異なる別画面で、こちらは実データのみを表示する。
+        </p>
+        <p>
+          表示するKPI：得意先数（ステータス別内訳含む）、医院アカウント数（有効件数・ロック中件数）、患者アカウント数（有効件数・ロック中件数・QR自己登録経由件数）、未対応の問い合わせ件数、Sentry未解決issue数、DB容量使用率。いずれもPostgres側で<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">count</code>集計し（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">.select(&apos;id&apos;, {'{'} count: &apos;exact&apos;, head: true {'}'})</code>パターン）、アプリ側で行を取得してループ集計する方式は使っていない。
+        </p>
+        <p>
+          「流入元」（アクセス解析）は、ページビュー・リファラーを記録する仕組みが現状無く新規計装が必要なためスコープ外とした（新規導入する場合はVercel Analytics導入等を別途検討する）。
+        </p>
+        <p>
+          <strong>実装の流れ：</strong>新規APIルート<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/system/dashboard</code>（GET、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">requireBgjSession</code>必須）が得意先・医院アカウント・患者アカウント・問い合わせのcount集計をまとめて返す。Sentry未解決issue数・DB容量は、既存の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/system/sentry-issues</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/system/db-usage</code>をページ側で個別にfetchして再利用し、Sentry API呼び出し・環境変数未設定時のフォールバックロジックを重複実装しないようにしている。サイドバーは「システム管理」グループの先頭に配置した。
+        </p>
+      </>
+    ),
+  },
 ];

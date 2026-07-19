@@ -54,6 +54,13 @@
 - **対処**：`vercel env pull`の出力を環境変数が正しく設定されているかの確認手段として使わない。設定確認はVercelダッシュボードのEnvironment Variables画面で行うか、実際にその環境変数を使う機能（ログイン等）が動くかどうかで判断する。
 - **気づくためのチェック**：`vercel env pull`で空に見えても、それだけで「未設定」と即断しない。既存の動いている値でも同じ見え方になることを念頭に置く。
 
+## 新規APIルートで`clinics`テーブルへのcountクエリが原因不明の500エラーになる
+
+- **症状**：BGJポータル「システムダッシュボード」（`/bgj/system/dashboard`）で「システムダッシュボードの取得に失敗しました」と表示される。開発サーバーのログ（`GET /api/bgj/system/dashboard 500`）には例外のスタックトレースが出ず、原因が分からない。
+- **原因**：`.select('id', { count: 'exact', head: true })`という、他テーブル（`clinic_users`・`patients`・`clinic_inquiries`等）でも使っている定型のcount取得パターンを`clinics`テーブルにもそのまま適用したが、`clinics`テーブルの主キーは`id`ではなく`customer_code`（`supabase/schema.sql`参照）で、`id`列自体が存在しない。Supabaseはこの場合`{code: '42703', message: 'column clinics.id does not exist'}`というPostgrestErrorを返すが、`head: true`（レスポンスボディを返さない設定）のcount系クエリでは、実装側で`error.message`をそのままクライアントに返す設計にしていたため、ブラウザ側では素っ気ない「取得に失敗しました」としか見えず、サーバーログにも例外として出力されなかった（`NextResponse.json({error:...},{status:500})`を正常にreturnしているだけで、例外を投げていないため）。
+- **対処**：`clinics`テーブルへのcountクエリは`.select('customer_code', {count:'exact', head:true})`に変更する。
+- **気づくためのチェック**：`head: true`のcountクエリが原因不明の500になったら、ブラウザのエラー表示だけで判断せず、`.env.local`の`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`を使った簡易Node スクリプトで同じクエリを直接実行し、`error`オブジェクト全体（`message`だけでなく`code`/`details`）を出力して確認する。特にheadなしの`select('列名, 別の列名').limit(3)`のような素朴なクエリに変えて実行すると、`column ... does not exist`のような列名の誤りがすぐ判明する。新しいテーブルに対するcountクエリを書くときは、まず`supabase/schema.sql`でそのテーブルの主キー列名を確認してから書く。
+
 ---
 
 ## 今後の運用方針
