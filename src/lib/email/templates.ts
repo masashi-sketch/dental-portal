@@ -47,6 +47,28 @@ export function renderEmailTemplate(template: string, vars: EmailTemplateVars): 
     .replaceAll('{{リンク}}', vars.link);
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+// プレーンテキストのみのメールは、認証トークン付きの長いURL（{{リンク}}）が
+// 1行78文字前後で折り返され、一部のメールクライアント・中継サーバーでリンクが
+// 途中で切れて開けなくなることがある（実際に発生した不具合）。HTML版では
+// URLを<a href>属性に埋め込むため、見た目の折り返しがあってもリンク自体は壊れない。
+export function renderEmailTemplateHtml(template: string, vars: EmailTemplateVars): string {
+  const withVars = escapeHtml(template)
+    .replaceAll('{{患者名}}', escapeHtml(vars.patientName))
+    .replaceAll('{{ログインID}}', escapeHtml(vars.loginId))
+    .replaceAll('{{医院名}}', escapeHtml(vars.clinicName))
+    .replaceAll('{{リンク}}', `<a href="${escapeHtml(vars.link)}">${escapeHtml(vars.link)}</a>`);
+  return withVars.replaceAll('\n', '<br>\n');
+}
+
 // プレビュー画面用のサンプル値。
 export const PREVIEW_SAMPLE_VARS: Omit<EmailTemplateVars, 'clinicName'> = {
   patientName: '山田 太郎',

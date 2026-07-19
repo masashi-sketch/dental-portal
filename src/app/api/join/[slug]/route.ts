@@ -122,7 +122,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         clinicName,
         link,
       });
-      await sendPatientEmail({ to: email, senderName: rendered.senderName, subject: rendered.subject, text: rendered.body });
+      await sendPatientEmail({ to: email, senderName: rendered.senderName, subject: rendered.subject, text: rendered.body, html: rendered.htmlBody });
     } catch (emailError) {
       console.error('POST /api/join/[slug] welcome email failed:', emailError);
     }

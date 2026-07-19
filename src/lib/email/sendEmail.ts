@@ -30,11 +30,16 @@ export async function sendPatientEmail({
   senderName,
   subject,
   text,
+  html,
 }: {
   to: string;
   senderName: string;
   subject: string;
   text: string;
+  // HTML版も併記する。認証トークン付きの長いURLはプレーンテキストのみだと
+  // 折り返しでリンクが壊れることがあるため（TROUBLESHOOTING.md参照）、
+  // HTML版では<a href>で埋め込み折り返しの影響を受けないようにする。
+  html?: string;
 }): Promise<void> {
   const alias = process.env.WORKSPACE_SENDER_ALIAS || process.env.WORKSPACE_SMTP_USER;
   await getTransporter().sendMail({
@@ -42,5 +47,6 @@ export async function sendPatientEmail({
     to,
     subject,
     text,
+    ...(html ? { html } : {}),
   });
 }

@@ -8,6 +8,7 @@ import {
   DEFAULT_WELCOME_BODY,
   DEFAULT_WELCOME_SUBJECT,
   renderEmailTemplate,
+  renderEmailTemplateHtml,
   type EmailTemplateVars,
 } from '@/lib/email/templates';
 
@@ -21,7 +22,7 @@ export async function resolveClinicEmail(
   customerCode: string,
   type: EmailTemplateType,
   vars: EmailTemplateVars,
-): Promise<{ senderName: string; subject: string; body: string }> {
+): Promise<{ senderName: string; subject: string; body: string; htmlBody: string }> {
   const { data } = await supabase
     .from('clinic_email_templates')
     .select(CLINIC_EMAIL_TEMPLATES_COLUMNS)
@@ -39,5 +40,6 @@ export async function resolveClinicEmail(
     senderName: data?.sender_name || vars.clinicName,
     subject: renderEmailTemplate(rawSubject, vars),
     body: renderEmailTemplate(rawBody, vars),
+    htmlBody: renderEmailTemplateHtml(rawBody, vars),
   };
 }

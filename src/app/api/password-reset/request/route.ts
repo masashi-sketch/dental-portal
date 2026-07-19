@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         clinicName,
         link,
       });
-      await sendPatientEmail({ to: patient.email, senderName: rendered.senderName, subject: rendered.subject, text: rendered.body });
+      await sendPatientEmail({ to: patient.email, senderName: rendered.senderName, subject: rendered.subject, text: rendered.body, html: rendered.htmlBody });
     } catch (error) {
       console.error('POST /api/password-reset/request email failed:', error);
     }

@@ -116,6 +116,14 @@
   `/api/password-reset/request`（`src/app/api/password-reset/request/route.ts`）は、メールアドレスの登録有無を外部から探索されないようにするため常に同じ成功レスポンス（`{ok: true}`）を返す設計（意図的な仕様）で、実際のメール送信は`after()`内で行い失敗しても`console.error`するのみで画面には一切表れない。そのため、コード自体は正常でも、SMTP認証情報が失効・変更されるとユーザーからは「送信したのに届かない」としか見えず気づきにくい。
 - **対処**：コード側に問題は無いため、Google Workspace管理画面で`jyosys@biogaia.jp`のアプリパスワードを再発行し、`.env.local`（ローカル）とVercel環境変数`WORKSPACE_SMTP_APP_PASSWORD`（本番）の両方を更新する必要がある（2026-07-19時点で未対応、ユーザー側の対応待ち）。更新後はVercel側の再デプロイが必要。
 - **気づくためのチェック**：メール送信系（`sendPatientEmail`経由）の不具合報告を受けたら、まず`vercel logs <本番URL> --expand --level error`で該当エンドポイントのエラーログを確認する（`console.error`はSentryではなくVercelのランタイムログにのみ出る）。`535-5.7.8`はGoogle側のSMTP認証拒否を示す典型的なエラーコード。
+- **追記（2026-07-19、アプリパスワード再発行後に発覚した別の不具合）**：SMTP認証を復旧させメール自体は届くようになったが、続けて「メール内のリンクをクリックしてもページが開かない」という別の不具合が発覚した。原因は次の項目を参照。
+
+## メールは届くが、本文中のリンク（パスワード再設定・ワンクリックログイン）をクリックしてもページが開かない
+
+- **症状**：`/api/password-reset/request`・`/api/join/[slug]`から送るメールは正常に届くが、本文中のリンクをクリックしても`/reset-password`・`/join/verify`が開かない（白画面・エラーページ等）。API単体（`curl`で直接叩く）は正常に動作し、`/reset-password`ページ自体も正しいトークンなら正常に表示される。
+- **原因**：`src/lib/email/sendEmail.ts`がプレーンテキスト本文（`text`）のみを送信しており、`{{リンク}}`に埋め込まれるトークン付きURL（`http://.../reset-password?token=...`等、80文字超）が長い1行の非ASCII混じり本文になる。日本語を含む本文はnodemailerが自動的にquoted-printableでエンコードするため、76文字を超える行は`=\r\n`で機械的にソフト改行が入る。メールクライアント・中継サーバーによってはこのソフト改行を正しく復元できずURLが途中で切れ、プレーンテキストの自動リンク化機能が壊れたURLをそのままリンクにしてしまう。
+- **対処**：`src/lib/email/templates.ts`に`renderEmailTemplateHtml()`を新設し、`{{リンク}}`を`<a href="...">`のアンカータグに変換したHTML版本文を生成するようにした。`resolveClinicEmail.ts`が`htmlBody`を追加で返し、`sendPatientEmail()`（`sendEmail.ts`）に`html`引数を追加、`/api/password-reset/request`・`/api/join/[slug]`の両方で`html: rendered.htmlBody`を渡すようにした（2026-07-19）。HTML版はURLがhref属性に入るため、見た目の折り返しがあってもリンク自体は壊れない。他の項目（患者名・医院名等）もHTMLエスケープ済み（XSS対策）。
+- **気づくためのチェック**：SMTP送信自体は成功している（ログにエラーが出ない）のに「リンクが機能しない」という報告を受けたら、まず実際に送られたメールの生ソース（Gmailなら「メッセージのソースを表示」）でリンクURLの途中に`=\r\n`のような改行が入っていないか確認する。プレーンテキストのみでURLを送るテンプレートを新しく作る場合は、URLが80文字を超える可能性があるなら必ずHTML版（`<a href>`）も併記する。
 
 ---
 
