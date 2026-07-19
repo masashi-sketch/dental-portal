@@ -61,6 +61,13 @@
 - **対処**：`clinics`テーブルへのcountクエリは`.select('customer_code', {count:'exact', head:true})`に変更する。
 - **気づくためのチェック**：`head: true`のcountクエリが原因不明の500になったら、ブラウザのエラー表示だけで判断せず、`.env.local`の`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`を使った簡易Node スクリプトで同じクエリを直接実行し、`error`オブジェクト全体（`message`だけでなく`code`/`details`）を出力して確認する。特にheadなしの`select('列名, 別の列名').limit(3)`のような素朴なクエリに変えて実行すると、`column ... does not exist`のような列名の誤りがすぐ判明する。新しいテーブルに対するcountクエリを書くときは、まず`supabase/schema.sql`でそのテーブルの主キー列名を確認してから書く。
 
+## ローカル開発サーバーの一過性エラーがSentryに届き、本番障害と誤認しやすい
+
+- **症状**：BGJ職員宛のSentry通知メールで`ENOENT: no such file or directory, stat`（`GET /bgj/manual`等）のようなエラーが届く。本番で障害が起きたように見える。
+- **原因**：`sentry.server.config.ts`・`sentry.edge.config.ts`・`src/instrumentation-client.ts`のいずれも`environment`を明示せず、`NEXT_PUBLIC_SENTRY_DSN`が設定されていれば常時有効になる設定だった。そのため`npm run dev`のローカル開発サーバーで発生したエラー（今回の実例：作業中に`.next`ディレクトリを削除した際、同時に起動していたdevサーバーのwebpackキャッシュ（`.next/dev/cache/webpack/...`）が消え`ENOENT`が発生）も、本番と同じDSNに送信されていた。イベント詳細（`url: http://localhost:3000/...`、ファイルパスがローカルの絶対パス）を見れば本番でないことは分かるが、メール本文だけでは判別しづらい。
+- **対処**：2026-07-19に3設定ファイルすべてへ`enabled: process.env.NODE_ENV === 'production'`を追加し、開発環境ではSDK自体を無効化した。
+- **気づくためのチェック**：Sentry通知メールを見たら、まず本文の「View on Sentry」またはSentry APIのイベント詳細で`url`とスタックトレース中のファイルパスを確認する。`localhost`やローカルの絶対パス（`/Users/...`）が含まれていれば、本番障害ではなくローカル作業由来。`SENTRY_AUTH_TOKEN`を使えば`curl https://sentry.io/api/0/organizations/{org}/issues/{id}/events/latest/ -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"`でメール本文より詳しい生イベントを取得できる。
+
 ---
 
 ## 今後の運用方針
