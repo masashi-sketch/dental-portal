@@ -484,4 +484,58 @@ create table public.clinic_login_tokens (
       </>
     ),
   },
+  {
+    key: "17",
+    label: "17. 商品マスタと医院ごとの表示設定",
+    content: (
+      <>
+        <p>
+          患者ポータル「おすすめ商品」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/shop</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/shop/[id]</code>）を静的ダミーデータから実データに切り替えた（Shopify連携ロードマップのPhase 1）。構成は「<strong>BGJが商品マスタを管理 → 各医院が自院の患者ポータルへの表示有無を決定 → 患者ポータルに反映</strong>」。
+        </p>
+        <ul className="list-disc list-inside pl-2">
+          <li><strong>BGJポータル「マスタ &gt; 商品マスタ」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/master/products</code>）：商品の登録・編集・削除。基本情報（名称・カテゴリ・価格・バッジ等）、詳細ページ項目（内容量・成分・使用方法・注意事項）、先生のおすすめ（主な働き・1日の目安・推奨度・一言コメント、全医院共通）を1つのフォームで管理。「公開」ステータスのみ患者ポータルに掲載される。</li>
+          <li><strong>医院用ポータル「商品管理」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/products</code>）：公開商品ごとの表示/非表示トグルのみ（商品情報の編集は不可）。</li>
+        </ul>
+        <Code>{`create table public.products (
+  id            uuid primary key default gen_random_uuid(),
+  name          text not null,
+  category      text not null check (category in ('サプリメント','ヨーグルト','歯ブラシ','オーラルケア')),
+  description   text, price int not null, unit text,
+  image_type    text not null default 'supplement'
+    check (image_type in ('supplement','yogurt','toothbrush','oral')),
+  badge text, badge_color text
+    check (badge_color in ('indigo','rose','amber','emerald','sky','slate')),
+  subscription_available boolean not null default false,
+  volume text, ingredients text, how_to_use text, caution text,
+  working_point text, daily_amount text,
+  recommendation_level text check (recommendation_level in ('◎','○')),
+  doctor_comment text,
+  status text not null default '下書き' check (status in ('公開','下書き')),
+  sort_order int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.clinic_product_settings (
+  customer_code text not null references public.clinics (customer_code) on delete cascade,
+  product_id    uuid not null references public.products (id) on delete cascade,
+  is_visible    boolean not null default true,
+  updated_at    timestamptz not null default now(),
+  primary key (customer_code, product_id)
+);`}</Code>
+        <p>
+          <strong>デフォルト表示の設計：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_product_settings</code>に行が無い商品は「表示」扱い。BGJが新商品を公開すると全医院の患者ポータルに自動で並び、医院が非表示にした時だけ行がupsertされる（医院側の手間を最小にする意図的な設計）。
+        </p>
+        <p>
+          <strong>API構成：</strong>BGJ用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/products</code>（全ハンドラ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">requireBgjSession</code>）、医院用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/admin/product-settings</code>（GETは公開商品＋自院設定のマージ、PATCHはclinicロール限定のupsert）、患者用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/patient-portal/products</code>（公開商品から非表示分を除外した一覧のみ）。<strong>患者用APIは意図的に一覧のみで単品取得パラメータを持たない</strong>（詳細ページも一覧からfindするため、非表示・非公開の商品は直接URLアクセスでも自動的に「見つかりません」になり、認可の抜け道ができない）。
+        </p>
+        <p>
+          商品画像は実ファイルを持たず<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_type</code>（CSSグラデーション＋SVG描画、共通コンポーネント<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ProductVisual.tsx</code>）のみ。実画像はPhase 2のShopify同期時に<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_url</code>列を追加して対応予定。バッジ色・カテゴリ等の候補値は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/productDisplay.ts</code>（静的クラス名マップ、clinicStatusColors.tsと同方式）に集約している。
+        </p>
+        <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
+          <strong>スコープ外（今後の課題）：</strong>subscription系4画面・admin/orders・commission・dashboardの商品参照は静的ダミーのまま（Shopifyでの購入モデル確定後、Phase 2以降で対応）。医院別の先生コメント編集（clinic_recommendations）もPhase 2。
+        </p>
+      </>
+    ),
+  },
 ];
