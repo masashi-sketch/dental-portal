@@ -1,25 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 
 type ChildNavItem = {
   label: string;
   href: string;
-  icon: React.ReactNode;
+  // 深い階層のリーフ項目ではアイコンを省略できる（未指定時は小さいドットで代替）。
+  icon?: React.ReactNode;
+  // 自分自身を再帰的に持たせることで、何階層でもツリー化できるようにする
+  // （例：「マニュアル」→「利用マニュアル」→「医院様へ」の3階層）。
+  children?: ChildNavItem[];
 };
 
-type NavItem = {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
+type NavItem = ChildNavItem & {
   dividerAfter?: boolean;
   sectionLabel?: string;
-  // 普段は折りたたまれ、開閉トグルをクリックした時・子項目のページを開いている時
-  // だけ表示される子項目（例：「営業担当」配下の「役職マスタ」「担当エリア」）。
-  children?: ChildNavItem[];
 };
 
 const navItems: NavItem[] = [
@@ -82,6 +80,38 @@ const navItems: NavItem[] = [
     href: "/bgj/manual",
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>,
     sectionLabel: "ヘルプ",
+    children: [
+      {
+        label: "利用マニュアル",
+        href: "/bgj/manual?tab=usage&audience=bgj",
+        children: [
+          { label: "BGJ社内の皆様へ", href: "/bgj/manual?tab=usage&audience=bgj" },
+          { label: "医院様へ", href: "/bgj/manual?tab=usage&audience=clinic" },
+          { label: "患者様へ", href: "/bgj/manual?tab=usage&audience=patient" },
+          { label: "患者様のQR自己登録（新機能）", href: "/bgj/manual?tab=usage&audience=qr-signup" },
+          { label: "全体の流れ（参考）", href: "/bgj/manual?tab=usage&audience=flow" },
+        ],
+      },
+      {
+        label: "システム手順",
+        href: "/bgj/manual?tab=procedure&step=0",
+        children: [
+          { label: "0. 全体構成", href: "/bgj/manual?tab=procedure&step=0" },
+          { label: "1. Supabase準備", href: "/bgj/manual?tab=procedure&step=1" },
+          { label: "2. 環境変数", href: "/bgj/manual?tab=procedure&step=2" },
+          { label: "3. Google OAuth", href: "/bgj/manual?tab=procedure&step=3" },
+          { label: "4. デプロイ", href: "/bgj/manual?tab=procedure&step=4" },
+          { label: "5. QR自己登録", href: "/bgj/manual?tab=procedure&step=5" },
+          { label: "6. ログインIDの自動採番", href: "/bgj/manual?tab=procedure&step=6" },
+          { label: "7. 患者様メール文面のカスタマイズ", href: "/bgj/manual?tab=procedure&step=7" },
+          { label: "8. ワンクリックログイン・パスワード再設定", href: "/bgj/manual?tab=procedure&step=8" },
+          { label: "9. テストとCI", href: "/bgj/manual?tab=procedure&step=9" },
+          { label: "10. クリニック問い合わせ→Slack連携", href: "/bgj/manual?tab=procedure&step=10" },
+          { label: "11. お知らせ機能", href: "/bgj/manual?tab=procedure&step=11" },
+          { label: "12. BGJポータル使い勝手改善（マスタ一覧化・LINKマスタ）", href: "/bgj/manual?tab=procedure&step=12" },
+        ],
+      },
+    ],
   },
 ];
 
@@ -117,21 +147,126 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
   );
 }
 
-// 子項目を持つnavItem用の行。子項目（例：「役職マスタ」「担当エリア」）は
-// 普段は折りたたまれて非表示で、開閉トグルをクリックした時、または子項目の
+// hrefが "/path" か "/path?key=value&..." のどちらでも扱えるようにする。
+// クエリを持たないhref（既存の大半の項目）は従来通りパスだけで判定するため、
+// 既存項目の挙動は変わらない。
+function isHrefActive(href: string, pathname: string, searchParams: URLSearchParams): boolean {
+  const [path, queryString] = href.split("?");
+  const pathMatches = pathname === path || pathname.startsWith(path + "/");
+  if (!pathMatches) return false;
+  if (!queryString) return true;
+  const requiredParams = new URLSearchParams(queryString);
+  for (const [key, value] of requiredParams) {
+    if (searchParams.get(key) !== value) return false;
+  }
+  return true;
+}
+
+function hasActiveDescendant(item: ChildNavItem, pathname: string, searchParams: URLSearchParams): boolean {
+  return (
+    item.children?.some(
+      (c) => isHrefActive(c.href, pathname, searchParams) || hasActiveDescendant(c, pathname, searchParams)
+    ) ?? false
+  );
+}
+
+// 子項目（何階層でも）を再帰的に描画する。子を持たない項目はシンプルな
+// リンク、子を持つ項目は「本体リンク＋開閉トグル」という構成にする
+// （トップレベルのNavItemRowと同じ見た目のパターン）。普段は折りたたまれ、
+// 開閉トグルをクリックした時・子孫のページを開いている時だけ表示する。
+function ChildNavItemRow({
+  item,
+  pathname,
+  searchParams,
+  onNavClick,
+}: {
+  item: ChildNavItem;
+  pathname: string;
+  searchParams: URLSearchParams;
+  onNavClick: () => void;
+}) {
+  const isActive = isHrefActive(item.href, pathname, searchParams);
+  const childActive = hasActiveDescendant(item, pathname, searchParams);
+  const [expanded, setExpanded] = useState(childActive);
+  const hasChildren = !!item.children?.length;
+
+  const iconOrDot = item.icon ?? (
+    <span className="block w-1.5 h-1.5 rounded-full bg-current opacity-50" aria-hidden />
+  );
+
+  if (!hasChildren) {
+    return (
+      <Link
+        href={item.href}
+        onClick={onNavClick}
+        className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${
+          isActive
+            ? "bg-white/20 text-white font-semibold shadow-sm"
+            : "text-violet-200/80 hover:bg-white/10 hover:text-white"
+        }`}
+      >
+        <span className="shrink-0">{iconOrDot}</span>
+        <span className="flex-1 leading-snug">{item.label}</span>
+      </Link>
+    );
+  }
+
+  return (
+    <div>
+      <div
+        className={`flex items-center rounded-xl text-sm transition-all ${
+          isActive
+            ? "bg-white/20 text-white font-semibold shadow-sm"
+            : "text-violet-200/80 hover:bg-white/10 hover:text-white"
+        }`}
+      >
+        <Link href={item.href} onClick={onNavClick} className="flex-1 flex items-center gap-2.5 px-3 py-2 min-w-0">
+          <span className="shrink-0">{iconOrDot}</span>
+          <span className="flex-1 leading-snug">{item.label}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-label={expanded ? `${item.label}の詳細を閉じる` : `${item.label}の詳細を開く`}
+          className="px-2 py-2 shrink-0 text-violet-300/80 hover:text-white"
+        >
+          <ChevronIcon expanded={expanded} />
+        </button>
+      </div>
+      {expanded && (
+        <div className="flex flex-col gap-0.5 pl-4 mt-0.5">
+          {item.children!.map((child) => (
+            <ChildNavItemRow
+              key={child.href}
+              item={child}
+              pathname={pathname}
+              searchParams={searchParams}
+              onNavClick={onNavClick}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// トップレベルnavItem用の行。子項目を持たない場合はシンプルなリンク、
+// 子項目を持つ場合は「本体リンク＋開閉トグル」を表示する。子項目は普段は
+// 折りたたまれて非表示で、開閉トグルをクリックした時、または子孫の
 // ページを開いている時だけ表示する。
 function NavItemRow({
   item,
   pathname,
+  searchParams,
   onNavClick,
 }: {
   item: NavItem;
   pathname: string;
+  searchParams: URLSearchParams;
   onNavClick: () => void;
 }) {
-  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-  const childActive =
-    item.children?.some((c) => pathname === c.href || pathname.startsWith(c.href + "/")) ?? false;
+  const isActive = isHrefActive(item.href, pathname, searchParams);
+  const childActive = hasActiveDescendant(item, pathname, searchParams);
   const [expanded, setExpanded] = useState(childActive);
 
   if (!item.children || item.children.length === 0) {
@@ -178,24 +313,15 @@ function NavItemRow({
       </div>
       {expanded && (
         <div className="flex flex-col gap-0.5 pl-4 mt-0.5">
-          {item.children.map((child) => {
-            const childIsActive = pathname === child.href || pathname.startsWith(child.href + "/");
-            return (
-              <Link
-                key={child.href}
-                href={child.href}
-                onClick={onNavClick}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${
-                  childIsActive
-                    ? "bg-white/20 text-white font-semibold shadow-sm"
-                    : "text-violet-200/80 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <span className="shrink-0">{child.icon}</span>
-                <span className="flex-1 leading-snug">{child.label}</span>
-              </Link>
-            );
-          })}
+          {item.children.map((child) => (
+            <ChildNavItemRow
+              key={child.href}
+              item={child}
+              pathname={pathname}
+              searchParams={searchParams}
+              onNavClick={onNavClick}
+            />
+          ))}
         </div>
       )}
       {item.dividerAfter && <div className="my-2 border-t border-violet-700/40" />}
@@ -205,11 +331,13 @@ function NavItemRow({
 
 function SidebarContent({
   pathname,
+  searchParams,
   userName,
   userEmail,
   onNavClick,
 }: {
   pathname: string;
+  searchParams: URLSearchParams;
   userName: string | null | undefined;
   userEmail: string | null | undefined;
   onNavClick: () => void;
@@ -242,7 +370,7 @@ function SidebarContent({
               <p className="text-violet-200 text-[11px] font-bold tracking-widest px-2 pt-1 pb-1.5">{group.sectionLabel}</p>
             )}
             {group.items.map((item) => (
-              <NavItemRow key={item.href} item={item} pathname={pathname} onNavClick={onNavClick} />
+              <NavItemRow key={item.href} item={item} pathname={pathname} searchParams={searchParams} onNavClick={onNavClick} />
             ))}
           </div>
         ))}
@@ -290,8 +418,9 @@ function SidebarContent({
   );
 }
 
-export default function BgjSidebar() {
+function BgjSidebarShell() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const closeMobile = () => setMobileOpen(false);
@@ -300,7 +429,7 @@ export default function BgjSidebar() {
     <>
       {/* デスクトップサイドバー */}
       <aside className="hidden md:flex w-60 shrink-0 flex-col bg-violet-900 sticky top-0 h-screen overflow-hidden">
-        <SidebarContent pathname={pathname} userName={session?.user?.name} userEmail={session?.user?.email} onNavClick={closeMobile} />
+        <SidebarContent pathname={pathname} searchParams={searchParams} userName={session?.user?.name} userEmail={session?.user?.email} onNavClick={closeMobile} />
       </aside>
 
       {/* モバイルトップバー */}
@@ -318,10 +447,18 @@ export default function BgjSidebar() {
         <div className="md:hidden fixed inset-0 z-40 flex">
           <div className="fixed inset-0 bg-black/50" onClick={closeMobile} />
           <aside className="relative w-60 bg-violet-900 flex flex-col h-full">
-            <SidebarContent pathname={pathname} userName={session?.user?.name} userEmail={session?.user?.email} onNavClick={closeMobile} />
+            <SidebarContent pathname={pathname} searchParams={searchParams} userName={session?.user?.name} userEmail={session?.user?.email} onNavClick={closeMobile} />
           </aside>
         </div>
       )}
     </>
+  );
+}
+
+export default function BgjSidebar() {
+  return (
+    <Suspense fallback={<div className="hidden md:flex w-60 shrink-0 bg-violet-900 h-screen" />}>
+      <BgjSidebarShell />
+    </Suspense>
   );
 }
