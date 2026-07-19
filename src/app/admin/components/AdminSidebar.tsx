@@ -233,7 +233,7 @@ function NavItems({
   );
 }
 
-function LogoBlock({ clinicName }: { clinicName: string | null }) {
+function LogoBlock({ clinicName, loaded }: { clinicName: string | null; loaded: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
       <div className="w-9 h-9 bg-sky-400 rounded-lg flex items-center justify-center shrink-0">
@@ -242,7 +242,11 @@ function LogoBlock({ clinicName }: { clinicName: string | null }) {
         </svg>
       </div>
       <div className="min-w-0">
-        <p className="text-white font-bold text-base leading-tight truncate">{clinicName ?? 'テストデンタル'}</p>
+        {loaded ? (
+          <p className="text-white font-bold text-base leading-tight truncate">{clinicName ?? 'テストデンタル'}</p>
+        ) : (
+          <div className="h-4 w-24 bg-white/10 rounded animate-pulse" />
+        )}
         <p className="text-sky-300/80 text-xs">管理ポータル</p>
       </div>
     </div>
@@ -389,7 +393,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
       {/* ── デスクトップ用サイドバー ── */}
       <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sky-900 sticky top-0 h-screen overflow-hidden">
         <div className="px-5 py-5 border-b border-sky-800/50">
-          <LogoBlock clinicName={clinicName} />
+          <LogoBlock clinicName={clinicName} loaded={clinicLoaded} />
         </div>
         <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
           <NavItems active={active} unreadCounts={unreadCounts} externalLinks={externalLinks} />
@@ -417,7 +421,11 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
             <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
           </svg>
         </div>
-        <p className="text-white font-bold text-base truncate">{clinicName ?? 'テストデンタル'} 管理ポータル</p>
+        {clinicLoaded ? (
+          <p className="text-white font-bold text-base truncate">{clinicName ?? 'テストデンタル'} 管理ポータル</p>
+        ) : (
+          <div className="h-4 w-32 bg-white/10 rounded animate-pulse" />
+        )}
       </div>
 
       {/* ── モバイルドロワー：背景オーバーレイ ── */}
@@ -435,7 +443,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
         }`}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-sky-800/50">
-          <LogoBlock clinicName={clinicName} />
+          <LogoBlock clinicName={clinicName} loaded={clinicLoaded} />
           <button
             onClick={() => setMobileOpen(false)}
             className="text-sky-300 hover:text-white p-1 rounded-lg hover:bg-sky-800 transition-colors ml-2 shrink-0"
