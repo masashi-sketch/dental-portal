@@ -64,8 +64,9 @@ function SignInContent() {
   const isAuthenticatedForSelected = status === "authenticated" && session?.user?.role === selected.id;
 
   const handleEnter = () => {
-    if (selected.id === "clinic") {
-      // 医院用ポータルはGoogle OAuthを使わず、専用ログイン画面へ
+    if (selected.id === "clinic" || selected.id === "patient") {
+      // 医院用・患者様ポータルはGoogle OAuthを使わず、専用ログイン画面へ
+      // （Google認証は@biogaia.jpドメイン限定のため、患者様が選んでも必ず失敗する）
       router.push(selected.href);
       return;
     }
@@ -136,6 +137,13 @@ function SignInContent() {
           >
             医院ログイン画面へ →
           </button>
+        ) : selected.id === "patient" ? (
+          <button
+            onClick={handleEnter}
+            className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md"
+          >
+            患者様ログイン画面へ →
+          </button>
         ) : isAuthenticatedForSelected ? (
           <button
             onClick={handleEnter}
@@ -161,6 +169,8 @@ function SignInContent() {
         <p className="text-xs text-slate-400 text-center mt-5">
           {selected.id === "clinic"
             ? "医院ごとに発行されたログインID・パスワードでログインします"
+            : selected.id === "patient"
+            ? "発行されたログインID・パスワードでログインします"
             : "@biogaia.jp のGoogle Workspaceアカウントが必要です"}
         </p>
       </div>
