@@ -625,6 +625,59 @@ create trigger trg_clinic_announcements_updated_at
   for each row execute function public.set_updated_at_generic();
 
 -- ============================================================
+-- 9.9. 商品マスタ（BGJポータル /bgj/master/products で管理）と
+--      医院ごとの患者ポータル表示設定（Shopify連携ロードマップPhase 1）。
+--      患者ポータル /shop・/shop/[id] はこの実データを表示する。
+--      画像は実ファイルを持たず image_type（CSSグラデーション＋SVG描画キー）のみ。
+--      実画像はPhase 2のShopify同期時に image_url 列を追加して対応予定。
+-- ============================================================
+create table public.products (
+  id            uuid primary key default gen_random_uuid(),
+  name          text not null,
+  category      text not null check (category in ('サプリメント','ヨーグルト','歯ブラシ','オーラルケア')),
+  description   text,                -- 一覧カードの説明文
+  price         int not null,        -- 患者様向け参考価格（税込・円）
+  unit          text,                -- 例「本」「個」「セット」
+  image_type    text not null default 'supplement'
+    check (image_type in ('supplement','yogurt','toothbrush','oral')),
+  badge         text,                -- 例「歯科医推奨」（null=バッジなし）
+  badge_color   text check (badge_color in ('indigo','rose','amber','emerald','sky','slate')),
+  subscription_available boolean not null default false,
+  -- 詳細ページ項目（未入力は詳細ページでセクションごと非表示）
+  volume        text,
+  ingredients   text,
+  how_to_use    text,
+  caution       text,
+  -- 先生のおすすめ（全医院共通。医院別コメントはPhase 2のclinic_recommendationsで対応予定）
+  working_point        text,
+  daily_amount         text,
+  recommendation_level text check (recommendation_level in ('◎','○')),
+  doctor_comment       text,
+  status        text not null default '下書き' check (status in ('公開','下書き')),
+  sort_order    int not null default 0,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create trigger trg_products_updated_at
+  before update on public.products
+  for each row execute function public.set_updated_at_generic();
+
+-- 医院ごとの患者ポータル表示設定。行が無い商品は「表示」扱い（新商品はデフォルト全医院表示、
+-- 医院が非表示にした時だけ行をupsertする）。
+create table public.clinic_product_settings (
+  customer_code text not null references public.clinics (customer_code) on delete cascade,
+  product_id    uuid not null references public.products (id) on delete cascade,
+  is_visible    boolean not null default true,
+  updated_at    timestamptz not null default now(),
+  primary key (customer_code, product_id)
+);
+
+create trigger trg_clinic_product_settings_updated_at
+  before update on public.clinic_product_settings
+  for each row execute function public.set_updated_at_generic();
+
+-- ============================================================
 -- 10. RLS：原則ポリシーを一切定義せず有効化するのみ。
 --    anon/authenticated からは読み書き一切不可。service_role キーのみアクセス可能。
 --    ※ patients / periodontal_diagnoses / periodontal_stages / periodontal_grades の
@@ -656,6 +709,8 @@ alter table public.app_settings           enable row level security;
 alter table public.clinic_inquiries       enable row level security;
 alter table public.clinic_inquiry_replies enable row level security;
 alter table public.clinic_announcements   enable row level security;
+alter table public.products               enable row level security;
+alter table public.clinic_product_settings enable row level security;
 
 -- ============================================================
 -- 11. フェーズ3b：患者ポータルの歯周病診断読み取り経路のみ、
