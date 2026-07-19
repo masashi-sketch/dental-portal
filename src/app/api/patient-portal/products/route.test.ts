@@ -14,8 +14,8 @@ vi.mock('@/lib/auth/patientScope', () => ({
 }));
 
 const productRows = [
-  { id: 'product-1', name: '商品A', category: 'サプリメント', price: 1000, status: '公開' },
-  { id: 'product-2', name: '商品B', category: 'ヨーグルト', price: 2000, status: '公開' },
+  { id: 'product-1', name: '商品A', category: 'お口と喉のケア', price: 1000, status: '公開' },
+  { id: 'product-2', name: '商品B', category: '赤ちゃん・キッズ', price: 2000, status: '公開' },
 ];
 let hiddenSettingRows: { product_id: string }[] = [];
 

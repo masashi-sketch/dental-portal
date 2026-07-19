@@ -411,7 +411,7 @@ export type DbTableUsage = { table_name: string; size_bytes: number; row_estimat
 
 // 商品マスタ（BGJポータル /bgj/master/products で管理、Shopify連携Phase 1）。
 // 画像は実ファイルを持たずimage_type（CSSグラデーション＋SVG描画キー）のみ。
-export type ProductCategory = 'サプリメント' | 'ヨーグルト' | '歯ブラシ' | 'オーラルケア';
+export type ProductCategory = 'お口と喉のケア' | '赤ちゃん・キッズ' | '抵抗力サポート' | '胃腸のサポート' | 'ペット向け';
 export type ProductImageType = 'supplement' | 'yogurt' | 'toothbrush' | 'oral';
 export type ProductBadgeColor = 'indigo' | 'rose' | 'amber' | 'emerald' | 'sky' | 'slate';
 

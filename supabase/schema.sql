@@ -634,7 +634,8 @@ create trigger trg_clinic_announcements_updated_at
 create table public.products (
   id            uuid primary key default gen_random_uuid(),
   name          text not null,
-  category      text not null check (category in ('サプリメント','ヨーグルト','歯ブラシ','オーラルケア')),
+  -- カテゴリはバイオガイア公式サイト（jp.biogaia.com）の商品分類に合わせる
+  category      text not null check (category in ('お口と喉のケア','赤ちゃん・キッズ','抵抗力サポート','胃腸のサポート','ペット向け')),
   description   text,                -- 一覧カードの説明文
   price         int not null,        -- 患者様向け参考価格（税込・円）
   unit          text,                -- 例「本」「個」「セット」

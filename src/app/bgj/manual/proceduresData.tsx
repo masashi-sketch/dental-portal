@@ -499,7 +499,7 @@ create table public.clinic_login_tokens (
         <Code>{`create table public.products (
   id            uuid primary key default gen_random_uuid(),
   name          text not null,
-  category      text not null check (category in ('サプリメント','ヨーグルト','歯ブラシ','オーラルケア')),
+  category      text not null check (category in ('お口と喉のケア','赤ちゃん・キッズ','抵抗力サポート','胃腸のサポート','ペット向け')),
   description   text, price int not null, unit text,
   image_type    text not null default 'supplement'
     check (image_type in ('supplement','yogurt','toothbrush','oral')),

@@ -13,7 +13,7 @@ const insertSpy = vi.fn();
 const productRow = {
   id: 'product-1',
   name: 'オーラルプロバイオティクス 30日分',
-  category: 'サプリメント',
+  category: 'お口と喉のケア',
   price: 3980,
   status: '公開',
   sort_order: 10,
@@ -61,7 +61,7 @@ function makeRequest(body: Record<string, unknown>) {
   }) as unknown as Parameters<typeof POST>[0];
 }
 
-const validBody = { name: 'テスト商品', category: 'サプリメント', price: 1000 };
+const validBody = { name: 'テスト商品', category: 'お口と喉のケア', price: 1000 };
 
 describe('GET /api/bgj/products', () => {
   beforeEach(() => {
@@ -140,7 +140,7 @@ describe('POST /api/bgj/products', () => {
     expect(insertSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'テスト商品',
-        category: 'サプリメント',
+        category: 'お口と喉のケア',
         price: 1000,
         image_type: 'oral',
         badge: '新着',

@@ -12,7 +12,7 @@ const deleteSpy = vi.fn();
 const updatedRow = {
   id: 'product-1',
   name: 'オーラルプロバイオティクス 30日分',
-  category: 'サプリメント',
+  category: 'お口と喉のケア',
   price: 3980,
   status: '公開',
 };
@@ -63,7 +63,7 @@ function makePatchRequest(body: Record<string, unknown>) {
   }) as unknown as Parameters<typeof PATCH>[0];
 }
 
-const validBody = { name: 'テスト商品', category: 'サプリメント', price: 1000 };
+const validBody = { name: 'テスト商品', category: 'お口と喉のケア', price: 1000 };
 
 describe('PATCH /api/bgj/products/[id]', () => {
   beforeEach(() => {

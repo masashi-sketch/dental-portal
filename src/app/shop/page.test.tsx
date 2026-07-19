@@ -13,7 +13,7 @@ function makeProduct(overrides: Partial<Product>): Product {
   return {
     id: 'product-1',
     name: 'テスト商品',
-    category: 'サプリメント',
+    category: 'お口と喉のケア',
     description: 'テスト説明文',
     price: 1000,
     unit: '本',
@@ -50,7 +50,7 @@ const defaultProducts: Product[] = [
   makeProduct({
     id: 'product-2',
     name: 'デンタルフロス ミント 50m',
-    category: 'オーラルケア',
+    category: '赤ちゃん・キッズ',
     image_type: 'oral',
     subscription_available: false,
   }),

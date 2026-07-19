@@ -7,8 +7,14 @@ import {
 } from './productDisplay';
 
 describe('productDisplay', () => {
-  it('カテゴリはDBのCHECK制約と同じ4種', () => {
-    expect(PRODUCT_CATEGORIES).toEqual(['サプリメント', 'ヨーグルト', '歯ブラシ', 'オーラルケア']);
+  it('カテゴリはDBのCHECK制約と同じ5種（バイオガイア公式サイトの分類）', () => {
+    expect(PRODUCT_CATEGORIES).toEqual([
+      'お口と喉のケア',
+      '赤ちゃん・キッズ',
+      '抵抗力サポート',
+      '胃腸のサポート',
+      'ペット向け',
+    ]);
   });
 
   it('バッジ色マップは全色に静的クラス名を持つ（Tailwindの動的クラス生成を避ける）', () => {

@@ -4,7 +4,14 @@ import type { ProductBadgeColor, ProductCategory, ProductImageType } from '@/lib
 // 生成を避けるため固定候補のCHECK制約になっており、ここで静的なクラス名マップに
 // 変換する（clinicStatusColors.tsと同じ方式。BGJ商品マスタ・患者ポータルshopで共通利用）。
 
-export const PRODUCT_CATEGORIES: ProductCategory[] = ['サプリメント', 'ヨーグルト', '歯ブラシ', 'オーラルケア'];
+// バイオガイア公式サイト（jp.biogaia.com）の商品分類に合わせた5カテゴリ
+export const PRODUCT_CATEGORIES: ProductCategory[] = [
+  'お口と喉のケア',
+  '赤ちゃん・キッズ',
+  '抵抗力サポート',
+  '胃腸のサポート',
+  'ペット向け',
+];
 
 export const PRODUCT_BADGE_CLASS: Record<ProductBadgeColor, string> = {
   indigo: 'bg-indigo-100 text-indigo-600',

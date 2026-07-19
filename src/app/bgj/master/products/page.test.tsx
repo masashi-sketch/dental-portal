@@ -12,7 +12,7 @@ function jsonResponse(data: unknown, ok = true) {
 const product: Product = {
   id: 'product-1',
   name: 'オーラルプロバイオティクス 30日分',
-  category: 'サプリメント',
+  category: 'お口と喉のケア',
   description: '口腔内の善玉菌を増やす乳酸菌サプリ。',
   price: 3980,
   unit: '本',

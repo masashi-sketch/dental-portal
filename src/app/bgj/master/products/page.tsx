@@ -38,7 +38,7 @@ type ProductForm = {
 
 const EMPTY_FORM: ProductForm = {
   name: "",
-  category: "サプリメント",
+  category: PRODUCT_CATEGORIES[0],
   description: "",
   price: "",
   unit: "",
