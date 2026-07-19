@@ -5,7 +5,9 @@ import { useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
+import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
+import { usePrimaryDoctor } from '@/hooks/usePrimaryDoctor';
 import { subProducts } from './data';
 
 function IconBell() {
@@ -116,13 +118,15 @@ const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス',
 const benefits = [
   { icon: <IconTruck />, title: '毎月自動お届け', desc: '申込後は手続き不要。毎月定期的にお届けします。' },
   { icon: <IconShield />, title: '品質保証', desc: '歯科医師・歯科衛生士監修の安心商品のみをご提供。' },
-  { icon: <IconStar />, title: '特別割引', desc: '3ヶ月コースで5%OFF、6ヶ月コースで10%OFFでご提供。' },
+  { icon: <IconStar />, title: '継続サポート価格', desc: '続けやすいよう、3ヶ月コースで5%、6ヶ月コースで10%を割引いたします。' },
   { icon: <IconCheck />, title: 'いつでも解約', desc: '次回お届け日の7日前までに解約申請でいつでも停止可。' },
 ];
 
 export default function SubscriptionPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { clinicName, navVisibility } = usePatientClinicBranding();
+  const { doctor } = usePrimaryDoctor();
+  const doctorLabel = doctor ? `${doctor.name}先生` : `${clinicName ?? 'デンタルポータル'} 院長`;
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 pb-20 md:pb-0">
@@ -207,10 +211,28 @@ export default function SubscriptionPage() {
                 歯科医師・歯科衛生士が厳選した口腔健康サポートサプリを、毎月ご自宅または医院へお届け。定期購入で特別価格でご利用いただけます。
               </p>
               <div className="flex flex-wrap gap-2">
-                <span className="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full">6ヶ月コース 10%OFF</span>
-                <span className="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full">3ヶ月コース 5%OFF</span>
+                <span className="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full">継続サポート価格あり</span>
                 <span className="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full">いつでも解約OK</span>
               </div>
+            </div>
+          </div>
+
+          {/* 先生が継続をおすすめする理由 */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
+            {doctor ? (
+              <SalesRepAvatar name={doctor.name} photoUrl={doctor.photo_url} size={48} className="!rounded-full" />
+            ) : (
+              <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center shrink-0 text-indigo-500">
+                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-gray-900 mb-1">{doctorLabel}が継続をおすすめする理由</p>
+              <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
+                口腔内のケアは、一度で終わるものではなく続けることで効果が現れます。毎日の診療で拝見していても、続けられた患者様ほど良い状態を保てています。無理なく続けられるよう、続けやすい価格でご案内しています。
+              </p>
             </div>
           </div>
 

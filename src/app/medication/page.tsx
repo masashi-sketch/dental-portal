@@ -251,6 +251,17 @@ export default function MedicationPage() {
                   歯周病の診断結果はまだ登録されていません。次回受診時に医院にてご確認ください。
                 </p>
               )}
+              <Link
+                href="/shop"
+                className="mt-3 flex items-center justify-between gap-2 bg-[#F0F7FF] hover:bg-[#e3effe] transition-colors rounded-xl px-4 py-3"
+              >
+                <span className="text-xs sm:text-sm text-[#2563EB] font-semibold">
+                  {diagnosis ? 'この結果を踏まえたおすすめのケア用品を見る' : 'おすすめのケア用品を見る'}
+                </span>
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-[#2563EB] shrink-0">
+                  <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                </svg>
+              </Link>
             </div>
           )}
 
