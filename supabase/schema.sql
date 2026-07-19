@@ -528,6 +528,9 @@ create table public.clinic_users (
   login_id      text not null unique,
   password_hash text not null,
   name          text,
+  -- パスワードをお忘れの方の自己リセット用（BGJがログイン発行・編集画面から入力する。
+  -- 未登録でも従来通りBGJによる手動リセットは可能）
+  email         text,
   status        text not null default '有効' check (status in ('有効','無効')),
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
@@ -537,10 +540,26 @@ create table public.clinic_users (
 );
 
 create index idx_clinic_users_customer_code on public.clinic_users (customer_code);
+create unique index clinic_users_email_key on public.clinic_users (email) where email is not null;
 
 create trigger trg_clinic_users_updated_at
   before update on public.clinic_users
   for each row execute function public.set_updated_at_generic();
+
+-- 医院スタッフのパスワード再設定メール用の使い捨てトークン（patient_login_tokensと同型、
+-- clinic_users専用。src/lib/auth/clinicLoginToken.tsのみで扱う）。
+create table public.clinic_login_tokens (
+  id             uuid primary key default gen_random_uuid(),
+  clinic_user_id uuid not null references public.clinic_users (id) on delete cascade,
+  token_hash     text not null,
+  purpose        text not null check (purpose in ('password_reset')),
+  expires_at     timestamptz not null,
+  used_at        timestamptz,
+  created_at     timestamptz not null default now(),
+  unique (token_hash)
+);
+
+create index idx_clinic_login_tokens_clinic_user_id on public.clinic_login_tokens (clinic_user_id);
 
 -- ============================================================
 -- 9.5. 患者ポータルの「クリニック紹介」スタッフ紹介・「Q&A」
@@ -628,6 +647,7 @@ alter table public.patients               enable row level security;
 alter table public.periodontal_diagnoses  enable row level security;
 alter table public.clinic_terms           enable row level security;
 alter table public.clinic_users           enable row level security;
+alter table public.clinic_login_tokens    enable row level security;
 alter table public.clinic_staff           enable row level security;
 alter table public.clinic_qa              enable row level security;
 alter table public.clinic_email_templates enable row level security;

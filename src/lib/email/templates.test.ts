@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { renderEmailTemplate, renderEmailTemplateHtml, type EmailTemplateVars } from './templates';
+import {
+  renderEmailTemplate,
+  renderEmailTemplateHtml,
+  DEFAULT_CLINIC_STAFF_PASSWORD_RESET_SUBJECT,
+  DEFAULT_CLINIC_STAFF_PASSWORD_RESET_BODY,
+  type EmailTemplateVars,
+} from './templates';
 
 const vars: EmailTemplateVars = {
   patientName: '山田 太郎',
@@ -36,5 +42,16 @@ describe('renderEmailTemplateHtml', () => {
     const result = renderEmailTemplateHtml('{{患者名}} 様', dangerousVars);
     expect(result).not.toContain('<script>');
     expect(result).toContain('&lt;script&gt;');
+  });
+});
+
+describe('DEFAULT_CLINIC_STAFF_PASSWORD_RESET_BODY', () => {
+  it('医院スタッフ名・リンクを正しくレンダリングする（patientNameをスタッフ名として流用）', () => {
+    const staffVars: EmailTemplateVars = { ...vars, patientName: '営業太郎', loginId: '' };
+    const subject = renderEmailTemplate(DEFAULT_CLINIC_STAFF_PASSWORD_RESET_SUBJECT, staffVars);
+    const body = renderEmailTemplateHtml(DEFAULT_CLINIC_STAFF_PASSWORD_RESET_BODY, staffVars);
+    expect(subject).toBe('【医院ポータル】パスワード再設定のご案内');
+    expect(body).toContain('営業太郎 様');
+    expect(body).toContain(`<a href="${vars.link}">${vars.link}</a>`);
   });
 });

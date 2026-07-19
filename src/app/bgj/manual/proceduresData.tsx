@@ -446,4 +446,42 @@ alter table public.clinics
       </>
     ),
   },
+  {
+    key: "16",
+    label: "16. 医院スタッフのパスワードリセット",
+    content: (
+      <>
+        <p>
+          医院スタッフログイン（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-login</code>）に、患者様と同じセルフサービスの「パスワードをお忘れの方」機能を追加した。流れは
+          <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-forgot-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinic-password-reset/request</code> → メール → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-reset-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinic-password-reset/confirm</code>。
+          従来どおりBGJ職員が得意先詳細「ログイン設定」タブから手動でパスワード再設定する運用も併存する（置き換えではない）。
+        </p>
+        <Code>{`alter table public.clinic_users add column email text;
+create unique index clinic_users_email_key on public.clinic_users (email) where email is not null;
+
+create table public.clinic_login_tokens (
+  id             uuid primary key default gen_random_uuid(),
+  clinic_user_id uuid not null references public.clinic_users (id) on delete cascade,
+  token_hash     text not null,
+  purpose        text not null check (purpose in ('password_reset')),
+  expires_at     timestamptz not null,
+  used_at        timestamptz,
+  created_at     timestamptz not null default now(),
+  unique (token_hash)
+);`}</Code>
+        <p>
+          <strong>前提となる運用変更：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>にはメールアドレス列が無かったため、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">email</code>列を追加した。得意先詳細「ログイン設定」タブ（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ClinicLoginManager.tsx</code>）で、新規発行時のメールアドレス入力と、既存ログインへの後付け登録・編集ができる。<strong>メール未登録のスタッフはこの機能を使えない</strong>（従来どおりBGJによる手動リセットのみ）。
+        </p>
+        <p>
+          <strong>セキュリティ設計は患者様版（システム手順「8」）と同一：</strong>トークンは30分有効・使い捨て・SHA-256ハッシュ保存（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/clinicLoginToken.ts</code>。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">loginToken.ts</code>のFK先を<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>に変えた並行モジュール）。同一スタッフへの再送は3分クールダウン。メールアドレスの登録有無に関わらず常に同じ成功レスポンスを返す（アドレス探索対策）。パスワードは8文字以上。メール送信は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>でレスポンス後に実行。
+        </p>
+        <p>
+          <strong>メール文面：</strong>患者様向けと異なり<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_email_templates</code>（得意先ごとのカスタマイズ）の対象外で、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/email/templates.ts</code>の固定文面（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">DEFAULT_CLINIC_STAFF_PASSWORD_RESET_*</code>）のみ。本文はHTML版も併送し、トークン付きの長いURLがプレーンテキストの折り返しで壊れないようにしている（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">renderEmailTemplateHtml()</code>、実際に患者様版で発生した不具合への対策）。
+        </p>
+        <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
+          <strong>ハマりどころ（毎回恒例）：</strong>新しい公開ページ・APIのため、<code className="bg-white px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>の許可リストに<code className="bg-white px-1.5 py-0.5 rounded text-xs">/clinic-forgot-password</code>・<code className="bg-white px-1.5 py-0.5 rounded text-xs">/clinic-reset-password</code>・<code className="bg-white px-1.5 py-0.5 rounded text-xs">/api/clinic-password-reset</code>を追加済み。
+        </p>
+      </>
+    ),
+  },
 ];

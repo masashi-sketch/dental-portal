@@ -99,7 +99,11 @@ export default function ClinicLoginPage() {
             </button>
           </div>
 
-          <p className="text-xs text-center text-teal-400/60 mt-5">
+          <div className="flex justify-center mt-4">
+            <Link href="/clinic-forgot-password" className="text-xs text-teal-400/60 hover:text-teal-300 transition-colors">パスワードをお忘れの方</Link>
+          </div>
+
+          <p className="text-xs text-center text-teal-400/60 mt-3">
             他のポータルは{' '}
             <Link href="/auth/signin" className="text-teal-300 hover:underline">こちら</Link>
           </p>

@@ -8,6 +8,7 @@ const existingUser: ClinicUserPublic = {
   customer_code: 'A000001',
   login_id: 'chuo-shika',
   name: null,
+  email: null,
   status: '有効',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
@@ -28,13 +29,17 @@ describe('ClinicLoginManager', () => {
       if (init.method === 'POST') {
         const body = JSON.parse(init.body as string);
         return jsonResponse({
-          clinicUser: { ...existingUser, id: 'u2', login_id: body.loginId, name: body.name || null },
+          clinicUser: { ...existingUser, id: 'u2', login_id: body.loginId, name: body.name || null, email: body.email || null },
         });
       }
       if (init.method === 'PATCH') {
         const body = JSON.parse(init.body as string);
         return jsonResponse({
-          clinicUser: { ...existingUser, ...(body.status ? { status: body.status } : {}) },
+          clinicUser: {
+            ...existingUser,
+            ...(body.status ? { status: body.status } : {}),
+            ...(body.email !== undefined ? { email: body.email || null } : {}),
+          },
         });
       }
       throw new Error(`unexpected method: ${init.method}`);
@@ -98,5 +103,36 @@ describe('ClinicLoginManager', () => {
     expect(await screen.findByText('パスワードを再設定しました')).toBeInTheDocument();
     const patchCall = fetchMock.mock.calls.find(([, init]) => (init as RequestInit)?.method === 'PATCH');
     expect(JSON.parse((patchCall![1] as RequestInit).body as string)).toEqual({ id: 'u1', password: 'newpass123' });
+  });
+
+  it('email未登録は「メール未登録（編集）」と表示される', async () => {
+    render(<ClinicLoginManager customerCode="A000001" />);
+    expect(await screen.findByText('メール未登録（編集）')).toBeInTheDocument();
+  });
+
+  it('メールアドレスの編集ボタンで入力欄が開き、確定でPATCHする（既存スタッフへの後付け登録）', async () => {
+    render(<ClinicLoginManager customerCode="A000001" />);
+    await screen.findByText('chuo-shika');
+    fireEvent.click(screen.getByText('メール未登録（編集）'));
+    fireEvent.change(screen.getByPlaceholderText('メールアドレス'), { target: { value: 'staff@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: '確定' }));
+    expect(await screen.findByText('メールアドレスを更新しました')).toBeInTheDocument();
+    expect(screen.getByText('staff@example.com（編集）')).toBeInTheDocument();
+    const patchCall = fetchMock.mock.calls.find(([, init]) => (init as RequestInit)?.method === 'PATCH');
+    expect(JSON.parse((patchCall![1] as RequestInit).body as string)).toEqual({ id: 'u1', email: 'staff@example.com' });
+  });
+
+  it('新規発行フォームでメールアドレスを入力するとPOSTに含まれる', async () => {
+    render(<ClinicLoginManager customerCode="A000001" />);
+    await screen.findByText('chuo-shika');
+    const [loginIdInput, passwordInput] = screen.getAllByRole('textbox');
+    fireEvent.change(loginIdInput, { target: { value: 'minami-dental' } });
+    fireEvent.change(passwordInput, { target: { value: 'initpass123' } });
+    fireEvent.change(screen.getByPlaceholderText('パスワードをお忘れの方に必要'), { target: { value: 'minami@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: '発行する' }));
+    expect(await screen.findByText('ログインを発行しました')).toBeInTheDocument();
+    const postCall = fetchMock.mock.calls.find(([, init]) => (init as RequestInit)?.method === 'POST');
+    const postBody = JSON.parse((postCall![1] as RequestInit).body as string);
+    expect(postBody.email).toBe('minami@example.com');
   });
 });

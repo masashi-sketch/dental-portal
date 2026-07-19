@@ -34,7 +34,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const { code } = await params;
   const body = await request.json();
-  const { loginId, password, name } = body ?? {};
+  const { loginId, password, name, email } = body ?? {};
   if (!loginId || !password) {
     return NextResponse.json({ error: 'ログインID・パスワードは必須です。' }, { status: 400 });
   }
@@ -47,6 +47,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       login_id: loginId,
       password_hash: hashPassword(password),
       name: name || null,
+      email: email || null,
     })
     .select(CLINIC_USER_PUBLIC_COLUMNS)
     .single();
@@ -66,7 +67,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const { code } = await params;
   const body = await request.json();
-  const { id, password, status, name } = body ?? {};
+  const { id, password, status, name, email } = body ?? {};
   if (!id) {
     return NextResponse.json({ error: 'idは必須です。' }, { status: 400 });
   }
@@ -75,6 +76,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (password) update.password_hash = hashPassword(password);
   if (status) update.status = status;
   if (name !== undefined) update.name = name || null;
+  if (email !== undefined) update.email = email || null;
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase

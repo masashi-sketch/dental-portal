@@ -30,6 +30,10 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   // パスワードを忘れた患者様向けの自己リセット画面・API。ログイン前提のため認証不要。
   const isPasswordResetPath = pathname.startsWith("/forgot-password") || pathname.startsWith("/reset-password");
   const isPasswordResetApiPath = pathname.startsWith("/api/password-reset");
+  // パスワードを忘れた医院スタッフ向けの自己リセット画面・API。上と同じ理由で認証不要。
+  const isClinicPasswordResetPath =
+    pathname.startsWith("/clinic-forgot-password") || pathname.startsWith("/clinic-reset-password");
+  const isClinicPasswordResetApiPath = pathname.startsWith("/api/clinic-password-reset");
 
   if (isApiAuth) return NextResponse.next();
   if (isAuthPath) return NextResponse.next();
@@ -41,6 +45,8 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   if (isJoinApiPath) return NextResponse.next();
   if (isPasswordResetPath) return NextResponse.next();
   if (isPasswordResetApiPath) return NextResponse.next();
+  if (isClinicPasswordResetPath) return NextResponse.next();
+  if (isClinicPasswordResetApiPath) return NextResponse.next();
 
   const role = req.auth?.user?.role;
   const isPatientPortalPath = PATIENT_PORTAL_PATHS.some(

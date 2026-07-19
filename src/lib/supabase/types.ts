@@ -301,6 +301,7 @@ export type ClinicUser = {
   login_id: string;
   password_hash: string;
   name: string | null;
+  email: string | null;
   status: '有効' | '無効';
   created_at: string;
   updated_at: string;
@@ -310,6 +311,16 @@ export type ClinicUser = {
 
 // クライアントへ返す用（password_hash・ログインロックアウト関連の内部情報を含まない）
 export type ClinicUserPublic = Omit<ClinicUser, 'password_hash' | 'failed_login_attempts' | 'locked_until'>;
+
+// 医院スタッフのパスワード再設定メール用の使い捨てトークン。
+// src/lib/auth/clinicLoginToken.tsのみで扱う（クライアントへは返さない）。
+export type ClinicLoginToken = {
+  id: string;
+  clinic_user_id: string;
+  expires_at: string;
+  used_at: string | null;
+  purpose: 'password_reset';
+};
 
 // select('*') を避け、APIルート間で使う列指定をここに集約する。
 export const PATIENT_COLUMNS =
@@ -387,11 +398,13 @@ export const CLINIC_STATUS_COLUMNS = 'id, name, color, created_at, updated_at';
 export const STAFF_AREA_COLUMNS = 'id, name, created_at, updated_at';
 
 export const CLINIC_USER_COLUMNS =
-  'id, customer_code, login_id, password_hash, name, status, created_at, updated_at, failed_login_attempts, locked_until';
+  'id, customer_code, login_id, password_hash, name, email, status, created_at, updated_at, failed_login_attempts, locked_until';
 
 // クライアントへ返す一覧・詳細用（password_hashを含めない）
 export const CLINIC_USER_PUBLIC_COLUMNS =
-  'id, customer_code, login_id, name, status, created_at, updated_at';
+  'id, customer_code, login_id, name, email, status, created_at, updated_at';
+
+export const CLINIC_LOGIN_TOKEN_COLUMNS = 'id, clinic_user_id, expires_at, used_at, purpose';
 
 // BGJポータル「システム管理」：bgj_db_table_usage()のRPC結果
 export type DbTableUsage = { table_name: string; size_bytes: number; row_estimate: number };

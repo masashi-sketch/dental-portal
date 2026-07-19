@@ -39,6 +39,20 @@ export const DEFAULT_PASSWORD_RESET_BODY = `{{患者名}} 様
 
 このメールに心当たりがない場合は、破棄してください。`;
 
+// 医院スタッフ（clinic_users）のパスワード再設定メール用。患者様向けと異なり
+// clinic_email_templates（医院ごとのカスタマイズ）の対象にはせず、固定文面のみとする
+// （スタッフ向けの内部連絡であり、患者様向けコミュニケーションのカスタマイズ機構とは責務が異なるため）。
+export const DEFAULT_CLINIC_STAFF_PASSWORD_RESET_SUBJECT = '【医院ポータル】パスワード再設定のご案内';
+
+export const DEFAULT_CLINIC_STAFF_PASSWORD_RESET_BODY = `{{患者名}} 様
+
+医院ポータルのパスワード再設定のご依頼を受け付けました。
+
+以下のリンクから、新しいパスワードを設定してください（30分間有効）。
+{{リンク}}
+
+このメールに心当たりがない場合は、破棄してください。`;
+
 export function renderEmailTemplate(template: string, vars: EmailTemplateVars): string {
   return template
     .replaceAll('{{患者名}}', vars.patientName)

@@ -119,6 +119,7 @@ const navItems: NavItem[] = [
           { label: "13. 得意先ステータスのマスタ化", href: "/bgj/manual?tab=procedure&step=13" },
           { label: "14. システムダッシュボード", href: "/bgj/manual?tab=procedure&step=14" },
           { label: "15. BGJ患者一覧", href: "/bgj/manual?tab=procedure&step=15" },
+          { label: "16. 医院スタッフのパスワードリセット", href: "/bgj/manual?tab=procedure&step=16" },
         ],
       },
     ],
