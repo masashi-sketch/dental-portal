@@ -51,5 +51,5 @@ export function renderEmailTemplate(template: string, vars: EmailTemplateVars): 
 export const PREVIEW_SAMPLE_VARS: Omit<EmailTemplateVars, 'clinicName'> = {
   patientName: '山田 太郎',
   loginId: 'BU000123',
-  link: 'https://dental-portal-mock.vercel.app/join/verify?token=xxxxxxxx',
+  link: 'https://dental-portal-biogaia.vercel.app/join/verify?token=xxxxxxxx',
 };

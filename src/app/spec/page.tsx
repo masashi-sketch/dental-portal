@@ -51,8 +51,8 @@ export default function SpecPage() {
             <table className="w-full text-sm mt-4 border border-gray-200 rounded-xl overflow-hidden">
               <tbody>
                 {[
-                  ['患者ポータルURL', 'https://dental-portal-mock.vercel.app'],
-                  ['管理ポータルURL', 'https://dental-portal-mock.vercel.app/admin'],
+                  ['患者ポータルURL', 'https://dental-portal-biogaia.vercel.app'],
+                  ['管理ポータルURL', 'https://dental-portal-biogaia.vercel.app/admin'],
                   ['フレームワーク', 'Next.js 16.2.7 (App Router)'],
                   ['スタイリング', 'Tailwind CSS'],
                   ['ホスティング', 'Vercel'],
@@ -148,7 +148,7 @@ export default function SpecPage() {
                 {[
                   ['管理者ID', 'clinic'],
                   ['パスワード', 'admin2026'],
-                  ['ログインURL', 'https://dental-portal-mock.vercel.app/admin'],
+                  ['ログインURL', 'https://dental-portal-biogaia.vercel.app/admin'],
                 ].map(([label, value]) => (
                   <tr key={label} className="border-b border-gray-100 last:border-0">
                     <td className="bg-gray-50 px-4 py-2.5 font-semibold text-gray-600 w-36">{label}</td>

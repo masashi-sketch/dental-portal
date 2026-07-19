@@ -21,8 +21,8 @@
 ## プロジェクト情報
 
 - ローカルパス: `/Users/masashi/Library/CloudStorage/GoogleDrive-masashi@biogaia.jp/マイドライブ/VisualCode/Claude/Web/Web-moc/Web-moc-B2B`
-- GitHub: https://github.com/masashi-sketch/dental-portal-mock（ブランチ: `main`）
-- Vercelプロジェクト名: `dental-portal-mock`
+- GitHub: https://github.com/masashi-sketch/dental-portal（ブランチ: `main`）
+- Vercelプロジェクト名: `dental-portal`。本番URL: `https://dental-portal-biogaia.vercel.app`（旧`dental-portal-mock.vercel.app`も引き続き有効。`dental-portal.vercel.app`は他者に先取されており取得不可）
 - データベース: Supabase（ユーザー自身のアカウントで作成したプロジェクト。環境変数は`.env.local`に設定・`.gitignore`済み）
 - 3ポータル構成：患者様ポータル（`/`, `/home`, `/medication`など）、医院用ポータル（`/admin/*`）、BGJポータル（`/bgj/*`）
 - 一部機能（歯周病マスタ・患者マスタ・得意先取引条件）はSupabaseで実データ管理を開始済み。それ以外の大半はまだ静的ダミーデータの「モック」段階
