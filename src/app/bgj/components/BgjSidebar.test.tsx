@@ -48,6 +48,18 @@ describe('BgjSidebar', () => {
     expect(screen.getAllByText('役職マスタ').length).toBeGreaterThan(0);
   });
 
+  it('ステータスは普段は非表示で、得意先一覧のトグルをクリックすると表示される', () => {
+    usePathnameMock.mockReturnValue('/bgj/dashboard');
+    useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    render(<BgjSidebar />);
+    expect(screen.queryByText('ステータス')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByLabelText('得意先一覧の詳細を開く')[0]);
+
+    const statusLinks = screen.getAllByRole('link', { name: 'ステータス' });
+    expect(statusLinks[0]).toHaveAttribute('href', '/bgj/master/statuses');
+  });
+
   it('マニュアルを開くと利用マニュアル・システム手順が表示され、正しいクエリ付きhrefを持つ', () => {
     usePathnameMock.mockReturnValue('/bgj/dashboard');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
