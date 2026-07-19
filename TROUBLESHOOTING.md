@@ -99,6 +99,24 @@
 - **localStorageへの直接アクセスが例外を投げる可能性**：`src/lib/safeLocalStorage.ts`（`try-catch`で包んだ`safeGetItem`/`safeSetItem`）を新設し、`AdminSidebar.tsx`の未読バッジ機能に適用。プライベートブラウジング等での例外でサイドバー全体が壊れないようにする。
 - **気づくためのチェック**：新しいfetch呼び出しは`fetchWithTimeout`を使う。`photoUrl`等の外部URL画像には必ず`onError`フォールバックを用意する。propが変わった時にstateをリセットしたい場合は`useEffect`ではなくレンダー中の直接比較を優先する。ダミー実装（fetchを伴わないハンドラ）に対して「二重送信」等のリスクを提案する前に、実際に外部システム（DB・API）を書き換えているか必ず確認する。
 
+## 患者ポータルログイン画面の「ログインでお困りの方」がクリックしても無反応
+
+- **症状**：患者様ポータルのログイン画面（`/`）で「ログインでお困りの方」リンクをクリックしても何も起きない。
+- **原因**：`src/app/page.tsx`で`<a href="#">ログインでお困りの方</a>`のまま放置されていた（モック時代の未実装リンク）。同じ画面の「パスワードをお忘れの方」（`/forgot-password`への正しい`Link`）と並んでいたため、一見どちらも機能しているように見えてしまっていた。
+- **対処**：`/forgot-password`への`Link`に変更（2026-07-19）。ユーザーへの確認の結果、現状ログインで困るケースの受け皿が`/forgot-password`以外に無いため、同じ画面に揃えることにした。
+- **教訓**：`href="#"`はクリックしても意図的に何もしないダミーリンクとして紛れ込みやすい（過去の`SalesRepCard`の`href={... : undefined}`と同系統の「死んだリンク」パターン）。新しいリンクを実装する際、遷移先が未定のまま`href="#"`を仮置きしたら、実装完了前に必ず本物の遷移先に置き換える。`grep -rn 'href="#"' src/app`で定期的に棚卸しできる。
+
+## 患者様のパスワード再設定メールが届かない（画面は成功表示のまま）
+
+- **症状**：患者ポータルの「パスワードをお忘れの方」でメールアドレスを送信すると画面は成功扱いになるが、実際にはメールが届かない。
+- **原因**：Google Workspace（`jyosys@biogaia.jp`）へのSMTP認証（アプリパスワード）が拒否されていた。本番のVercelランタイムログに以下のエラーが記録されていた。
+  ```
+  POST /api/password-reset/request email failed: Error: Invalid login: 535-5.7.8 Username and Password not accepted.
+  ```
+  `/api/password-reset/request`（`src/app/api/password-reset/request/route.ts`）は、メールアドレスの登録有無を外部から探索されないようにするため常に同じ成功レスポンス（`{ok: true}`）を返す設計（意図的な仕様）で、実際のメール送信は`after()`内で行い失敗しても`console.error`するのみで画面には一切表れない。そのため、コード自体は正常でも、SMTP認証情報が失効・変更されるとユーザーからは「送信したのに届かない」としか見えず気づきにくい。
+- **対処**：コード側に問題は無いため、Google Workspace管理画面で`jyosys@biogaia.jp`のアプリパスワードを再発行し、`.env.local`（ローカル）とVercel環境変数`WORKSPACE_SMTP_APP_PASSWORD`（本番）の両方を更新する必要がある（2026-07-19時点で未対応、ユーザー側の対応待ち）。更新後はVercel側の再デプロイが必要。
+- **気づくためのチェック**：メール送信系（`sendPatientEmail`経由）の不具合報告を受けたら、まず`vercel logs <本番URL> --expand --level error`で該当エンドポイントのエラーログを確認する（`console.error`はSentryではなくVercelのランタイムログにのみ出る）。`535-5.7.8`はGoogle側のSMTP認証拒否を示す典型的なエラーコード。
+
 ---
 
 ## 今後の運用方針
