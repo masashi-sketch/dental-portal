@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/useToast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useSignupPinRegenerate } from '@/hooks/useSignupPinRegenerate';
 import { formatTimestampCompact } from '@/lib/formatTimestamp';
+import { parseJsonResponse } from '@/lib/parseJsonResponse';
 import SignupQrCard from '@/components/SignupQrCard';
 import type { PatientPublic } from '@/lib/supabase/types';
 import Button from '@/components/ui/Button';
@@ -55,7 +56,7 @@ export default function AdminPatientsPage() {
     fetch('/api/admin/patients')
       .then((res) => {
         if (!res.ok) throw new Error('患者一覧の取得に失敗しました');
-        return res.json();
+        return parseJsonResponse<{ patients: PatientPublic[] }>(res);
       })
       .then((data) => setPatients(data.patients))
       .catch((e) => {
@@ -97,7 +98,7 @@ export default function AdminPatientsPage() {
           const body = await res.json().catch(() => null);
           throw new Error(body?.error ?? '更新に失敗しました');
         }
-        const { patient } = await res.json();
+        const { patient } = await parseJsonResponse<{ patient: PatientPublic }>(res);
         setPatients((prev) => prev.map((p) => (p.id === patient.id ? patient : p)));
         showToast('患者情報を更新しました');
       } else {
@@ -115,7 +116,7 @@ export default function AdminPatientsPage() {
           const body = await res.json().catch(() => null);
           throw new Error(body?.error ?? '発行に失敗しました');
         }
-        const { patient } = await res.json();
+        const { patient } = await parseJsonResponse<{ patient: PatientPublic }>(res);
         setPatients((prev) => [patient, ...prev]);
         showToast(`患者ID ${patient.patient_no}（ログインID: ${patient.login_id}）を発行しました`);
       }
@@ -152,7 +153,7 @@ export default function AdminPatientsPage() {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? '更新に失敗しました');
       }
-      const { patient } = await res.json();
+      const { patient } = await parseJsonResponse<{ patient: PatientPublic }>(res);
       setPatients((prev) => prev.map((item) => (item.id === patient.id ? patient : item)));
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
