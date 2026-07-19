@@ -116,6 +116,7 @@ const navItems: NavItem[] = [
           { label: "10. クリニック問い合わせ→Slack連携", href: "/bgj/manual?tab=procedure&step=10" },
           { label: "11. お知らせ機能", href: "/bgj/manual?tab=procedure&step=11" },
           { label: "12. BGJポータル使い勝手改善（マスタ一覧化・LINKマスタ）", href: "/bgj/manual?tab=procedure&step=12" },
+          { label: "13. 得意先ステータスのマスタ化", href: "/bgj/manual?tab=procedure&step=13" },
         ],
       },
     ],

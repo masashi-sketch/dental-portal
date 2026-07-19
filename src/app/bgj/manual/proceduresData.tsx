@@ -378,4 +378,32 @@ create table public.clinic_inquiry_replies (
       </>
     ),
   },
+  {
+    key: "13",
+    label: "13. 得意先ステータスのマスタ化",
+    content: (
+      <>
+        <p>
+          得意先（クリニック）の基本情報「ステータス」（活性/休眠/解約リスク）を、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinics.status</code>のtext列＋CHECK制約によるハードコードから、営業担当マスタ（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">sales_reps.role_id</code>→<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">staff_roles</code>）と同じFKパターンでBGJが追加・編集・削除できるマスタに変更した。
+        </p>
+        <Code>{`create table public.clinic_statuses (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null unique,
+  color      text not null default 'slate'
+    check (color in ('emerald','amber','red','sky','violet','slate')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.clinics
+  add column status_id uuid references public.clinic_statuses (id) on delete set null;`}</Code>
+        <p>
+          <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">status_id</code>は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">staff_reps.role_id</code>/<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">area_id</code>と同じくnullable・on delete set nullで、マスタ側の項目が削除されても得意先データ自体は消えず「未設定」に戻るだけにしている。バッジ色（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">color</code>列）もマスタに持たせ、BGJが新しいステータスを追加した際に色も選べるようにした。Tailwindの動的クラス名生成を避けるため色は固定6色（emerald/amber/red/sky/violet/slate）のCHECK制約とし、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/clinicStatusColors.ts</code>で静的なクラス名マップに変換している（ステータスマスタ管理画面・得意先一覧・得意先詳細の3箇所で共通利用）。
+        </p>
+        <p>
+          <strong>実装の流れ：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/clinic-statuses</code>（GET/POST、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">requireBgjSession</code>必須）・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/[id]</code>（PATCH/DELETE）は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">staff-roles</code>と同型。既存の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/clinics</code>系は、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">sales_reps</code>→<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">staff_roles</code>/<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">staff_areas</code>の結合と同じMapベースパターンで<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_statuses</code>を結合するよう更新した。管理画面は「マスタ &gt; 得意先一覧」配下の「ステータス」（サイドバーの折りたたみ子項目）から開く。
+        </p>
+      </>
+    ),
+  },
 ];
