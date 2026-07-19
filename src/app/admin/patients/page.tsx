@@ -10,6 +10,7 @@ import { useSignupPinRegenerate } from '@/hooks/useSignupPinRegenerate';
 import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { formatTimestampCompact } from '@/lib/formatTimestamp';
 import { parseJsonResponse } from '@/lib/parseJsonResponse';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 import SignupQrCard from '@/components/SignupQrCard';
 import type { PatientPublic } from '@/lib/supabase/types';
 import Button from '@/components/ui/Button';
@@ -56,7 +57,7 @@ export default function AdminPatientsPage() {
   const qrValue = joinUrl && signupPinIssuedAt ? `${joinUrl}?t=${signupPinIssuedAt}` : joinUrl;
 
   const fetchPatients = () => {
-    fetch('/api/admin/patients')
+    fetchWithTimeout('/api/admin/patients')
       .then((res) => {
         if (!res.ok) throw new Error('患者一覧の取得に失敗しました');
         return parseJsonResponse<{ patients: PatientPublic[] }>(res);

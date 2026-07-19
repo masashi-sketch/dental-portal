@@ -91,6 +91,14 @@
 - **hydration mismatch（サーバーとクライアントで表示が食い違う）**：`src/app/home/page.tsx`の挨拶文（朝/昼/夜の判定に`new Date().getHours()`を使用）が、レンダリング中に直接呼ばれていた。VercelのサーバーはUTC・クライアントはJSTのため、時刻境界付近でSSRとCSRの初回描画が食い違いhydration警告が出る可能性があった。SSR/CSR初回描画では中立的な文言（「こんにちは」）を使い、マウント後の`useEffect`でのみ実際の時刻ベースの文言に更新するよう修正（`react-hooks/set-state-in-effect`はマウント時1回だけの値確定という正当な理由でコメント付きで無効化）。
 - **気づくためのチェック**：新しく「マウント時に自動fetchするカスタムフック」を書くときは素の`useState`ではなく`useSafeState`を使う。新しい「保存・削除ボタン」を書くときは`useSubmitGuard`でラップし、ボタン/`ConfirmDialog`に`disabled`を渡す。`new Date()`や`Math.random()`等クライアント環境に依存する値をレンダリング中に直接使わない（`useEffect`後に確定させる）。
 
+### 続編（2026-07-19、同日追加で4件対応）
+
+- **fetchにタイムアウトが無い**：`AbortController`/`signal`を使っている箇所がプロジェクト全体で0件だった。サーバー無応答時に画面が「読み込み中」のまま固まる。`src/lib/fetchWithTimeout.ts`（デフォルト15秒でabortし「通信がタイムアウトしました」を投げる）を新設し、`admin/patients/page.tsx`の`fetchPatients`に適用。他は今回未対応（新規実装・修正時に順次適用）。
+- **画像URLが無効な場合のフォールバックが無い**：`src/components/SalesRepAvatar.tsx`が`photoUrl`をそのまま`<img>`に渡し`onError`が無かった。URL削除済み・入力ミスの場合、壊れた画像アイコンがそのまま出る。`onError`でイニシャル表示にフォールバックするよう修正。`photoUrl`が変わったときのエラー状態リセットは、`useEffect`ではなくレンダー中の直接比較（`if (photoUrl !== trackedPhotoUrl) { setTrackedPhotoUrl(photoUrl); setImgError(false); }`）で行う（Reactの推奨パターン、`react-hooks/set-state-in-effect`を回避できる）。
+- **二重送信対策の横展開は見送り**：`admin/commission`・`admin/products`にも`handleSave`はあるが、調査の結果どちらも`fetch`を呼ばない完全にダミー実装（ローカルstateのみ）だったため、二重クリックしてもDB重複データという実害は無い。誤った前提で提案していた点を訂正。
+- **localStorageへの直接アクセスが例外を投げる可能性**：`src/lib/safeLocalStorage.ts`（`try-catch`で包んだ`safeGetItem`/`safeSetItem`）を新設し、`AdminSidebar.tsx`の未読バッジ機能に適用。プライベートブラウジング等での例外でサイドバー全体が壊れないようにする。
+- **気づくためのチェック**：新しいfetch呼び出しは`fetchWithTimeout`を使う。`photoUrl`等の外部URL画像には必ず`onError`フォールバックを用意する。propが変わった時にstateをリセットしたい場合は`useEffect`ではなくレンダー中の直接比較を優先する。ダミー実装（fetchを伴わないハンドラ）に対して「二重送信」等のリスクを提案する前に、実際に外部システム（DB・API）を書き換えているか必ず確認する。
+
 ---
 
 ## 今後の運用方針

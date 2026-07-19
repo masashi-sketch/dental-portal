@@ -1,3 +1,7 @@
+'use client';
+
+import { useState } from 'react';
+
 type Props = {
   name: string;
   photoUrl?: string | null;
@@ -6,7 +10,18 @@ type Props = {
 };
 
 export default function SalesRepAvatar({ name, photoUrl, size = 44, className = '' }: Props) {
-  if (photoUrl) {
+  // photoUrlが削除済み・URL誤り等で読み込みに失敗した場合、ブラウザ標準の
+  // 壊れた画像アイコンのまま表示され続けないよう、イニシャル表示にフォールバックする。
+  // photoUrlが変わったらエラー状態をリセットし再度画像表示を試みる（レンダー中に
+  // 直接比較・setStateするReact推奨パターン。useEffectは使わない）。
+  const [imgError, setImgError] = useState(false);
+  const [trackedPhotoUrl, setTrackedPhotoUrl] = useState(photoUrl);
+  if (photoUrl !== trackedPhotoUrl) {
+    setTrackedPhotoUrl(photoUrl);
+    setImgError(false);
+  }
+
+  if (photoUrl && !imgError) {
     return (
       // photoUrlは任意の外部URLのため next/image の remotePatterns では対応できない。素のimgタグを使う。
       // eslint-disable-next-line @next/next/no-img-element
@@ -17,6 +32,7 @@ export default function SalesRepAvatar({ name, photoUrl, size = 44, className = 
         height={size}
         className={`rounded-xl object-cover shrink-0 ${className}`}
         style={{ width: size, height: size }}
+        onError={() => setImgError(true)}
       />
     );
   }

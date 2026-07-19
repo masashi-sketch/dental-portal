@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { useActiveClinic } from '@/hooks/useActiveClinic';
+import { safeGetItem, safeSetItem } from '@/lib/safeLocalStorage';
 import type { ExternalLink, SalesRepWithMaster } from '@/lib/supabase/types';
 
 export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'clinicContract' | 'clinicConfig' | 'clinicQr' | 'clinicIntro' | 'clinicQa' | 'inquiry';
@@ -320,14 +321,14 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
     const counts = new Map<AdminPage, number>();
     for (const page of Object.keys(CONTENT_UNREAD) as AdminPage[]) {
       const data = CONTENT_UNREAD[page]!;
-      const lastRead = localStorage.getItem(`admin_lastRead_${page}`);
+      const lastRead = safeGetItem(`admin_lastRead_${page}`);
       if (!lastRead || new Date(lastRead) < new Date(data.updatedAt)) {
         counts.set(page, data.count);
       }
     }
     // 現在のページを既読にする
     if (CONTENT_UNREAD[active] !== undefined) {
-      localStorage.setItem(`admin_lastRead_${active}`, new Date().toISOString());
+      safeSetItem(`admin_lastRead_${active}`, new Date().toISOString());
       counts.delete(active);
     }
     // localStorageの同期読み取りはSSR時に実行不可なため、マウント後・active変更後に
