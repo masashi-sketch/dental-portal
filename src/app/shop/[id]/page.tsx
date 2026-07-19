@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import BottomNav from '../../components/BottomNav';
 import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
+import ProductVisual from '@/components/ProductVisual';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
-import { useToast } from '@/hooks/useToast';
-import { products } from '../data';
+import { useSafeState } from '@/hooks/useSafeState';
+import { PRODUCT_BADGE_CLASS } from '@/lib/productDisplay';
+import type { Product } from '@/lib/supabase/types';
 
 /* ── アイコン ── */
 function IconBell() {
@@ -16,23 +18,14 @@ function IconBell() {
 function IconUser() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
 }
-function IconCartHeader() {
-  return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>;
-}
 function IconMenu() {
   return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
 }
 function IconX() {
   return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
 }
-function IconStar() {
-  return <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>;
-}
 function IconArrowLeft() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>;
-}
-function IconCheck() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>;
 }
 function IconRefreshSmall() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>;
@@ -40,85 +33,37 @@ function IconRefreshSmall() {
 function IconShield() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>;
 }
-function IconTruck() {
-  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>;
-}
-
-/* ── 商品画像 ── */
-function ProductImage({ type, large = false }: { type: string; large?: boolean }) {
-  const config: Record<string, { from: string; to: string; icon: React.ReactNode }> = {
-    supplement: {
-      from: '#6366f1', to: '#a5b4fc',
-      icon: (
-        <svg width={large ? 80 : 48} height={large ? 80 : 48} fill="none" viewBox="0 0 64 64">
-          <ellipse cx="32" cy="32" rx="14" ry="22" fill="white" fillOpacity="0.25" />
-          <ellipse cx="32" cy="20" rx="14" ry="10" fill="white" fillOpacity="0.35" />
-          <ellipse cx="32" cy="44" rx="14" ry="10" fill="white" fillOpacity="0.15" />
-          <line x1="18" y1="32" x2="46" y2="32" stroke="white" strokeWidth="2" strokeOpacity="0.5" />
-        </svg>
-      ),
-    },
-    yogurt: {
-      from: '#f59e0b', to: '#fde68a',
-      icon: (
-        <svg width={large ? 80 : 48} height={large ? 80 : 48} fill="none" viewBox="0 0 64 64">
-          <rect x="18" y="20" width="28" height="32" rx="4" fill="white" fillOpacity="0.3" />
-          <rect x="20" y="14" width="24" height="10" rx="3" fill="white" fillOpacity="0.4" />
-          <path d="M24 34 Q32 30 40 34" stroke="white" strokeWidth="2" strokeOpacity="0.6" fill="none" />
-          <circle cx="32" cy="40" r="3" fill="white" fillOpacity="0.5" />
-        </svg>
-      ),
-    },
-    toothbrush: {
-      from: '#0891b2', to: '#67e8f9',
-      icon: (
-        <svg width={large ? 80 : 48} height={large ? 80 : 48} fill="none" viewBox="0 0 64 64">
-          <rect x="29" y="8" width="6" height="36" rx="3" fill="white" fillOpacity="0.35" />
-          <rect x="22" y="8" width="20" height="14" rx="4" fill="white" fillOpacity="0.25" />
-          <rect x="24" y="10" width="4" height="10" rx="2" fill="white" fillOpacity="0.4" />
-          <rect x="30" y="10" width="4" height="10" rx="2" fill="white" fillOpacity="0.4" />
-          <rect x="36" y="10" width="4" height="10" rx="2" fill="white" fillOpacity="0.4" />
-          <rect x="29" y="44" width="6" height="12" rx="3" fill="white" fillOpacity="0.35" />
-        </svg>
-      ),
-    },
-    oral: {
-      from: '#10b981', to: '#6ee7b7',
-      icon: (
-        <svg width={large ? 80 : 48} height={large ? 80 : 48} fill="none" viewBox="0 0 64 64">
-          <rect x="22" y="10" width="20" height="40" rx="8" fill="white" fillOpacity="0.3" />
-          <rect x="26" y="8" width="12" height="6" rx="2" fill="white" fillOpacity="0.45" />
-          <rect x="26" y="24" width="12" height="3" rx="1.5" fill="white" fillOpacity="0.4" />
-          <rect x="26" y="30" width="12" height="3" rx="1.5" fill="white" fillOpacity="0.3" />
-        </svg>
-      ),
-    },
-  };
-  const c = config[type] ?? config.oral;
-  return (
-    <div
-      className={`w-full flex items-center justify-center rounded-2xl ${large ? 'h-64 sm:h-72' : 'h-44'}`}
-      style={{ background: `linear-gradient(135deg, ${c.from}, ${c.to})` }}
-    >
-      {c.icon}
-    </div>
-  );
-}
 
 const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
+// 商品詳細。一覧と同じ /api/patient-portal/products をfetchしてfindする
+// （非表示・非公開の商品は一覧に含まれないため、直接URLアクセスでも自動的に
+// 「見つかりません」になる）。カート・星評価等のEC要素は撤去済みで、
+// 導線は一覧と同じ「定期購入について相談する／医院に相談する」。
 export default function ProductDetailPage() {
   const params = useParams();
-  const id = Number(params.id);
-  const product = products.find((p) => p.id === id);
+  const id = String(params.id);
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
-  const { toast, showToast } = useToast();
   const { clinicName, navVisibility } = usePatientClinicBranding();
+  const [products, setProducts] = useSafeState<Product[]>([]);
+  const [productsLoaded, setProductsLoaded] = useSafeState(false);
 
-  if (!product) {
+  const fetchProducts = useCallback(() => {
+    fetch('/api/patient-portal/products')
+      .then((res) => (res.ok ? res.json() : { products: [] }))
+      .then((data) => setProducts(data.products ?? []))
+      .catch(() => setProducts([]))
+      .finally(() => setProductsLoaded(true));
+  }, [setProducts, setProductsLoaded]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const product = products.find((p) => p.id === id);
+
+  if (productsLoaded && !product) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -129,25 +74,21 @@ export default function ProductDetailPage() {
     );
   }
 
-  const handleAddToCart = () => {
-    setAdded(true);
-    showToast(`「${product.name}」を${qty}点カートに追加しました`);
-  };
+  const relatedProducts = product
+    ? products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 3)
+    : [];
 
-  const relatedProducts = products
-    .filter((p) => p.category === product.category && p.id !== product.id)
-    .slice(0, 3);
+  const detailRows = product
+    ? [
+        { label: '内容量', value: product.volume },
+        { label: '成分', value: product.ingredients },
+        { label: '使用方法', value: product.how_to_use },
+        { label: '注意事項', value: product.caution },
+      ].filter((row) => row.value)
+    : [];
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 pb-20 md:pb-0">
-
-      {/* トースト */}
-      {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-gray-900 text-white text-sm px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 max-w-xs sm:max-w-sm">
-          <span className="text-emerald-400 shrink-0"><IconCheck /></span>
-          <span>{toast}</span>
-        </div>
-      )}
 
       {/* アナウンスバー */}
       <div className="bg-[#F0F7FF] text-[#2563EB] text-xs text-center py-2 px-4">
@@ -173,14 +114,6 @@ export default function ProductDetailPage() {
           <div className="flex items-center gap-4 text-gray-500">
             <button className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconBell /></button>
             <button className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconUser /></button>
-            <button className="relative hover:text-[#2563EB] transition-colors">
-              <IconCartHeader />
-              {added && (
-                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                  {qty}
-                </span>
-              )}
-            </button>
             <button className="md:hidden hover:text-[#2563EB] transition-colors" onClick={() => setMenuOpen(!menuOpen)}>
               {menuOpen ? <IconX /> : <IconMenu />}
             </button>
@@ -216,161 +149,142 @@ export default function ProductDetailPage() {
         {/* メインコンテンツ */}
         <main className="flex-1 flex flex-col gap-5 min-w-0">
 
-          {/* パンくず */}
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <Link href="/shop" className="flex items-center gap-1 hover:text-[#2563EB] transition-colors">
-              <IconArrowLeft />おすすめ商品一覧
-            </Link>
-            <span>/</span>
-            <span className="text-gray-500 truncate">{product.name}</span>
-          </div>
+          {!productsLoaded && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="flex flex-col sm:flex-row">
+                <div className="sm:w-72 sm:shrink-0 p-4 sm:p-6">
+                  <div className="w-full h-64 sm:h-72 bg-gray-100 rounded-2xl animate-pulse" />
+                </div>
+                <div className="flex-1 px-5 pb-6 sm:py-6 sm:pr-6 sm:pl-0 flex flex-col gap-3">
+                  <div className="h-3 w-20 bg-gray-100 rounded animate-pulse" />
+                  <div className="h-6 w-3/4 bg-gray-100 rounded animate-pulse" />
+                  <div className="h-8 w-32 bg-gray-100 rounded animate-pulse" />
+                  <div className="h-4 w-full bg-gray-100 rounded animate-pulse" />
+                </div>
+              </div>
+            </div>
+          )}
 
-          {/* 商品メインカード */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex flex-col sm:flex-row">
+          {productsLoaded && product && (
+            <>
+              {/* パンくず */}
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <Link href="/shop" className="flex items-center gap-1 hover:text-[#2563EB] transition-colors">
+                  <IconArrowLeft />おすすめ商品一覧
+                </Link>
+                <span>/</span>
+                <span className="text-gray-500 truncate">{product.name}</span>
+              </div>
 
-              {/* 画像エリア */}
-              <div className="sm:w-72 sm:shrink-0 p-4 sm:p-6">
-                <div className="relative">
-                  <ProductImage type={product.imageType} large />
-                  {product.badge && (
-                    <span className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full ${product.badgeColor}`}>
-                      {product.badge}
-                    </span>
-                  )}
+              {/* 商品メインカード */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="flex flex-col sm:flex-row">
+
+                  {/* 画像エリア */}
+                  <div className="sm:w-72 sm:shrink-0 p-4 sm:p-6">
+                    <div className="relative">
+                      <ProductVisual type={product.image_type} className="w-full h-64 sm:h-72 flex items-center justify-center rounded-2xl" />
+                      {product.badge && product.badge_color && (
+                        <span className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full ${PRODUCT_BADGE_CLASS[product.badge_color]}`}>
+                          {product.badge}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 情報エリア */}
+                  <div className="flex-1 px-5 pb-6 sm:py-6 sm:pr-6 sm:pl-0">
+                    <p className="text-xs text-gray-400 mb-1">{product.category}</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug mb-3">{product.name}</h1>
+
+                    {/* 価格 */}
+                    <div className="flex items-baseline gap-2 mb-4">
+                      <span className="text-2xl font-bold text-gray-900">¥{product.price.toLocaleString()}</span>
+                      {product.unit && <span className="text-sm text-gray-400">/{product.unit}（税込）</span>}
+                    </div>
+
+                    {product.subscription_available && (
+                      <span className="inline-block text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 mb-4">
+                        定期購入対応
+                      </span>
+                    )}
+
+                    {product.description && (
+                      <p className="text-sm text-gray-600 leading-relaxed mb-5 break-all">{product.description}</p>
+                    )}
+
+                    {/* 先生のおすすめ */}
+                    {product.doctor_comment && (
+                      <div className="flex items-start gap-2 mb-5 bg-blue-50/60 border border-blue-100/60 rounded-xl px-4 py-3">
+                        {product.recommendation_level && (
+                          <span className="text-sm text-amber-500 font-bold shrink-0">{product.recommendation_level}</span>
+                        )}
+                        <p className="text-xs text-gray-600 leading-relaxed break-all">{product.doctor_comment}</p>
+                      </div>
+                    )}
+
+                    {/* 相談導線（一覧と同じ出し分け） */}
+                    <Link
+                      href={product.subscription_available ? '/subscription' : '/clinic'}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold text-sm border border-[#2563EB] text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
+                    >
+                      {product.subscription_available && <IconRefreshSmall />}
+                      {product.subscription_available ? '定期購入について相談する' : '医院に相談する'}
+                    </Link>
+
+                    {/* 安心ポイント */}
+                    <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-50">
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <span className="text-[#2563EB]"><IconShield /></span>歯科医師監修
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <span className="text-[#2563EB]"><IconShield /></span>当院で使用感を確認した製品です
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* 情報エリア */}
-              <div className="flex-1 px-5 pb-6 sm:py-6 sm:pr-6 sm:pl-0">
-                <p className="text-xs text-gray-400 mb-1">{product.category}</p>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug mb-3">{product.name}</h1>
-
-                {/* 評価 */}
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex text-amber-400">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className={i < Math.floor(product.rating) ? 'text-amber-400' : 'text-gray-200'}>
-                        <IconStar />
-                      </span>
+              {/* 商品詳細（未入力の項目は非表示） */}
+              {detailRows.length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
+                  <h2 className="text-base font-bold text-gray-900 mb-4">商品詳細</h2>
+                  <div className="divide-y divide-gray-50">
+                    {detailRows.map(({ label, value }) => (
+                      <div key={label} className="flex gap-4 py-3.5 text-sm">
+                        <span className="text-gray-400 shrink-0 w-20">{label}</span>
+                        <span className="text-gray-700 leading-relaxed break-all">{value}</span>
+                      </div>
                     ))}
                   </div>
-                  <span className="text-sm font-semibold text-gray-700">{product.rating}</span>
-                  <span className="text-xs text-gray-400">({product.reviews}件のレビュー)</span>
                 </div>
+              )}
 
-                {/* 価格 */}
-                <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-3xl font-bold text-gray-900">¥{product.price.toLocaleString()}</span>
-                  <span className="text-sm text-gray-400">/{product.unit}（税込）</span>
-                </div>
-
-                {product.tag && (
-                  <span className="inline-block text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 mb-4">
-                    {product.tag}
-                  </span>
-                )}
-
-                <p className="text-sm text-gray-600 leading-relaxed mb-5 break-all">{product.desc}</p>
-
-                {/* 数量セレクター */}
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-sm text-gray-600 font-medium">数量</span>
-                  <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => setQty(Math.max(1, qty - 1))}
-                      className="w-12 h-12 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors text-xl font-medium"
-                    >
-                      −
-                    </button>
-                    <span className="w-12 text-center text-sm font-semibold text-gray-800">{qty}</span>
-                    <button
-                      onClick={() => setQty(qty + 1)}
-                      className="w-12 h-12 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors text-xl font-medium"
-                    >
-                      ＋
-                    </button>
+              {/* 関連商品 */}
+              {relatedProducts.length > 0 && (
+                <div>
+                  <h2 className="text-base font-bold text-gray-900 mb-3">同じカテゴリの商品</h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {relatedProducts.map((p) => (
+                      <Link
+                        key={p.id}
+                        href={`/shop/${p.id}`}
+                        className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                      >
+                        <ProductVisual type={p.image_type} className="w-full h-44 flex items-center justify-center rounded-t-2xl" />
+                        <div className="p-3">
+                          <p className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1">{p.name}</p>
+                          <p className="text-sm font-bold text-gray-900">
+                            ¥{p.price.toLocaleString()}
+                            {p.unit && <span className="text-xs text-gray-400 font-normal ml-1">/{p.unit}</span>}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
                   </div>
                 </div>
-
-                {/* 購入ボタン */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    onClick={handleAddToCart}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${
-                      added
-                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                        : 'bg-[#2563EB] text-white hover:bg-[#1d4ed8] shadow-sm'
-                    }`}
-                  >
-                    <IconCartHeader />
-                    {added ? 'カートに追加済み' : 'カートに追加する'}
-                  </button>
-                  {product.tag === '定期購入対応' && (
-                    <Link
-                      href="/subscription"
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm border border-[#2563EB] text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
-                    >
-                      <IconRefreshSmall />
-                      定期購入で注文
-                    </Link>
-                  )}
-                </div>
-
-                {/* 安心ポイント */}
-                <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-50">
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <span className="text-[#2563EB]"><IconShield /></span>歯科医師監修
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <span className="text-[#2563EB]"><IconTruck /></span>3,000円以上で送料無料
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <span className="text-[#2563EB]"><IconRefreshSmall /></span>いつでも解約可能
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 商品詳細 */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
-            <h2 className="text-base font-bold text-gray-900 mb-4">商品詳細</h2>
-            <div className="divide-y divide-gray-50">
-              {[
-                { label: '内容量',    value: product.volume },
-                { label: '成分',      value: product.ingredients },
-                { label: '使用方法',  value: product.howToUse },
-                { label: '注意事項',  value: product.caution },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex gap-4 py-3.5 text-sm">
-                  <span className="text-gray-400 shrink-0 w-20">{label}</span>
-                  <span className="text-gray-700 leading-relaxed break-all">{value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 関連商品 */}
-          {relatedProducts.length > 0 && (
-            <div>
-              <h2 className="text-base font-bold text-gray-900 mb-3">同じカテゴリの商品</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {relatedProducts.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/shop/${p.id}`}
-                    className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-                  >
-                    <ProductImage type={p.imageType} />
-                    <div className="p-3">
-                      <p className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1">{p.name}</p>
-                      <p className="text-sm font-bold text-gray-900">¥{p.price.toLocaleString()}<span className="text-xs text-gray-400 font-normal ml-1">/{p.unit}</span></p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
+              )}
+            </>
           )}
 
         </main>

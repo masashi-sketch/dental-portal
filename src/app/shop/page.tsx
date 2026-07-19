@@ -1,14 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import PatientSidebarNav, { IconBag, IconLogout } from '@/components/PatientSidebarNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
+import ProductVisual from '@/components/ProductVisual';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import { usePrimaryDoctor } from '@/hooks/usePrimaryDoctor';
-import { DOCTOR_RECOMMENDATIONS } from './doctorContent';
+import { useSafeState } from '@/hooks/useSafeState';
+import { PRODUCT_BADGE_CLASS, PRODUCT_CATEGORIES } from '@/lib/productDisplay';
+import type { Product } from '@/lib/supabase/types';
 
 /* ── ヘッダー共通アイコン ── */
 function IconBell() {
@@ -39,171 +42,9 @@ function IconX() {
     </svg>
   );
 }
-/* ── ダミー商品画像（グラデーション＋SVGアイコン） ── */
-function ProductImage({ type }: { type: string }) {
-  const config: Record<string, { from: string; to: string; icon: React.ReactNode }> = {
-    supplement: {
-      from: '#6366f1', to: '#a5b4fc',
-      icon: (
-        <svg width="48" height="48" fill="none" viewBox="0 0 64 64">
-          <ellipse cx="32" cy="32" rx="14" ry="22" fill="white" fillOpacity="0.25" />
-          <ellipse cx="32" cy="20" rx="14" ry="10" fill="white" fillOpacity="0.35" />
-          <ellipse cx="32" cy="44" rx="14" ry="10" fill="white" fillOpacity="0.15" />
-          <line x1="18" y1="32" x2="46" y2="32" stroke="white" strokeWidth="2" strokeOpacity="0.5" />
-        </svg>
-      ),
-    },
-    yogurt: {
-      from: '#f59e0b', to: '#fde68a',
-      icon: (
-        <svg width="48" height="48" fill="none" viewBox="0 0 64 64">
-          <rect x="18" y="20" width="28" height="32" rx="4" fill="white" fillOpacity="0.3" />
-          <rect x="20" y="14" width="24" height="10" rx="3" fill="white" fillOpacity="0.4" />
-          <path d="M24 34 Q32 30 40 34" stroke="white" strokeWidth="2" strokeOpacity="0.6" fill="none" />
-          <circle cx="32" cy="40" r="3" fill="white" fillOpacity="0.5" />
-        </svg>
-      ),
-    },
-    toothbrush: {
-      from: '#0891b2', to: '#67e8f9',
-      icon: (
-        <svg width="48" height="48" fill="none" viewBox="0 0 64 64">
-          <rect x="29" y="8" width="6" height="36" rx="3" fill="white" fillOpacity="0.35" />
-          <rect x="22" y="8" width="20" height="14" rx="4" fill="white" fillOpacity="0.25" />
-          <rect x="24" y="10" width="4" height="10" rx="2" fill="white" fillOpacity="0.4" />
-          <rect x="30" y="10" width="4" height="10" rx="2" fill="white" fillOpacity="0.4" />
-          <rect x="36" y="10" width="4" height="10" rx="2" fill="white" fillOpacity="0.4" />
-          <rect x="29" y="44" width="6" height="12" rx="3" fill="white" fillOpacity="0.35" />
-        </svg>
-      ),
-    },
-    oral: {
-      from: '#10b981', to: '#6ee7b7',
-      icon: (
-        <svg width="48" height="48" fill="none" viewBox="0 0 64 64">
-          <rect x="22" y="10" width="20" height="40" rx="8" fill="white" fillOpacity="0.3" />
-          <rect x="26" y="8" width="12" height="6" rx="2" fill="white" fillOpacity="0.45" />
-          <rect x="26" y="24" width="12" height="3" rx="1.5" fill="white" fillOpacity="0.4" />
-          <rect x="26" y="30" width="12" height="3" rx="1.5" fill="white" fillOpacity="0.3" />
-        </svg>
-      ),
-    },
-  };
-  const c = config[type] ?? config.oral;
-  return (
-    <div
-      className="w-full h-36 sm:h-44 flex items-center justify-center rounded-t-2xl"
-      style={{ background: `linear-gradient(135deg, ${c.from}, ${c.to})` }}
-    >
-      {c.icon}
-    </div>
-  );
-}
+/* 商品画像は共通コンポーネントProductVisual（imageType→グラデーション描画）を使用 */
 
-/* ── データ ── */
-type Product = {
-  id: number;
-  category: string;
-  imageType: string;
-  badge?: string;
-  badgeColor?: string;
-  name: string;
-  desc: string;
-  price: number;
-  unit: string;
-  rating: number;
-  reviews: number;
-  tag?: string;
-};
-
-const products: Product[] = [
-  {
-    id: 1, category: 'サプリメント', imageType: 'supplement',
-    badge: '歯科医推奨', badgeColor: 'bg-indigo-100 text-indigo-600',
-    name: 'オーラルプロバイオティクス 30日分',
-    desc: '口腔内の善玉菌を増やし、歯周病・口臭の予防をサポートする乳酸菌サプリ。毎日1粒で手軽にケア。',
-    price: 3980, unit: '本', rating: 4.8, reviews: 128, tag: '定期購入対応',
-  },
-  {
-    id: 2, category: 'サプリメント', imageType: 'supplement',
-    badge: '新着', badgeColor: 'bg-rose-100 text-rose-600',
-    name: 'カルシウム＋ビタミンD 60粒',
-    desc: '歯と骨の健康維持に欠かせないカルシウムをビタミンDと一緒に配合。吸収率を高めた処方。',
-    price: 2480, unit: '本', rating: 4.5, reviews: 64, tag: '',
-  },
-  {
-    id: 3, category: 'サプリメント', imageType: 'supplement',
-    badge: '定番人気', badgeColor: 'bg-amber-100 text-amber-600',
-    name: '歯科専用 乳酸菌タブレット 90粒',
-    desc: '噛んで溶かすチュアブルタイプ。口腔内で直接作用するL.ロイテリ菌を配合。後味もさわやか。',
-    price: 1980, unit: '本', rating: 4.7, reviews: 213, tag: '定期購入対応',
-  },
-  {
-    id: 4, category: 'ヨーグルト', imageType: 'yogurt',
-    badge: '歯科医推奨', badgeColor: 'bg-indigo-100 text-indigo-600',
-    name: 'プロデンティス ヨーグルト 100g',
-    desc: '歯科専用に開発されたL.ロイテリ菌入りヨーグルト。毎日食べることで口腔フローラを整えます。',
-    price: 980, unit: '個', rating: 4.6, reviews: 97, tag: '',
-  },
-  {
-    id: 5, category: 'ヨーグルト', imageType: 'yogurt',
-    badge: 'セット割', badgeColor: 'bg-emerald-100 text-emerald-600',
-    name: 'オーラルケア ヨーグルト 6個セット',
-    desc: '毎日続けやすいお得な6個パック。砂糖不使用・低カロリーで歯に優しい設計。まとめ買いでお得に。',
-    price: 4980, unit: 'セット', rating: 4.7, reviews: 152, tag: '定期購入対応',
-  },
-  {
-    id: 6, category: 'ヨーグルト', imageType: 'yogurt',
-    badge: '新着', badgeColor: 'bg-rose-100 text-rose-600',
-    name: 'L-92乳酸菌 飲むヨーグルト 200ml',
-    desc: '飲むタイプで忙しい方にも続けやすい。免疫力サポートと口腔ケアを同時に叶えるドリンクタイプ。',
-    price: 480, unit: '本', rating: 4.3, reviews: 41, tag: '',
-  },
-  {
-    id: 7, category: '歯ブラシ', imageType: 'toothbrush',
-    badge: '定番人気', badgeColor: 'bg-amber-100 text-amber-600',
-    name: 'プロフェッショナル歯ブラシ やわらかめ',
-    desc: '歯科衛生士監修。極細毛で歯周ポケットまで届く設計。歯ぐきに優しい独自カット毛を採用。',
-    price: 880, unit: '本', rating: 4.9, reviews: 312, tag: '定期購入対応',
-  },
-  {
-    id: 8, category: '歯ブラシ', imageType: 'toothbrush',
-    badge: '歯科医推奨', badgeColor: 'bg-indigo-100 text-indigo-600',
-    name: '超極細毛歯ブラシ 知覚過敏対応',
-    desc: '0.01mmの超極細毛を採用。知覚過敏の方でも痛みなく磨けます。歯ぐき再生ケアにも最適。',
-    price: 680, unit: '本', rating: 4.8, reviews: 189, tag: '',
-  },
-  {
-    id: 9, category: '歯ブラシ', imageType: 'toothbrush',
-    badge: 'セット割', badgeColor: 'bg-emerald-100 text-emerald-600',
-    name: '電動歯ブラシ 替えブラシ 4本セット',
-    desc: '主要電動歯ブラシ各社対応の替えブラシ。クリニック同品質のブラシを自宅でお使いいただけます。',
-    price: 2980, unit: 'セット', rating: 4.6, reviews: 78, tag: '定期購入対応',
-  },
-  {
-    id: 10, category: 'オーラルケア', imageType: 'oral',
-    badge: '定番人気', badgeColor: 'bg-amber-100 text-amber-600',
-    name: 'デンタルフロス ミント 50m',
-    desc: 'ワックス加工で歯間に滑らかに入る。ミントフレーバーで使用後も爽やか。毎日のフロス習慣に。',
-    price: 580, unit: '個', rating: 4.7, reviews: 267, tag: '定期購入対応',
-  },
-  {
-    id: 11, category: 'オーラルケア', imageType: 'oral',
-    badge: '歯科医推奨', badgeColor: 'bg-indigo-100 text-indigo-600',
-    name: '薬用歯磨き粉 フッ素高濃度 1450ppm',
-    desc: '高濃度フッ素1450ppmを配合した薬用歯磨き。再石灰化を促進し、虫歯を強力予防します。',
-    price: 1280, unit: '個', rating: 4.8, reviews: 445, tag: '定期購入対応',
-  },
-  {
-    id: 12, category: 'オーラルケア', imageType: 'oral',
-    badge: '新着', badgeColor: 'bg-rose-100 text-rose-600',
-    name: '薬用洗口液 歯周病対応 500ml',
-    desc: '歯科医院でも使用されるCPC配合の洗口液。歯周病菌・口臭を24時間ケア。ノンアルコールで低刺激。',
-    price: 1580, unit: '本', rating: 4.5, reviews: 93, tag: '',
-  },
-];
-
-const categories = ['すべて', 'サプリメント', 'ヨーグルト', '歯ブラシ', 'オーラルケア'] as const;
+const categories = ['すべて', ...PRODUCT_CATEGORIES] as const;
 
 const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
@@ -212,9 +53,24 @@ export default function ShopPage() {
   const { clinicName, navVisibility } = usePatientClinicBranding();
   const { doctor } = usePrimaryDoctor();
   const [activeCategory, setActiveCategory] = useState<string>('すべて');
+  const [products, setProducts] = useSafeState<Product[]>([]);
+  const [productsLoaded, setProductsLoaded] = useSafeState(false);
+
+  const fetchProducts = useCallback(() => {
+    fetch('/api/patient-portal/products')
+      .then((res) => (res.ok ? res.json() : { products: [] }))
+      .then((data) => setProducts(data.products ?? []))
+      .catch(() => setProducts([]))
+      .finally(() => setProductsLoaded(true));
+  }, [setProducts, setProductsLoaded]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const doctorLabel = doctor ? `${doctor.name}先生` : `${clinicName ?? 'デンタルポータル'} 院長`;
-  const recommendationById = new Map(DOCTOR_RECOMMENDATIONS.map((r) => [r.productId, r]));
+  // 先生のおすすめ一覧表に出すのは、推奨度またはコメントが入力されている商品のみ
+  const recommendedProducts = products.filter((p) => p.recommendation_level || p.doctor_comment);
 
   const filtered =
     activeCategory === 'すべて'
@@ -335,40 +191,38 @@ export default function ShopPage() {
           </div>
 
           {/* 先生のおすすめ一覧 */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <p className="text-sm font-bold text-gray-900">{doctorLabel}のおすすめ一覧</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">日々の診療をふまえた、セルフケア用品のご案内です</p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs sm:text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-gray-400 text-[11px]">
-                    <th className="text-left font-medium px-4 py-2 whitespace-nowrap">商品名</th>
-                    <th className="text-left font-medium px-3 py-2 hidden md:table-cell">主な働き</th>
-                    <th className="text-left font-medium px-3 py-2 whitespace-nowrap">1日の目安</th>
-                    <th className="text-center font-medium px-3 py-2 whitespace-nowrap">推奨度</th>
-                    <th className="text-left font-medium px-3 py-2 hidden sm:table-cell">先生のコメント</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {DOCTOR_RECOMMENDATIONS.map((r) => {
-                    const product = products.find((p) => p.id === r.productId);
-                    if (!product) return null;
-                    return (
-                      <tr key={r.productId} className="hover:bg-gray-50/60">
-                        <td className="px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap">{product.name}</td>
-                        <td className="px-3 py-2.5 text-gray-500 hidden md:table-cell">{r.workingPoint}</td>
-                        <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">{r.dailyAmount}</td>
-                        <td className="px-3 py-2.5 text-center text-amber-500 font-bold">{r.recommendationLevel}</td>
-                        <td className="px-3 py-2.5 text-gray-500 hidden sm:table-cell">{r.comment}</td>
+          {recommendedProducts.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <p className="text-sm font-bold text-gray-900">{doctorLabel}のおすすめ一覧</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">日々の診療をふまえた、セルフケア用品のご案内です</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs sm:text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 text-gray-400 text-[11px]">
+                      <th className="text-left font-medium px-4 py-2 whitespace-nowrap">商品名</th>
+                      <th className="text-left font-medium px-3 py-2 hidden md:table-cell">主な働き</th>
+                      <th className="text-left font-medium px-3 py-2 whitespace-nowrap">1日の目安</th>
+                      <th className="text-center font-medium px-3 py-2 whitespace-nowrap">推奨度</th>
+                      <th className="text-left font-medium px-3 py-2 hidden sm:table-cell">先生のコメント</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {recommendedProducts.map((p) => (
+                      <tr key={p.id} className="hover:bg-gray-50/60">
+                        <td className="px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap">{p.name}</td>
+                        <td className="px-3 py-2.5 text-gray-500 hidden md:table-cell">{p.working_point}</td>
+                        <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">{p.daily_amount}</td>
+                        <td className="px-3 py-2.5 text-center text-amber-500 font-bold">{p.recommendation_level}</td>
+                        <td className="px-3 py-2.5 text-gray-500 hidden sm:table-cell">{p.doctor_comment}</td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* カテゴリフィルター */}
           <div className="overflow-x-auto pb-1">
@@ -395,19 +249,37 @@ export default function ShopPage() {
           </div>
 
           {/* 商品グリッド */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {filtered.map((product) => {
-              const rec = recommendationById.get(product.id);
-              return (
+          {!productsLoaded && (
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="w-full h-36 sm:h-44 bg-gray-100 animate-pulse" />
+                  <div className="p-4 flex flex-col gap-2">
+                    <div className="h-3 w-16 bg-gray-100 rounded animate-pulse" />
+                    <div className="h-4 w-3/4 bg-gray-100 rounded animate-pulse" />
+                    <div className="h-3 w-full bg-gray-100 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {productsLoaded && filtered.length === 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center text-sm text-gray-400">
+              現在表示できる商品はありません
+            </div>
+          )}
+          {productsLoaded && filtered.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              {filtered.map((product) => (
                 <div
                   key={product.id}
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                 >
                   {/* 商品画像（詳細ページへリンク） */}
                   <Link href={`/shop/${product.id}`} className="relative block">
-                    <ProductImage type={product.imageType} />
-                    {product.badge && (
-                      <span className={`absolute top-3 left-3 text-[11px] font-semibold px-2 py-0.5 rounded-full ${product.badgeColor}`}>
+                    <ProductVisual type={product.image_type} />
+                    {product.badge && product.badge_color && (
+                      <span className={`absolute top-3 left-3 text-[11px] font-semibold px-2 py-0.5 rounded-full ${PRODUCT_BADGE_CLASS[product.badge_color]}`}>
                         {product.badge}
                       </span>
                     )}
@@ -419,20 +291,22 @@ export default function ShopPage() {
                     <Link href={`/shop/${product.id}`}>
                       <h3 className="text-sm font-bold text-gray-800 leading-snug mb-2 line-clamp-2 hover:text-[#2563EB] transition-colors">{product.name}</h3>
                     </Link>
-                    <p className="text-xs text-gray-500 leading-relaxed mb-3 line-clamp-2 sm:line-clamp-3 flex-1 break-all">{product.desc}</p>
+                    <p className="text-xs text-gray-500 leading-relaxed mb-3 line-clamp-2 sm:line-clamp-3 flex-1 break-all">{product.description}</p>
 
                     {/* 先生の一言コメント */}
-                    {rec && (
+                    {product.doctor_comment && (
                       <div className="flex items-start gap-1.5 mb-3 bg-blue-50/60 border border-blue-100/60 rounded-lg px-2.5 py-2">
                         <span className="text-[10px] font-bold text-[#2563EB] shrink-0">{doctorLabel}</span>
-                        <span className="text-[10px] text-amber-500 font-bold shrink-0">{rec.recommendationLevel}</span>
-                        <p className="text-[11px] text-gray-600 leading-snug break-all">{rec.comment}</p>
+                        {product.recommendation_level && (
+                          <span className="text-[10px] text-amber-500 font-bold shrink-0">{product.recommendation_level}</span>
+                        )}
+                        <p className="text-[11px] text-gray-600 leading-snug break-all">{product.doctor_comment}</p>
                       </div>
                     )}
 
-                    {product.tag && (
+                    {product.subscription_available && (
                       <span className="inline-block text-[11px] text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5 mb-3 w-fit">
-                        {product.tag}
+                        定期購入対応
                       </span>
                     )}
 
@@ -440,20 +314,20 @@ export default function ShopPage() {
                     <div className="flex flex-col gap-2 mt-auto">
                       <div>
                         <span className="text-sm font-semibold text-gray-700">¥{product.price.toLocaleString()}</span>
-                        <span className="text-xs text-gray-400 ml-1">/{product.unit}</span>
+                        {product.unit && <span className="text-xs text-gray-400 ml-1">/{product.unit}</span>}
                       </div>
                       <Link
-                        href={product.tag === '定期購入対応' ? '/subscription' : '/clinic'}
+                        href={product.subscription_available ? '/subscription' : '/clinic'}
                         className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold border border-[#2563EB] text-[#2563EB] hover:bg-[#EFF6FF] transition-all"
                       >
-                        {product.tag === '定期購入対応' ? '定期購入について相談する' : '医院に相談する'}
+                        {product.subscription_available ? '定期購入について相談する' : '医院に相談する'}
                       </Link>
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* 注意書き */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 text-xs text-gray-400 leading-relaxed">
