@@ -172,8 +172,16 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'おはようございます' : hour < 18 ? 'こんにちは' : 'こんばんは';
+  // サーバー（プリレンダリング時）とクライアントで時刻・タイムゾーンがずれると
+  // hydration mismatchになるため、SSR/CSR初回描画では中立的な文言を使い、
+  // マウント後（クライアントの実時刻が確定してから）に正しい挨拶へ更新する。
+  // マウント時に1回だけ実行される値確定が目的のため、react-hooks/set-state-in-effectは無効化する。
+  const [greeting, setGreeting] = useState('こんにちは');
+  useEffect(() => {
+    const hour = new Date().getHours();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGreeting(hour < 12 ? 'おはようございます' : hour < 18 ? 'こんにちは' : 'こんばんは');
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 pb-20 md:pb-0">

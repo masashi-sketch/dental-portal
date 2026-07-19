@@ -1,16 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useSafeState } from './useSafeState';
 import { DEFAULT_NAV_VISIBILITY, type NavVisibility } from '@/lib/patientNav';
 
 // 患者ポータルのログイン後ページ（home/medication/shop/subscription/qa/clinic）用。
 // 実患者セッション、またはスタッフのプレビューモードから、表示すべきクリニック名・
 // ナビゲーション表示設定・歯周病表示設定を取得する。
 export function usePatientClinicBranding() {
-  const [clinicName, setClinicName] = useState<string | null>(null);
-  const [navVisibility, setNavVisibility] = useState<NavVisibility>(DEFAULT_NAV_VISIBILITY);
-  const [showPeriodontalDiagnosis, setShowPeriodontalDiagnosis] = useState(true);
-  const [loaded, setLoaded] = useState(false);
+  const [clinicName, setClinicName] = useSafeState<string | null>(null);
+  const [navVisibility, setNavVisibility] = useSafeState<NavVisibility>(DEFAULT_NAV_VISIBILITY);
+  const [showPeriodontalDiagnosis, setShowPeriodontalDiagnosis] = useSafeState(true);
+  const [loaded, setLoaded] = useSafeState(false);
 
   useEffect(() => {
     fetch('/api/patient-portal/clinic-branding')
@@ -26,7 +27,8 @@ export function usePatientClinicBranding() {
         setShowPeriodontalDiagnosis(true);
       })
       .finally(() => setLoaded(true));
-  }, []);
+    // useSafeStateのsetterはuseCallbackで安定しているため、依存配列に含めても再実行は起きない。
+  }, [setClinicName, setNavVisibility, setShowPeriodontalDiagnosis, setLoaded]);
 
   return { clinicName, navVisibility, showPeriodontalDiagnosis, loaded };
 }

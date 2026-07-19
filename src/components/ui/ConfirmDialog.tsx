@@ -32,6 +32,8 @@ type ConfirmDialogProps = {
   title: string;
   description: string;
   confirmLabel?: string;
+  // 削除処理等の実行中に確定ボタンの二重クリックを防ぐためのフラグ（省略時はfalse）。
+  disabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -42,6 +44,7 @@ export default function ConfirmDialog({
   title,
   description,
   confirmLabel = '削除する',
+  disabled = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -57,7 +60,7 @@ export default function ConfirmDialog({
           <button onClick={onCancel} className={classes.cancel}>
             キャンセル
           </button>
-          <button onClick={onConfirm} className={classes.confirm}>
+          <button onClick={onConfirm} disabled={disabled} className={`${classes.confirm} disabled:opacity-50 disabled:cursor-not-allowed`}>
             {confirmLabel}
           </button>
         </div>

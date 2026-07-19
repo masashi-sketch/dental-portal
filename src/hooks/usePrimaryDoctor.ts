@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useSafeState } from './useSafeState';
 import type { ClinicStaff } from '@/lib/supabase/types';
 
 // 患者ポータルの「先生からのおすすめ」演出（home/shop）用。
@@ -8,8 +9,8 @@ import type { ClinicStaff } from '@/lib/supabase/types';
 // 登録順（sort_order）が最初のスタッフにフォールバックする。スタッフが1件も
 // いない医院ではnullを返し、呼び出し側で先生カードごと非表示にする想定。
 export function usePrimaryDoctor() {
-  const [doctor, setDoctor] = useState<ClinicStaff | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [doctor, setDoctor] = useSafeState<ClinicStaff | null>(null);
+  const [loaded, setLoaded] = useSafeState(false);
 
   useEffect(() => {
     fetch('/api/patient-portal/clinic-intro')
@@ -22,7 +23,8 @@ export function usePrimaryDoctor() {
         setDoctor(null);
       })
       .finally(() => setLoaded(true));
-  }, []);
+    // useSafeStateのsetterはuseCallbackで安定しているため、依存配列に含めても再実行は起きない。
+  }, [setDoctor, setLoaded]);
 
   return { doctor, loaded };
 }

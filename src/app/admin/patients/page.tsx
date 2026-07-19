@@ -7,6 +7,7 @@ import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useSignupPinRegenerate } from '@/hooks/useSignupPinRegenerate';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { formatTimestampCompact } from '@/lib/formatTimestamp';
 import { parseJsonResponse } from '@/lib/parseJsonResponse';
 import SignupQrCard from '@/components/SignupQrCard';
@@ -40,6 +41,8 @@ export default function AdminPatientsPage() {
   const [urlCopied, setUrlCopied] = useState(false);
   const { clinic, setClinic } = useClinicInfo();
   const { regenerate: handleRegenerateSignupPin, regenerating: regeneratingPin } = useSignupPinRegenerate(setClinic, showToast);
+  const { submitting: saving, guard: guardSave } = useSubmitGuard();
+  const { submitting: deleting, guard: guardDelete } = useSubmitGuard();
   // 得意先コードは連番で推測可能なためURLには使わず、無関係なランダム文字列である
   // signup_slugを使う。originはSSR時に取得できないため、クライアントでの
   // レンダリング時にのみ算出する（set-state-in-effectを避ける）。
@@ -79,7 +82,7 @@ export default function AdminPatientsPage() {
     setShowForm(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = guardSave(async () => {
     if (!form.customerCode.trim() || !form.name.trim()) return;
     if (!editItem && !form.password.trim()) return;
     try {
@@ -124,9 +127,9 @@ export default function AdminPatientsPage() {
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     }
-  };
+  });
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => guardDelete(async () => {
     try {
       const res = await fetch(`/api/admin/patients/${id}`, { method: 'DELETE' });
       if (!res.ok) {
@@ -139,7 +142,7 @@ export default function AdminPatientsPage() {
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     }
-  };
+  })();
 
   const toggleStatus = async (p: PatientPublic) => {
     const nextStatus: PatientPublic['status'] = p.status === '有効' ? '無効' : '有効';
@@ -318,7 +321,7 @@ export default function AdminPatientsPage() {
                 className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-base font-medium transition-colors cursor-pointer">
                 キャンセル
               </button>
-              <Button theme="sky" fullWidth onClick={handleSave}>
+              <Button theme="sky" fullWidth onClick={handleSave} disabled={saving}>
                 {editItem ? '更新する' : '発行する'}
               </Button>
             </div>
@@ -384,6 +387,7 @@ export default function AdminPatientsPage() {
         theme="sky"
         title="削除しますか？"
         description="この操作は取り消せません。"
+        disabled={deleting}
         onCancel={() => setDeleteId(null)}
         onConfirm={() => deleteId !== null && handleDelete(deleteId)}
       />

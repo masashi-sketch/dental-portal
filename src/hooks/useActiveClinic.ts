@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSafeState } from './useSafeState';
 import type { SalesRepWithMaster } from '@/lib/supabase/types';
 
 // 医院用ポータルの「今どのクリニックとして見るか」の情報を取得する。
@@ -10,9 +11,9 @@ import type { SalesRepWithMaster } from '@/lib/supabase/types';
 // （BGJ職員向けの得意先ごとの管理はBGJポータル側で行う）。
 export function useActiveClinic() {
   const { data: session, status: sessionStatus } = useSession();
-  const [clinicName, setClinicName] = useState<string | null>(null);
-  const [salesRep, setSalesRep] = useState<SalesRepWithMaster | null>(null);
-  const [fetchDone, setFetchDone] = useState(false);
+  const [clinicName, setClinicName] = useSafeState<string | null>(null);
+  const [salesRep, setSalesRep] = useSafeState<SalesRepWithMaster | null>(null);
+  const [fetchDone, setFetchDone] = useSafeState(false);
 
   const code = session?.user?.role === 'clinic' ? session.user.customerCode ?? null : null;
 
@@ -29,7 +30,8 @@ export function useActiveClinic() {
         setSalesRep(null);
       })
       .finally(() => setFetchDone(true));
-  }, [code, sessionStatus]);
+    // useSafeStateのsetterはuseCallbackで安定しているため、依存配列に含めても再実行は起きない。
+  }, [code, sessionStatus, setClinicName, setSalesRep, setFetchDone]);
 
   // clinicロール以外は取得対象がないため、sessionが確定した時点で読み込み完了とする
   const loaded = sessionStatus !== 'loading' && (!code || fetchDone);

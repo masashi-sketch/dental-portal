@@ -82,6 +82,15 @@
 - **対処**：`src/lib/parseJsonResponse.ts`（成功レスポンスのcontent-typeを確認し、JSON以外なら「セッションの状態が変わった可能性があります。ページを再読み込みしてください。」という分かりやすいエラーを投げる）を新設し、`src/app/admin/patients/page.tsx`に適用（2026-07-19）。同様の`fetch().then(res => res.json())`パターンは他に27ファイルあり、そちらは今回未対応（新規実装・修正時に順次適用する方針）。
 - **気づくためのチェック**：複数ロールを同時に確認したい場合は、片方を別ブラウザまたはシークレット/プライベートウィンドウで開く（同一ブラウザの別タブは避ける）。「Unexpected token '<'」系のエラーを見たら、まずこの複数タブ・ロール競合を疑う。新しいfetch処理を書くときは、成功時の`res.json()`も`parseJsonResponse()`経由にする。
 
+## Web特有のエラーへの共通対策（2026-07-19、上記2件を機に横展開）
+
+上記のセッション競合対応をきっかけに、同種の「Webアプリ特有の見落としがちなエラー」を洗い出し、共通フックを新設した。
+
+- **race condition（画面遷移直後の古いfetchレスポンスによる上書き）**：`src/hooks/useSafeState.ts`（アンマウント後はsetStateを何もしない、useStateと同じ使い方）を新設し、マウント時に自動fetchする`usePatientClinicBranding`・`useActiveClinic`・`usePrimaryDoctor`の3フックに適用済み。`useSignupPinRegenerate`のようなユーザー操作起点のフック（既に`submitting`相当の状態を持つ）は対象外。
+- **二重送信（フォーム連打による重複データ）**：`src/hooks/useSubmitGuard.ts`（処理中は多重実行しない、`submitting`フラグをボタンの`disabled`に使える）を新設し、`src/app/admin/patients/page.tsx`の`handleSave`・`handleDelete`に適用済み。`src/components/ui/ConfirmDialog.tsx`に`disabled` propを追加（後方互換、他の使用箇所には影響なし）。他ページは今回未対応（新規実装・修正時に順次適用）。
+- **hydration mismatch（サーバーとクライアントで表示が食い違う）**：`src/app/home/page.tsx`の挨拶文（朝/昼/夜の判定に`new Date().getHours()`を使用）が、レンダリング中に直接呼ばれていた。VercelのサーバーはUTC・クライアントはJSTのため、時刻境界付近でSSRとCSRの初回描画が食い違いhydration警告が出る可能性があった。SSR/CSR初回描画では中立的な文言（「こんにちは」）を使い、マウント後の`useEffect`でのみ実際の時刻ベースの文言に更新するよう修正（`react-hooks/set-state-in-effect`はマウント時1回だけの値確定という正当な理由でコメント付きで無効化）。
+- **気づくためのチェック**：新しく「マウント時に自動fetchするカスタムフック」を書くときは素の`useState`ではなく`useSafeState`を使う。新しい「保存・削除ボタン」を書くときは`useSubmitGuard`でラップし、ボタン/`ConfirmDialog`に`disabled`を渡す。`new Date()`や`Math.random()`等クライアント環境に依存する値をレンダリング中に直接使わない（`useEffect`後に確定させる）。
+
 ---
 
 ## 今後の運用方針

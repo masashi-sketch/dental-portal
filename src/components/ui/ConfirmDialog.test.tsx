@@ -39,6 +39,12 @@ describe('ConfirmDialog', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
+  it('disabled=trueのとき確定ボタンが無効化される（二重クリック防止）', () => {
+    render(<ConfirmDialog {...baseProps} open disabled />);
+    expect(screen.getByRole('button', { name: '削除する' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'キャンセル' })).not.toBeDisabled();
+  });
+
   it('themeでパネルの見た目が変わる（sky=rounded-2xl+border、violet=rounded-3xl）', () => {
     const { rerender } = render(<ConfirmDialog {...baseProps} open theme="sky" />);
     expect(screen.getByText('削除しますか？').parentElement?.className).toContain('border-sky-100');
