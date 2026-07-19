@@ -319,6 +319,10 @@ export const PATIENT_COLUMNS =
 export const PATIENT_PUBLIC_COLUMNS =
   'id, customer_code, patient_no, name, login_id, email, status, registered_at, created_at, updated_at';
 
+// BGJポータルの患者一覧用（PATIENT_PUBLIC_COLUMNSに加え、ロック状態表示のためlocked_untilを含む）
+export const PATIENT_BGJ_LIST_COLUMNS =
+  'id, customer_code, patient_no, name, login_id, email, status, registered_at, created_at, updated_at, locked_until';
+
 export const PATIENT_LOGIN_TOKEN_COLUMNS = 'id, patient_id, expires_at, used_at, purpose';
 
 export const PERIODONTAL_STAGE_COLUMNS = 'code, label, name, description, sort_order';

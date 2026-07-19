@@ -52,6 +52,13 @@ describe('BgjSidebar', () => {
     expect(screen.getAllByRole('link', { name: '共通マスタ' })[0]).toHaveAttribute('href', '/bgj/system/settings');
   });
 
+  it('得意先一覧の下・営業担当の上に患者一覧へのリンクを表示する', () => {
+    usePathnameMock.mockReturnValue('/bgj/dashboard');
+    useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    render(<BgjSidebar />);
+    expect(screen.getAllByRole('link', { name: '患者一覧' })[0]).toHaveAttribute('href', '/bgj/patients');
+  });
+
   it('役職マスタ・担当エリアは普段は非表示で、営業担当のトグルをクリックすると表示される', () => {
     usePathnameMock.mockReturnValue('/bgj/dashboard');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
@@ -128,7 +135,7 @@ describe('BgjSidebar', () => {
     );
   });
 
-  it('システム手順を開くと0〜14ステップのリンクが表示される', () => {
+  it('システム手順を開くと0〜15ステップのリンクが表示される', () => {
     usePathnameMock.mockReturnValue('/bgj/dashboard');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
     render(<BgjSidebar />);
@@ -139,9 +146,9 @@ describe('BgjSidebar', () => {
       'href',
       '/bgj/manual?tab=procedure&step=0'
     );
-    expect(screen.getAllByRole('link', { name: '14. システムダッシュボード' })[0]).toHaveAttribute(
+    expect(screen.getAllByRole('link', { name: '15. BGJ患者一覧' })[0]).toHaveAttribute(
       'href',
-      '/bgj/manual?tab=procedure&step=14'
+      '/bgj/manual?tab=procedure&step=15'
     );
   });
 

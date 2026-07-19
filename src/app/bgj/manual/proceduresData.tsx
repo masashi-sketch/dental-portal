@@ -426,4 +426,24 @@ alter table public.clinics
       </>
     ),
   },
+  {
+    key: "15",
+    label: "15. BGJ患者一覧",
+    content: (
+      <>
+        <p>
+          BGJポータル「マスタ &gt; 得意先一覧」の下・「営業担当」の上に、全得意先を横断した「患者一覧」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/patients</code>）を新設した。想定4,000人規模のため、一覧系の一般的なlimit(500)固定取得ではなく、氏名・ログインID・患者番号での検索と<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">.range()</code>によるページネーション（1ページ50件）で取得件数を絞っている。
+        </p>
+        <p>
+          表示項目：得意先コード・医院名、患者番号、氏名、ログインID（現在発行されている連番BU+6桁）、メールアドレス、ステータス、登録日、アカウントロック状態。行の「詳細へ」リンクは既存の医院用ポータル<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/patients/[id]</code>（患者詳細・歯周病診断入力画面）をそのまま代理閲覧・編集先として使う。新規にBGJ専用の詳細画面は作らず、既存資産を再利用している。
+        </p>
+        <p>
+          <strong>実装の流れ：</strong>新規APIルート<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/patients</code>（GET、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">requireBgjSession</code>必須）が検索・ページネーション済みの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patients</code>を取得し、含まれる得意先コードの集合だけで<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinics</code>を<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">.in()</code>で一括取得してMapで医院名を結合する（既存の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/clinics</code>と同じMapベースの結合パターン）。列指定は新設の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">PATIENT_BGJ_LIST_COLUMNS</code>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">PATIENT_PUBLIC_COLUMNS</code>にロック状態表示用の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">locked_until</code>を追加したもの、パスワードハッシュは含めない）。
+        </p>
+        <p>
+          <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/patients/[id]</code>は元々クリニックログインのセッション（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">session.user.customerCode</code>）に依存する箇所が1つあり、BGJ職員のセッションには<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">customerCode</code>が無いため歯周病診断のオン/オフ設定取得が動かなかった。取得済みの患者データの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">customer_code</code>を使うよう修正し、クリニック・BGJどちらのセッションでも動くようにした。周辺の権限チェック（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">isPatientInScope</code>等）は元々BGJ職員を常に許可する設計だったため変更不要だった。
+        </p>
+      </>
+    ),
+  },
 ];

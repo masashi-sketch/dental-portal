@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { use, useCallback, useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
 import AdminSidebar from '../../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
 import type { PatientPublic, PeriodontalDiagnosisWithMaster, PeriodontalGrade, PeriodontalStage } from '@/lib/supabase/types';
@@ -20,7 +19,6 @@ const EMPTY_DIAGNOSIS_FORM: DiagnosisForm = { stageCode: '', gradeCode: '', diag
 
 export default function AdminPatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: session } = useSession();
 
   const [patient, setPatient] = useState<PatientPublic | null>(null);
   const [diagnoses, setDiagnoses] = useState<PeriodontalDiagnosisWithMaster[]>([]);
@@ -62,15 +60,17 @@ export default function AdminPatientDetailPage({ params }: { params: Promise<{ i
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   useEffect(() => {
-    const customerCode = session?.user?.customerCode;
-    if (!customerCode) return;
-    fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(customerCode)}`)
+    // session.user.customerCodeはclinicロール専用（BGJ職員のセッションには無い）ため、
+    // 患者情報から取得したcustomer_codeを使う（clinicロールでも常に自院のcustomer_codeと一致する。
+    // isPatientInScopeで他院の患者IDへのアクセスは既に弾かれている）。
+    if (!patient?.customer_code) return;
+    fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(patient.customer_code)}`)
       .then((res) => (res.ok ? res.json() : { clinic: null }))
       .then((data) => {
         if (data.clinic) setPeriodontalEnabled(data.clinic.show_periodontal_diagnosis);
       })
       .catch(() => {});
-  }, [session?.user?.customerCode]);
+  }, [patient?.customer_code]);
 
   const previewAsPatient = () => {
     document.cookie = `demo-patient-id=${id}; path=/; max-age=86400; SameSite=Lax`;
