@@ -1,0 +1,136 @@
+// @vitest-environment node
+// 医院用ポータル「商品管理」用。公開商品と自院の表示設定のマージ
+// （設定行なし=表示のデフォルト表示設計）と、clinic限定のupsertを検証する。
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NextRequest } from 'next/server';
+import type { Session } from 'next-auth';
+
+let sessionValue: Session | null = null;
+vi.mock('@/auth', () => ({
+  auth: async () => sessionValue,
+}));
+
+const productRows = [
+  { id: 'product-1', name: '商品A', category: 'サプリメント', price: 1000, status: '公開' },
+  { id: 'product-2', name: '商品B', category: 'ヨーグルト', price: 2000, status: '公開' },
+];
+let settingRows: { customer_code: string; product_id: string; is_visible: boolean }[] = [];
+const upsertSpy = vi.fn();
+
+vi.mock('@/lib/supabase/server', () => ({
+  getSupabaseServerClient: () => ({
+    from: (table: string) => {
+      if (table === 'products') {
+        return {
+          select: () => ({
+            eq: () => ({
+              order: () => ({
+                order: () => ({
+                  limit: async () => ({ data: productRows, error: null }),
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'clinic_product_settings') {
+        return {
+          select: () => ({
+            eq: () => ({
+              limit: async () => ({ data: settingRows, error: null }),
+            }),
+          }),
+          upsert: (row: Record<string, unknown>, options: Record<string, unknown>) => {
+            upsertSpy(row, options);
+            return {
+              select: () => ({
+                single: async () => ({ data: { ...row, updated_at: '' }, error: null }),
+              }),
+            };
+          },
+        };
+      }
+      throw new Error(`unexpected table: ${table}`);
+    },
+  }),
+}));
+
+const { GET, PATCH } = await import('./route');
+
+function makeSession(overrides: Partial<Session['user']> = {}): Session {
+  return {
+    user: { role: 'clinic', customerCode: 'A000001', patientId: null, ...overrides },
+    expires: '2099-01-01T00:00:00.000Z',
+  } as Session;
+}
+
+function getRequest() {
+  return new NextRequest('http://localhost/api/admin/product-settings');
+}
+
+function patchRequest(body: Record<string, unknown>) {
+  return new NextRequest('http://localhost/api/admin/product-settings', {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+describe('GET /api/admin/product-settings', () => {
+  beforeEach(() => {
+    sessionValue = null;
+    settingRows = [];
+  });
+
+  it('未認証なら401', async () => {
+    const res = await GET(getRequest());
+    expect(res.status).toBe(401);
+  });
+
+  it('設定行が無い商品はisVisible=true（デフォルト表示）で返す', async () => {
+    sessionValue = makeSession();
+    const res = await GET(getRequest());
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.products.map((p: { id: string; isVisible: boolean }) => p.isVisible)).toEqual([true, true]);
+  });
+
+  it('is_visible=falseの設定行がある商品だけ非表示になる', async () => {
+    sessionValue = makeSession();
+    settingRows = [{ customer_code: 'A000001', product_id: 'product-2', is_visible: false }];
+    const res = await GET(getRequest());
+    const body = await res.json();
+    expect(body.products.find((p: { id: string }) => p.id === 'product-1').isVisible).toBe(true);
+    expect(body.products.find((p: { id: string }) => p.id === 'product-2').isVisible).toBe(false);
+  });
+});
+
+describe('PATCH /api/admin/product-settings', () => {
+  beforeEach(() => {
+    sessionValue = null;
+    upsertSpy.mockReset();
+  });
+
+  it('bgjロールは更新不可（401、クリニックログイン専用）', async () => {
+    sessionValue = makeSession({ role: 'bgj', customerCode: null, email: 'staff@biogaia.jp' });
+    const res = await PATCH(patchRequest({ productId: 'product-1', isVisible: false }));
+    expect(res.status).toBe(401);
+    expect(upsertSpy).not.toHaveBeenCalled();
+  });
+
+  it('productId・isVisibleが不正なら400', async () => {
+    sessionValue = makeSession();
+    const res = await PATCH(patchRequest({ productId: 'product-1', isVisible: 'no' }));
+    expect(res.status).toBe(400);
+    expect(upsertSpy).not.toHaveBeenCalled();
+  });
+
+  it('clinicロールなら自院のcustomer_codeに固定してupsertする', async () => {
+    sessionValue = makeSession();
+    const res = await PATCH(patchRequest({ productId: 'product-1', isVisible: false }));
+    expect(res.status).toBe(200);
+    expect(upsertSpy).toHaveBeenCalledWith(
+      { customer_code: 'A000001', product_id: 'product-1', is_visible: false },
+      { onConflict: 'customer_code,product_id' },
+    );
+  });
+});

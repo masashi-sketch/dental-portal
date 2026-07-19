@@ -1,265 +1,172 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
-import Button from '@/components/ui/Button';
+import { useSafeState } from '@/hooks/useSafeState';
 import Card from '@/components/ui/Card';
-import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import LoadingState from '@/components/ui/LoadingState';
+import { PRODUCT_BADGE_CLASS } from '@/lib/productDisplay';
+import type { Product } from '@/lib/supabase/types';
 
-type ProductCategory = '定期購入' | 'おすすめ商品';
-
-type Product = {
-  id: number;
-  name: string;
-  category: ProductCategory;
-  subCategory: string;
-  price: number;
-  unit: string;
-  status: '公開' | '非公開';
-};
-
-const initialProducts: Product[] = [
-  { id: 1, name: '定期購入商品 A', category: '定期購入',   subCategory: 'サプリメント', price: 3980, unit: '月',   status: '公開' },
-  { id: 2, name: '定期購入商品 B', category: '定期購入',   subCategory: 'サプリメント', price: 2480, unit: '月',   status: '公開' },
-  { id: 3, name: '定期購入商品 C', category: '定期購入',   subCategory: 'サプリメント', price: 1980, unit: '月',   status: '公開' },
-  { id: 4, name: '定期購入商品 D', category: '定期購入',   subCategory: 'サプリメント', price: 2980, unit: '月',   status: '公開' },
-  { id: 5, name: 'おすすめ商品 A', category: 'おすすめ商品', subCategory: 'サプリメント', price: 3980, unit: '本',   status: '公開' },
-  { id: 6, name: 'おすすめ商品 B', category: 'おすすめ商品', subCategory: 'ヨーグルト',  price: 1580, unit: 'セット', status: '公開' },
-  { id: 7, name: 'おすすめ商品 C', category: 'おすすめ商品', subCategory: '歯ブラシ',    price: 4980, unit: 'セット', status: '公開' },
-  { id: 8, name: 'おすすめ商品 D', category: 'おすすめ商品', subCategory: 'オーラルケア', price: 1280, unit: '個',   status: '非公開' },
-];
+// 商品マスタの実体はBGJポータル（/bgj/master/products）が管理する。
+// この画面は「BGJが公開した商品のうち、自院の患者ポータルに表示する商品を選ぶ」
+// 表示設定専用（設定行が無い商品はデフォルト表示）。
+type ProductWithVisibility = Product & { isVisible: boolean };
 
 export default function AdminProductsPage() {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [showForm, setShowForm] = useState(false);
-  const [editItem, setEditItem] = useState<Product | null>(null);
-  const [form, setForm] = useState({ name: '', category: '定期購入' as ProductCategory, subCategory: '', price: '', unit: '', status: '公開' as Product['status'] });
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [filterCat, setFilterCat] = useState<ProductCategory | 'すべて'>('すべて');
+  const { data: session, status: sessionStatus } = useSession();
+  const isClinicRole = session?.user?.role === 'clinic';
+  const ready = sessionStatus !== 'loading';
   const { toast, showToast } = useToast();
 
-  const openNew = () => {
-    setEditItem(null);
-    setForm({ name: '', category: '定期購入', subCategory: '', price: '', unit: '月', status: '公開' });
-    setShowForm(true);
-  };
+  const [products, setProducts] = useSafeState<ProductWithVisibility[]>([]);
+  const [loading, setLoading] = useSafeState(true);
+  const [error, setError] = useSafeState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
 
-  const openEdit = (p: Product) => {
-    setEditItem(p);
-    setForm({ name: p.name, category: p.category, subCategory: p.subCategory, price: String(p.price), unit: p.unit, status: p.status });
-    setShowForm(true);
-  };
+  const fetchProducts = useCallback(() => {
+    fetch('/api/admin/product-settings')
+      .then((res) => {
+        if (!res.ok) throw new Error('商品一覧の取得に失敗しました');
+        return res.json();
+      })
+      .then((data) => {
+        setProducts(data.products ?? []);
+        setError(null);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'エラーが発生しました');
+      })
+      .finally(() => setLoading(false));
+  }, [setProducts, setError, setLoading]);
 
-  const handleSave = () => {
-    if (!form.name.trim() || !form.price) return;
-    if (editItem) {
-      setProducts(products.map((p) => p.id === editItem.id ? { ...p, ...form, price: Number(form.price) } : p));
-      showToast('商品情報を更新しました');
-    } else {
-      setProducts([{ id: Date.now(), ...form, price: Number(form.price) }, ...products]);
-      showToast('商品を追加しました');
+  useEffect(() => {
+    if (!ready || !isClinicRole) return;
+    fetchProducts();
+  }, [ready, isClinicRole, fetchProducts]);
+
+  const handleToggle = async (product: ProductWithVisibility) => {
+    if (savingId) return;
+    setSavingId(product.id);
+    try {
+      const res = await fetch('/api/admin/product-settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id, isVisible: !product.isVisible }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? '更新に失敗しました');
+      }
+      const { setting } = await res.json();
+      // 全件再取得はせず、APIレスポンスの行をローカルstateにマージする（楽観的更新方式）
+      setProducts((prev) =>
+        prev.map((p) => (p.id === setting.product_id ? { ...p, isVisible: setting.is_visible } : p)),
+      );
+      showToast(setting.is_visible ? '患者ポータルに表示します' : '患者ポータルで非表示にしました');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'エラーが発生しました');
+    } finally {
+      setSavingId(null);
     }
-    setShowForm(false);
   };
-
-  const handleDelete = (id: number) => {
-    setProducts(products.filter((p) => p.id !== id));
-    setDeleteId(null);
-    showToast('商品を削除しました');
-  };
-
-  const toggleStatus = (id: number) => {
-    setProducts(products.map((p) => p.id === id ? { ...p, status: p.status === '公開' ? '非公開' : '公開' } : p));
-  };
-
-  const filtered = filterCat === 'すべて' ? products : products.filter((p) => p.category === filterCat);
-
-  const COMMISSION_RATE = 0.10;
-  const activeProducts = products.filter((p) => p.status === '公開');
-  const activeCount = activeProducts.length;
-  const totalSales = activeProducts.reduce((sum, p) => sum + p.price, 0);
-  const commission = Math.floor(totalSales * COMMISSION_RATE);
 
   return (
     <div className="min-h-screen flex bg-sky-50">
       <AdminSidebar active="products" />
 
       <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0">
-        <header className="bg-white border-b border-sky-100 px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-y-3 shadow-sm">
-          <div>
-            <h1 className="text-slate-800 font-bold text-xl">商品管理</h1>
-            <p className="text-slate-600 text-sm mt-0.5">定期購入・おすすめ商品を管理します</p>
-          </div>
-          <Button theme="sky" onClick={openNew}>
-            ＋ 商品を追加
-          </Button>
+        {toast && (
+          <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-sky-600 text-white text-base px-5 py-3 rounded-2xl shadow-xl">{toast}</div>
+        )}
+
+        <header className="bg-white border-b border-sky-100 px-4 sm:px-6 py-4 shadow-sm">
+          <h1 className="text-slate-800 font-bold text-xl">商品管理</h1>
+          <p className="text-slate-600 text-sm mt-0.5">患者様ポータル「おすすめ商品」に表示する商品を選択します（商品情報の登録・編集はバイオガイアが行います）</p>
         </header>
 
-        <main className="flex-1 p-5 sm:p-6 bg-sky-50 flex flex-col gap-5">
-          {toast && (
-            <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-sky-600 text-white text-base px-5 py-3 rounded-2xl shadow-xl">{toast}</div>
+        <main className="flex-1 p-5 sm:p-6">
+          {!ready && <LoadingState />}
+
+          {ready && !isClinicRole && (
+            <Card theme="sky" className="p-5 sm:p-6 shadow-sm max-w-2xl">
+              <p className="text-sm font-bold text-slate-700 mb-1">この画面はクリニックログイン専用です</p>
+              <p className="text-slate-500 text-sm mb-4">
+                商品マスタの登録・編集は、BGJポータルの「マスタ &gt; 商品マスタ」から行えます。
+              </p>
+              <Link
+                href="/bgj/master/products"
+                className="inline-block bg-sky-500 hover:bg-sky-400 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
+              >
+                BGJポータルの商品マスタへ
+              </Link>
+            </Card>
           )}
 
-          {/* フィルタータブ */}
-          <div className="flex gap-2">
-            {(['すべて', '定期購入', 'おすすめ商品'] as const).map((c) => (
-              <button key={c} onClick={() => setFilterCat(c)}
-                className={`px-4 py-3 rounded-xl text-base font-medium transition-colors cursor-pointer ${
-                  filterCat === c ? 'bg-sky-500 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-sky-300'
-                }`}>
-                {c} ({c === 'すべて' ? products.length : products.filter((p) => p.category === c).length})
-              </button>
-            ))}
-          </div>
+          {ready && isClinicRole && (
+            <>
+              {error && (
+                <div className="mb-4 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
+              )}
 
-          {/* サマリーカード */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card theme="sky" className="p-5 shadow-sm">
-              <p className="text-slate-600 text-sm font-medium mb-1">月額売上商品数</p>
-              <p className="text-slate-800 text-3xl font-bold">{activeCount}<span className="text-base text-slate-500 font-normal ml-1">品</span></p>
-              <p className="text-slate-500 text-xs mt-2">公開中の商品数</p>
-            </Card>
-            <Card theme="sky" className="p-5 shadow-sm">
-              <p className="text-slate-600 text-sm font-medium mb-1">売上金額</p>
-              <p className="text-slate-800 text-3xl font-bold">¥{totalSales.toLocaleString()}<span className="text-base text-slate-500 font-normal ml-1">合計</span></p>
-              <p className="text-slate-500 text-xs mt-2">公開商品の価格合計</p>
-            </Card>
-            <div className="bg-white border border-teal-100 rounded-2xl p-5 shadow-sm">
-              <p className="text-slate-600 text-sm font-medium mb-1">コミッション金額</p>
-              <p className="text-teal-700 text-3xl font-bold">¥{commission.toLocaleString()}<span className="text-base text-teal-500 font-normal ml-1">合計</span></p>
-              <p className="text-slate-500 text-xs mt-2">売上の10%</p>
-            </div>
-          </div>
-
-          {/* テーブル */}
-          <Card theme="sky" className="overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-base">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    {['商品名', 'カテゴリ', 'サブカテゴリ', '価格', 'コミッション', 'ステータス', '操作'].map((h) => (
-                      <th key={h} className="text-left text-slate-600 font-semibold px-5 py-4 whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((p) => (
-                    <tr key={p.id} className="border-b border-slate-100 last:border-0 hover:bg-sky-50/80 transition-colors">
-                      <td className="px-5 py-4 text-slate-800 font-semibold">{p.name}</td>
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
-                          p.category === '定期購入' ? 'text-indigo-700 bg-indigo-50' : 'text-amber-700 bg-amber-50'
-                        }`}>{p.category}</span>
-                      </td>
-                      <td className="px-5 py-4 text-slate-600 whitespace-nowrap">{p.subCategory}</td>
-                      <td className="px-5 py-4 text-slate-800 whitespace-nowrap font-mono font-semibold">
-                        ¥{p.price.toLocaleString()}<span className="text-slate-500 text-sm ml-1">/{p.unit}</span>
-                      </td>
-                      <td className="px-5 py-4 text-teal-700 whitespace-nowrap font-mono font-semibold">
-                        ¥{Math.floor(p.price * COMMISSION_RATE).toLocaleString()}<span className="text-teal-500 text-sm font-normal ml-1">/{p.unit}</span>
-                      </td>
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        <button onClick={() => toggleStatus(p.id)}
-                          className={`text-sm font-semibold px-3 py-1.5 rounded-full cursor-pointer transition-opacity hover:opacity-70 ${
-                            p.status === '公開' ? 'text-teal-700 bg-teal-50' : 'text-slate-600 bg-slate-100'
-                          }`}>
-                          {p.status}
-                        </button>
-                      </td>
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openEdit(p)}
-                            className="text-sm text-blue-700 hover:text-blue-600 bg-blue-50 px-4 py-2 rounded-lg transition-colors cursor-pointer font-medium">
-                            編集
-                          </button>
-                          <button onClick={() => setDeleteId(p.id)}
-                            className="text-sm text-red-600 hover:text-red-500 bg-red-50 px-4 py-2 rounded-lg transition-colors cursor-pointer font-medium">
-                            削除
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+              <Card theme="sky" className="shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-sky-50/60 border-b border-sky-100">
+                      <tr>
+                        <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">商品名</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 hidden sm:table-cell">カテゴリ</th>
+                        <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500">価格</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 hidden md:table-cell">定期購入</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">患者ポータル表示</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loading && <LoadingState variant="table-row" colSpan={5} />}
+                      {!loading && products.length === 0 && (
+                        <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-400">公開中の商品がまだありません</td></tr>
+                      )}
+                      {products.map((p) => (
+                        <tr key={p.id} className="border-b border-sky-50 last:border-0 hover:bg-sky-50/40">
+                          <td className="px-5 py-3">
+                            <p className="text-slate-800 font-semibold">{p.name}</p>
+                            {p.badge && p.badge_color && (
+                              <span className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${PRODUCT_BADGE_CLASS[p.badge_color]}`}>{p.badge}</span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3 text-slate-600 hidden sm:table-cell">{p.category}</td>
+                          <td className="px-5 py-3 text-right text-slate-800">¥{p.price.toLocaleString()}</td>
+                          <td className="px-5 py-3 text-slate-600 text-xs hidden md:table-cell">{p.subscription_available ? '対応' : '—'}</td>
+                          <td className="px-5 py-3">
+                            <button
+                              onClick={() => handleToggle(p)}
+                              disabled={savingId !== null}
+                              aria-label={`${p.name}の表示切替`}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+                                p.isVisible ? 'bg-sky-500' : 'bg-slate-300'
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                  p.isVisible ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                              />
+                            </button>
+                            <span className="ml-2 text-xs text-slate-500 align-middle">{p.isVisible ? '表示' : '非表示'}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </>
+          )}
         </main>
       </div>
-
-      {/* 追加・編集モーダル */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <Card theme="sky" className="p-6 w-full max-w-md shadow-2xl">
-            <h2 className="text-slate-800 font-bold text-xl mb-5">{editItem ? '商品を編集' : '商品を追加'}</h2>
-            <div className="flex flex-col gap-4">
-              <div>
-                <label className="text-slate-700 text-base mb-1.5 block font-medium">商品名</label>
-                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="例）オーラルプロバイオティクス"
-                  className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-slate-700 text-base mb-1.5 block font-medium">カテゴリ</label>
-                  <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as ProductCategory })}
-                    className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40">
-                    <option>定期購入</option>
-                    <option>おすすめ商品</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-slate-700 text-base mb-1.5 block font-medium">サブカテゴリ</label>
-                  <input type="text" value={form.subCategory} onChange={(e) => setForm({ ...form, subCategory: e.target.value })}
-                    placeholder="例）サプリメント"
-                    className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-slate-700 text-base mb-1.5 block font-medium">価格（税込）</label>
-                  <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    placeholder="3980"
-                    className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400" />
-                </div>
-                <div>
-                  <label className="text-slate-700 text-base mb-1.5 block font-medium">単位</label>
-                  <input type="text" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                    placeholder="月 / 本 / 個"
-                    className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400" />
-                </div>
-              </div>
-              <div>
-                <label className="text-slate-700 text-base mb-1.5 block font-medium">ステータス</label>
-                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as Product['status'] })}
-                  className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40">
-                  <option>公開</option>
-                  <option>非公開</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowForm(false)}
-                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-base font-medium transition-colors cursor-pointer">
-                キャンセル
-              </button>
-              <Button theme="sky" fullWidth onClick={handleSave}>
-                {editItem ? '更新する' : '追加する'}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      <ConfirmDialog
-        open={deleteId !== null}
-        theme="sky"
-        title="削除しますか？"
-        description="この操作は取り消せません。"
-        onCancel={() => setDeleteId(null)}
-        onConfirm={() => deleteId !== null && handleDelete(deleteId)}
-      />
     </div>
   );
 }
