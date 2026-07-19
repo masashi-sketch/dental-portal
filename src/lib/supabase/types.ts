@@ -71,7 +71,15 @@ export type ClinicTerms = {
   updated_by: string | null;
 };
 
-export type ClinicStatus = '活性' | '休眠' | '解約リスク';
+export type ClinicStatusColor = 'emerald' | 'amber' | 'red' | 'sky' | 'violet' | 'slate';
+
+export type ClinicStatusMaster = {
+  id: string;
+  name: string;
+  color: ClinicStatusColor;
+  created_at: string;
+  updated_at: string;
+};
 
 export type StaffRole = {
   id: string;
@@ -118,7 +126,7 @@ export type Clinic = {
   name: string;
   area: string;
   staff_id: string | null;
-  status: ClinicStatus;
+  status_id: string | null;
   chairs: number;
   address: string | null;
   tel: string | null;
@@ -324,7 +332,7 @@ export const CLINIC_TERMS_COLUMNS =
   'customer_code, commission_rate, wholesale_rate, payment_terms_site, payment_method, contract_started_at, contract_renewal_at, updated_at, updated_by';
 
 export const CLINIC_COLUMNS =
-  'customer_code, name, area, staff_id, status, chairs, address, tel, contact_person, contract_since, patient_type, clinic_type, waiting_room, counseling_room, closed_day, full_time_dr, part_time_dr, hygienist, receptionist, assistant, technician, nurse, nutritionist, childcare, main_referrer, created_at, updated_at';
+  'customer_code, name, area, staff_id, status_id, chairs, address, tel, contact_person, contract_since, patient_type, clinic_type, waiting_room, counseling_room, closed_day, full_time_dr, part_time_dr, hygienist, receptionist, assistant, technician, nurse, nutritionist, childcare, main_referrer, created_at, updated_at';
 
 // clinic_patient_settingsテーブル（ブランディング・患者ナビ表示切替・歯周病表示切替）の列。
 // 公開エンドポイントでも使う。
@@ -369,6 +377,8 @@ export const SALES_REP_COLUMNS =
 export const STAFF_ROLE_COLUMNS = 'id, name, created_at, updated_at';
 
 export const EXTERNAL_LINK_COLUMNS = 'id, label, url, created_at, updated_at';
+
+export const CLINIC_STATUS_COLUMNS = 'id, name, color, created_at, updated_at';
 
 export const STAFF_AREA_COLUMNS = 'id, name, created_at, updated_at';
 

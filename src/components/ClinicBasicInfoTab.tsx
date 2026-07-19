@@ -2,7 +2,7 @@
 
 import SalesRepAvatar from '@/components/SalesRepAvatar';
 import Card from '@/components/ui/Card';
-import type { ClinicStatus, SalesRepWithMaster } from '@/lib/supabase/types';
+import type { ClinicStatusMaster, SalesRepWithMaster } from '@/lib/supabase/types';
 import type { ClinicFormState, ClinicWithStaff } from '@/lib/clinicForm';
 
 // BGJポータル（/bgj/customers/[code]、基本情報タブ）専用の表示専用コンポーネント。
@@ -14,6 +14,7 @@ export default function ClinicBasicInfoTab({
   editingClinic,
   savingClinic,
   salesReps,
+  statuses,
   onEdit,
   onCancel,
   onSave,
@@ -24,6 +25,7 @@ export default function ClinicBasicInfoTab({
   editingClinic: boolean;
   savingClinic: boolean;
   salesReps: SalesRepWithMaster[];
+  statuses: ClinicStatusMaster[];
   onEdit: () => void;
   onCancel: () => void;
   onSave: () => void;
@@ -128,11 +130,10 @@ export default function ClinicBasicInfoTab({
           </div>
           <div>
             <label className="text-xs font-semibold text-slate-500 mb-1 block">ステータス</label>
-            <select value={clinicForm.status} onChange={(e) => onFormChange({ ...clinicForm, status: e.target.value as ClinicStatus })}
+            <select value={clinicForm.statusId} onChange={(e) => onFormChange({ ...clinicForm, statusId: e.target.value })}
               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white">
-              <option value="活性">活性</option>
-              <option value="休眠">休眠</option>
-              <option value="解約リスク">解約リスク</option>
+              <option value="">未設定</option>
+              {statuses.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div>

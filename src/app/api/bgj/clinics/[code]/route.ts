@@ -8,6 +8,7 @@ import {
   CLINIC_COLUMNS,
   CLINIC_INTRO_INFO_COLUMNS,
   CLINIC_PATIENT_SETTINGS_COLUMNS,
+  CLINIC_STATUS_COLUMNS,
   SALES_REP_COLUMNS,
   STAFF_AREA_COLUMNS,
   STAFF_ROLE_COLUMNS,
@@ -60,14 +61,20 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }
   }
 
-  return NextResponse.json({ clinic: { ...data, staff } });
+  let status = null;
+  if (data.status_id) {
+    const { data: st } = await supabase.from('clinic_statuses').select(CLINIC_STATUS_COLUMNS).eq('id', data.status_id).maybeSingle();
+    status = st ?? null;
+  }
+
+  return NextResponse.json({ clinic: { ...data, staff, status } });
 }
 
 const CORE_FIELD_MAP: Record<string, string> = {
   name: 'name',
   area: 'area',
   staffId: 'staff_id',
-  status: 'status',
+  statusId: 'status_id',
   chairs: 'chairs',
   address: 'address',
   tel: 'tel',
@@ -106,7 +113,7 @@ const INTRO_FIELD_MAP: Record<string, string> = {
 };
 
 const NULLABLE_IF_EMPTY = new Set([
-  'staffId', 'displayName', 'patientBackgroundUrl',
+  'staffId', 'statusId', 'displayName', 'patientBackgroundUrl',
   'clinicHoursWeekday', 'clinicHoursSaturday', 'clinicClosedDay',
   'clinicPhone', 'clinicAddress', 'clinicNearestStation', 'clinicParking',
 ]);

@@ -16,7 +16,8 @@ import ClinicBasicInfoTab from "@/components/ClinicBasicInfoTab";
 import ClinicBusinessInfoTab from "@/components/ClinicBusinessInfoTab";
 import ClinicActivityFeed from "@/components/ClinicActivityFeed";
 import { useToast } from "@/hooks/useToast";
-import type { SalesRepWithMaster } from "@/lib/supabase/types";
+import type { ClinicStatusMaster, SalesRepWithMaster } from "@/lib/supabase/types";
+import { CLINIC_STATUS_BADGE_CLASS } from "@/lib/clinicStatusColors";
 import { clinicToForm, type ClinicFormState, type ClinicWithStaff } from "@/lib/clinicForm";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -39,6 +40,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [salesReps, setSalesReps] = useState<SalesRepWithMaster[]>([]);
+  const [clinicStatuses, setClinicStatuses] = useState<ClinicStatusMaster[]>([]);
 
   // 行動履歴（訪問記録・問い合わせの統合表示はClinicActivityFeedが自己fetchする）
   const [showVisitModal, setShowVisitModal] = useState(false);
@@ -86,6 +88,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
       .catch(() => setSalesReps([]));
   }, []);
 
+  useEffect(() => {
+    fetch("/api/bgj/clinic-statuses")
+      .then((res) => (res.ok ? res.json() : { clinicStatuses: [] }))
+      .then((data) => setClinicStatuses(data.clinicStatuses ?? []))
+      .catch(() => setClinicStatuses([]));
+  }, []);
+
   const handleSaveClinic = async () => {
     if (!clinicForm) return;
     setSavingClinic(true);
@@ -113,7 +122,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
       }
       const { clinic: updatedRow } = await res.json();
       const staff = salesReps.find((s) => s.id === updatedRow.staff_id) ?? null;
-      const merged: ClinicWithStaff = { ...updatedRow, staff };
+      const clinicStatus = clinicStatuses.find((s) => s.id === updatedRow.status_id) ?? null;
+      const merged: ClinicWithStaff = { ...updatedRow, staff, status: clinicStatus };
       setClinic(merged);
       setClinicForm(clinicToForm(merged));
       showToast("得意先情報を保存しました");
@@ -202,11 +212,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                 <span className="font-mono text-sm text-violet-600 font-bold bg-violet-50 px-2 py-0.5 rounded-lg">
                   {clinic.customer_code}
                 </span>
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                  clinic.status === "活性" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                }`}>
-                  {clinic.status}
-                </span>
+                {clinic.status ? (
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${CLINIC_STATUS_BADGE_CLASS[clinic.status.color]}`}>
+                    {clinic.status.name}
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-400">未設定</span>
+                )}
               </div>
               <h1 className="text-xl font-bold text-slate-800">{clinic.name}</h1>
               <div className="flex items-center gap-2 mt-1">
@@ -264,6 +276,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
               editingClinic={editingClinic}
               savingClinic={savingClinic}
               salesReps={salesReps}
+              statuses={clinicStatuses}
               onEdit={() => setEditingClinic(true)}
               onCancel={() => { setEditingClinic(false); setClinicForm(clinicToForm(clinic)); }}
               onSave={handleSaveClinic}

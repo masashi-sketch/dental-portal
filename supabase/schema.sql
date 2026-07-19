@@ -167,6 +167,25 @@ create trigger trg_app_settings_updated_at
   for each row execute function public.set_updated_at_generic();
 
 -- ============================================================
+-- 3d. 得意先ステータスマスタ。BGJポータルの「マスタ > ステータス」で
+--     追加・更新・削除する。得意先マスタ（clinics.status_id）から参照される。
+--     colorはTailwindの動的クラス名生成を避けるため固定候補のCHECK制約とし、
+--     フロント側で静的なクラス名マップに変換する（clinic_announcements.tagと同様）。
+-- ============================================================
+create table public.clinic_statuses (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null unique,
+  color      text not null default 'slate'
+    check (color in ('emerald','amber','red','sky','violet','slate')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create trigger trg_clinic_statuses_updated_at
+  before update on public.clinic_statuses
+  for each row execute function public.set_updated_at_generic();
+
+-- ============================================================
 -- 4. 得意先（医院）マスタ。得意先コードをKEYとする。
 --    将来Salesforceと連携する想定のため、得意先コードは
 --    Salesforce側のID形式を見据えた「英大文字1文字+数字6桁」（例：A000001）とする。
@@ -178,7 +197,7 @@ create table public.clinics (
   name            text not null,
   area            text not null,
   staff_id        uuid references public.sales_reps (id),  -- 担当営業
-  status          text not null default '活性' check (status in ('活性','休眠','解約リスク')),
+  status_id       uuid references public.clinic_statuses (id) on delete set null,  -- ステータス（マスタ参照）
   chairs          int not null default 0,            -- チェア数
   address         text,
   tel             text,
@@ -599,6 +618,7 @@ alter table public.staff_roles            enable row level security;
 alter table public.staff_areas            enable row level security;
 alter table public.bgj_external_links     enable row level security;
 alter table public.sales_reps             enable row level security;
+alter table public.clinic_statuses        enable row level security;
 alter table public.clinics                enable row level security;
 alter table public.clinic_patient_settings enable row level security;
 alter table public.clinic_intro_info      enable row level security;

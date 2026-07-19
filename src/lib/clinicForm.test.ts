@@ -8,7 +8,7 @@ describe('clinicToForm', () => {
     expect(form.name).toBe('中央歯科クリニック');
     expect(form.area).toBe('東京');
     expect(form.staffId).toBe('rep-1');
-    expect(form.status).toBe('活性');
+    expect(form.statusId).toBe('status-1');
     expect(form.contactPerson).toBe('田中院長');
     expect(form.contractSince).toBe('2024-04-01');
     expect(form.counselingRoom).toBe(true);
@@ -27,6 +27,7 @@ describe('clinicToForm', () => {
     const form = clinicToForm(
       makeClinicWithStaff({
         staff_id: null,
+        status_id: null,
         address: null,
         tel: null,
         display_name: null,
@@ -35,6 +36,7 @@ describe('clinicToForm', () => {
       }),
     );
     expect(form.staffId).toBe('');
+    expect(form.statusId).toBe('');
     expect(form.address).toBe('');
     expect(form.tel).toBe('');
     expect(form.displayName).toBe('');

@@ -13,6 +13,7 @@ function renderTab(overrides: Partial<React.ComponentProps<typeof ClinicBasicInf
     editingClinic: false,
     savingClinic: false,
     salesReps: [clinic.staff!],
+    statuses: [clinic.status!],
     onEdit: vi.fn(),
     onCancel: vi.fn(),
     onSave: vi.fn(),

@@ -4,27 +4,21 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
 import { useToast } from "@/hooks/useToast";
-import type { Clinic, ClinicStatus, ClinicTerms, SalesRepWithMaster } from "@/lib/supabase/types";
+import type { Clinic, ClinicStatusMaster, ClinicTerms, SalesRepWithMaster } from "@/lib/supabase/types";
+import { CLINIC_STATUS_BADGE_CLASS } from "@/lib/clinicStatusColors";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import LoadingState from "@/components/ui/LoadingState";
 
-type ClinicWithStats = Clinic & { month_sales: number; last_order_date: string | null; staff: SalesRepWithMaster | null };
+type ClinicWithStats = Clinic & { month_sales: number; last_order_date: string | null; staff: SalesRepWithMaster | null; status: ClinicStatusMaster | null };
 
-const STATUS_STYLE: Record<ClinicStatus, string> = {
-  活性: "bg-emerald-100 text-emerald-700",
-  休眠: "bg-amber-100 text-amber-700",
-  解約リスク: "bg-red-100 text-red-700",
-};
-
-const STATUSES: (ClinicStatus | "すべて")[] = ["すべて", "活性", "休眠", "解約リスク"];
-
-const EMPTY_FORM = { customerCode: "", name: "", area: "", staffId: "", status: "活性" as ClinicStatus };
+const EMPTY_FORM = { customerCode: "", name: "", area: "", staffId: "", statusId: "" };
 
 export default function CustomersPage() {
   const [clinics, setClinics] = useState<ClinicWithStats[]>([]);
   const [terms, setTerms] = useState<ClinicTerms[]>([]);
   const [salesReps, setSalesReps] = useState<SalesRepWithMaster[]>([]);
+  const [clinicStatuses, setClinicStatuses] = useState<ClinicStatusMaster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
@@ -32,7 +26,7 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [area, setArea] = useState("すべて");
   const [staff, setStaff] = useState("すべて");
-  const [status, setStatus] = useState<ClinicStatus | "すべて">("すべて");
+  const [status, setStatus] = useState("すべて");
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -43,19 +37,22 @@ export default function CustomersPage() {
       fetch("/api/bgj/clinics"),
       fetch("/api/bgj/clinic-terms"),
       fetch("/api/bgj/sales-reps"),
+      fetch("/api/bgj/clinic-statuses"),
     ])
-      .then(([clinicsRes, termsRes, repsRes]) => {
+      .then(([clinicsRes, termsRes, repsRes, statusesRes]) => {
         if (!clinicsRes.ok) throw new Error("得意先一覧の取得に失敗しました");
         return Promise.all([
           clinicsRes.json(),
           termsRes.ok ? termsRes.json() : Promise.resolve(null),
           repsRes.ok ? repsRes.json() : Promise.resolve(null),
+          statusesRes.ok ? statusesRes.json() : Promise.resolve(null),
         ]);
       })
-      .then(([clinicsData, termsData, repsData]) => {
+      .then(([clinicsData, termsData, repsData, statusesData]) => {
         setClinics(clinicsData.clinics);
         if (termsData) setTerms(termsData.terms ?? []);
         if (repsData) setSalesReps(repsData.salesReps ?? []);
+        if (statusesData) setClinicStatuses(statusesData.clinicStatuses ?? []);
         setError(null);
       })
       .catch((e) => {
@@ -70,13 +67,14 @@ export default function CustomersPage() {
 
   const areas = useMemo(() => ["すべて", ...Array.from(new Set(clinics.map((c) => c.area))).sort()], [clinics]);
   const staffs = useMemo(() => ["すべて", ...salesReps.map((r) => r.name)], [salesReps]);
+  const statusNames = useMemo(() => ["すべて", ...clinicStatuses.map((s) => s.name)], [clinicStatuses]);
 
   const filtered = clinics.filter((c) => {
     const q = search.toLowerCase();
     const matchSearch = !q || c.customer_code.toLowerCase().includes(q) || c.name.includes(q);
     const matchArea = area === "すべて" || c.area === area;
     const matchStaff = staff === "すべて" || c.staff?.name === staff;
-    const matchStatus = status === "すべて" || c.status === status;
+    const matchStatus = status === "すべて" || c.status?.name === status;
     return matchSearch && matchArea && matchStaff && matchStatus;
   });
 
@@ -149,9 +147,9 @@ export default function CustomersPage() {
             className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white">
             {staffs.map((s) => <option key={s}>{s}</option>)}
           </select>
-          <select value={status} onChange={(e) => setStatus(e.target.value as ClinicStatus | "すべて")}
+          <select value={status} onChange={(e) => setStatus(e.target.value)}
             className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white">
-            {STATUSES.map((s) => <option key={s}>{s}</option>)}
+            {statusNames.map((s) => <option key={s}>{s}</option>)}
           </select>
         </div>
       </Card>
@@ -201,9 +199,13 @@ export default function CustomersPage() {
                       {t ? `${t.wholesale_rate}%` : <span className="text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[c.status]}`}>
-                        {c.status}
-                      </span>
+                      {c.status ? (
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${CLINIC_STATUS_BADGE_CLASS[c.status.color]}`}>
+                          {c.status.name}
+                        </span>
+                      ) : (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-400">未設定</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Link href={`/bgj/customers/${c.customer_code}`}
@@ -258,11 +260,10 @@ export default function CustomersPage() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-500 mb-1 block">ステータス</label>
-                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as ClinicStatus })}
+                <select value={form.statusId} onChange={(e) => setForm({ ...form, statusId: e.target.value })}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white">
-                  <option value="活性">活性</option>
-                  <option value="休眠">休眠</option>
-                  <option value="解約リスク">解約リスク</option>
+                  <option value="">未設定</option>
+                  {clinicStatuses.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
             </div>

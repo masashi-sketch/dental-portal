@@ -10,7 +10,7 @@ export function makeClinicWithStaff(overrides: Partial<ClinicWithStaff> = {}): C
     name: '中央歯科クリニック',
     area: '東京',
     staff_id: 'rep-1',
-    status: '活性',
+    status_id: 'status-1',
     chairs: 5,
     address: '東京都千代田区1-1-1',
     tel: '03-0000-0000',
@@ -71,6 +71,8 @@ export function makeClinicWithStaff(overrides: Partial<ClinicWithStaff> = {}): C
       role: { id: 'role-1', name: '主任', created_at: '', updated_at: '' },
       area: { id: 'area-1', name: '関東', created_at: '', updated_at: '' },
     },
+    // clinic_statuses
+    status: { id: 'status-1', name: '活性', color: 'emerald', created_at: '', updated_at: '' },
     ...overrides,
   };
 }

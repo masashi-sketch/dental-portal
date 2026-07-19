@@ -1,15 +1,15 @@
-import type { Clinic, ClinicIntroInfo, ClinicPatientSettings, ClinicStatus, SalesRepWithMaster } from '@/lib/supabase/types';
+import type { Clinic, ClinicIntroInfo, ClinicPatientSettings, ClinicStatusMaster, SalesRepWithMaster } from '@/lib/supabase/types';
 
 // bgj/customers/[code]（得意先詳細）の基本情報・経営情報タブで共有する型と変換関数。
 // 両タブは同じ編集状態（clinicForm/editingClinic）を親ページで共有するため、
 // ページ本体とタブ用プレゼンテーションコンポーネントの双方から参照する。
-export type ClinicWithStaff = Clinic & ClinicPatientSettings & ClinicIntroInfo & { staff: SalesRepWithMaster | null };
+export type ClinicWithStaff = Clinic & ClinicPatientSettings & ClinicIntroInfo & { staff: SalesRepWithMaster | null; status: ClinicStatusMaster | null };
 
 export type ClinicFormState = {
   name: string;
   area: string;
   staffId: string;
-  status: ClinicStatus;
+  statusId: string;
   address: string;
   tel: string;
   contactPerson: string;
@@ -46,7 +46,7 @@ export function clinicToForm(c: ClinicWithStaff): ClinicFormState {
     name: c.name,
     area: c.area,
     staffId: c.staff_id ?? '',
-    status: c.status,
+    statusId: c.status_id ?? '',
     address: c.address ?? '',
     tel: c.tel ?? '',
     contactPerson: c.contact_person ?? '',
