@@ -45,12 +45,6 @@ function AnnouncementList({ announcements }: { announcements: ClinicAnnouncement
   );
 }
 
-function IconMenu() {
-  return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
-}
-function IconX() {
-  return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
-}
 function IconBell() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>;
 }
@@ -157,10 +151,7 @@ const navCards: { label: string; desc: string; href: string; icon: React.ReactNo
   },
 ];
 
-const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
-
 export default function HomePage() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const { clinicName, navVisibility } = usePatientClinicBranding();
   const { doctor } = usePrimaryDoctor();
   const [announcements, setAnnouncements] = useState<ClinicAnnouncement[] | null>(null);
@@ -204,27 +195,12 @@ export default function HomePage() {
             </div>
             <span className="text-gray-900 font-bold text-lg tracking-tight">{clinicName ?? 'デンタルポータル'}</span>
           </div>
-          <nav className="hidden md:flex items-center gap-7 text-sm text-gray-600">
-            {headerNavLinks.map((label) => (
-              <a key={label} href="#" className="hover:text-[#2563EB] transition-colors">{label}</a>
-            ))}
-          </nav>
           <div className="flex items-center gap-3 text-gray-500">
             <button className="hover:text-[#2563EB] transition-colors"><IconBell /></button>
             <button className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconUser /></button>
             <button className="relative hover:text-[#2563EB] transition-colors hidden sm:block"><IconCart /></button>
-            <button className="md:hidden hover:text-[#2563EB] transition-colors" onClick={() => setMenuOpen(!menuOpen)}>
-              {menuOpen ? <IconX /> : <IconMenu />}
-            </button>
           </div>
         </div>
-        {menuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-4 pb-4">
-            {headerNavLinks.map((label) => (
-              <a key={label} href="#" className="block py-3 text-sm text-gray-600 border-b border-gray-50 hover:text-[#2563EB] transition-colors">{label}</a>
-            ))}
-          </div>
-        )}
       </header>
 
       {/* ボディ */}
@@ -345,11 +321,6 @@ export default function HomePage() {
             <span className="text-white font-semibold">{clinicName ?? 'デンタルポータル'}</span>
           </div>
           <div className="text-gray-500 text-xs">© 2026 {clinicName ?? 'デンタルポータル'}. All Rights Reserved.</div>
-          <div className="flex items-center gap-5 flex-wrap justify-center">
-            <a href="#" className="hover:text-white transition-colors">プライバシーポリシー</a>
-            <a href="#" className="hover:text-white transition-colors">特定商取引法</a>
-            <a href="#" className="hover:text-white transition-colors">お問い合わせ</a>
-          </div>
         </div>
       </footer>
 

@@ -24,12 +24,6 @@ function IconBell() {
 function IconUser() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
 }
-function IconMenu() {
-  return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
-}
-function IconX() {
-  return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
-}
 function IconStore() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M3 9l1-5h16l1 5" /><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9" /><path d="M9 20v-6h6v6" /></svg>;
 }
@@ -39,8 +33,6 @@ function IconTruck() {
 function IconTooth() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 2C8 2 5 4.5 5 8.5c0 3 1 5 1.5 8 .3 1.6.7 3.5 2 3.5 1.5 0 1.5-3 2-5 .3-1.2.7-1.5 1.5-1.5s1.2.3 1.5 1.5c.5 2 .5 5 2 5 1.3 0 1.7-1.9 2-3.5.5-3 1.5-5 1.5-8C19 4.5 16 2 12 2Z" /></svg>;
 }
-
-const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
 const pickupSteps: { status: PatientOrderStatus; label: string }[] = [
   { status: 'received', label: '受付済み' },
@@ -56,7 +48,6 @@ const deliverySteps: { status: PatientOrderStatus; label: string }[] = [
 ];
 
 export default function MedicationPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const { clinicName, navVisibility, showPeriodontalDiagnosis } = usePatientClinicBranding();
   const [diagnosis, setDiagnosis] = useState<PeriodontalDiagnosisView>(null);
   const [diagnosisLoaded, setDiagnosisLoaded] = useState(false);
@@ -96,26 +87,11 @@ export default function MedicationPage() {
             </div>
             <span className="text-gray-900 font-bold text-lg tracking-tight">{clinicName ?? 'デンタルポータル'}</span>
           </div>
-          <nav className="hidden md:flex items-center gap-7 text-sm text-gray-600">
-            {headerNavLinks.map((label) => (
-              <a key={label} href="#" className="hover:text-[#2563EB] transition-colors">{label}</a>
-            ))}
-          </nav>
           <div className="flex items-center gap-3 text-gray-500">
             <button className="hover:text-[#2563EB] transition-colors"><IconBell /></button>
             <button className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconUser /></button>
-            <button className="md:hidden hover:text-[#2563EB] transition-colors" onClick={() => setMenuOpen(!menuOpen)}>
-              {menuOpen ? <IconX /> : <IconMenu />}
-            </button>
           </div>
         </div>
-        {menuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-4 pb-4">
-            {headerNavLinks.map((label) => (
-              <a key={label} href="#" className="block py-3 text-sm text-gray-600 border-b border-gray-50 hover:text-[#2563EB] transition-colors">{label}</a>
-            ))}
-          </div>
-        )}
       </header>
 
       {/* ボディ */}
@@ -306,11 +282,6 @@ export default function MedicationPage() {
             <span className="text-white font-semibold">{clinicName ?? 'デンタルポータル'}</span>
           </div>
           <div className="text-gray-500 text-xs">© 2026 {clinicName ?? 'デンタルポータル'}. All Rights Reserved.</div>
-          <div className="flex items-center gap-5 flex-wrap justify-center">
-            <a href="#" className="hover:text-white transition-colors">プライバシーポリシー</a>
-            <a href="#" className="hover:text-white transition-colors">特定商取引法</a>
-            <a href="#" className="hover:text-white transition-colors">お問い合わせ</a>
-          </div>
         </div>
       </footer>
 

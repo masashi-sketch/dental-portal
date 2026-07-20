@@ -18,17 +18,9 @@
     { "ruleId": "hardcoded-business-collection", "file": "src/app/bgj/reports/ReportsCharts.tsx", "expectedOccurrences": 2, "classification": "P0", "reason": "月次・エリア別チャートが固定配列" },
     { "ruleId": "hardcoded-business-collection", "file": "src/app/bgj/reports/page.tsx", "expectedOccurrences": 3, "classification": "P0", "reason": "担当別・エリア別・上位得意先が固定配列" },
     { "ruleId": "fixed-business-date", "file": "src/app/bgj/reports/page.tsx", "expectedOccurrences": 1, "classification": "P0", "reason": "レポート対象期間が固定表示" },
-    { "ruleId": "placeholder-link", "file": "src/app/clinic/page.tsx", "expectedOccurrences": 5, "classification": "P0", "reason": "ヘッダー・モバイルメニュー・フッターの未接続リンク" },
     { "ruleId": "business-placeholder", "file": "src/app/clinic/page.tsx", "expectedOccurrences": 1, "classification": "P1", "reason": "診療メニューの説明が伏字固定値" },
-    { "ruleId": "placeholder-link", "file": "src/app/home/page.tsx", "expectedOccurrences": 5, "classification": "P0", "reason": "ヘッダー・モバイルメニュー・フッターの未接続リンク" },
     { "ruleId": "business-placeholder", "file": "src/app/home/page.tsx", "expectedOccurrences": 2, "classification": "P0", "reason": "患者名と次回予約が実患者情報に見える伏字固定値" },
     { "ruleId": "test-tenant-name", "file": "src/app/layout.tsx", "expectedOccurrences": 3, "classification": "P1", "reason": "root metadataを汎用名または医院別metadataへ変更する" },
-    { "ruleId": "placeholder-link", "file": "src/app/medication/page.tsx", "expectedOccurrences": 5, "classification": "P0", "reason": "ヘッダー・モバイルメニュー・フッターの未接続リンク" },
-    { "ruleId": "business-placeholder", "file": "src/app/medication/page.tsx", "expectedOccurrences": 3, "classification": "P0", "reason": "注文日・担当者・次回来院が実注文情報に見える伏字固定値" },
-    { "ruleId": "placeholder-link", "file": "src/app/qa/page.tsx", "expectedOccurrences": 6, "classification": "P0", "reason": "ヘッダー・質問導線・フッターの未接続リンク" },
-    { "ruleId": "placeholder-link", "file": "src/app/shop/[id]/page.tsx", "expectedOccurrences": 5, "classification": "P0", "reason": "ヘッダー・モバイルメニュー・フッターの未接続リンク" },
-    { "ruleId": "placeholder-link", "file": "src/app/shop/page.tsx", "expectedOccurrences": 5, "classification": "P0", "reason": "ヘッダー・モバイルメニュー・フッターの未接続リンク" },
-    { "ruleId": "placeholder-link", "file": "src/app/subscription/[id]/page.tsx", "expectedOccurrences": 5, "classification": "P0", "reason": "ヘッダー・モバイルメニュー・フッターの未接続リンク" },
-    { "ruleId": "placeholder-link", "file": "src/app/subscription/page.tsx", "expectedOccurrences": 5, "classification": "P0", "reason": "ヘッダー・モバイルメニュー・フッターの未接続リンク" }
+    { "ruleId": "business-placeholder", "file": "src/app/medication/page.tsx", "expectedOccurrences": 3, "classification": "P0", "reason": "注文日・担当者・次回来院が実注文情報に見える伏字固定値" }
   ]
 }

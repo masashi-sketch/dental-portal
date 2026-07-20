@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import BottomNav from '../../components/BottomNav';
 import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
 import ProductVisual from '@/components/ProductVisual';
@@ -18,12 +18,6 @@ function IconBell() {
 function IconUser() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
 }
-function IconMenu() {
-  return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
-}
-function IconX() {
-  return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
-}
 function IconArrowLeft() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>;
 }
@@ -34,8 +28,6 @@ function IconShield() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>;
 }
 
-const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
-
 // 商品詳細。一覧と同じ /api/patient-portal/products をfetchしてfindする
 // （非表示・非公開の商品は一覧に含まれないため、直接URLアクセスでも自動的に
 // 「見つかりません」になる）。カート・星評価等のEC要素は撤去済みで、
@@ -44,7 +36,6 @@ export default function ProductDetailPage() {
   const params = useParams();
   const id = String(params.id);
 
-  const [menuOpen, setMenuOpen] = useState(false);
   const { clinicName, navVisibility } = usePatientClinicBranding();
   const [products, setProducts] = useSafeState<Product[]>([]);
   const [productsLoaded, setProductsLoaded] = useSafeState(false);
@@ -106,26 +97,11 @@ export default function ProductDetailPage() {
             </div>
             <span className="text-gray-900 font-bold text-lg tracking-tight">{clinicName ?? 'デンタルポータル'}</span>
           </div>
-          <nav className="hidden md:flex items-center gap-7 text-sm text-gray-600">
-            {headerNavLinks.map((label) => (
-              <a key={label} href="#" className="hover:text-[#2563EB] transition-colors">{label}</a>
-            ))}
-          </nav>
           <div className="flex items-center gap-4 text-gray-500">
             <button className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconBell /></button>
             <button className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconUser /></button>
-            <button className="md:hidden hover:text-[#2563EB] transition-colors" onClick={() => setMenuOpen(!menuOpen)}>
-              {menuOpen ? <IconX /> : <IconMenu />}
-            </button>
           </div>
         </div>
-        {menuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-4 pb-4">
-            {headerNavLinks.map((label) => (
-              <a key={label} href="#" className="block py-3 text-sm text-gray-600 border-b border-gray-50 hover:text-[#2563EB] transition-colors">{label}</a>
-            ))}
-          </div>
-        )}
       </header>
 
       {/* ボトムナビ（モバイル） */}
@@ -300,11 +276,6 @@ export default function ProductDetailPage() {
             <span className="text-white font-semibold">{clinicName ?? 'デンタルポータル'}</span>
           </div>
           <div className="text-gray-500 text-xs">© 2026 {clinicName ?? 'デンタルポータル'}. All Rights Reserved.</div>
-          <div className="flex items-center gap-5 flex-wrap justify-center">
-            <a href="#" className="hover:text-white transition-colors">プライバシーポリシー</a>
-            <a href="#" className="hover:text-white transition-colors">特定商取引法</a>
-            <a href="#" className="hover:text-white transition-colors">お問い合わせ</a>
-          </div>
         </div>
       </footer>
 

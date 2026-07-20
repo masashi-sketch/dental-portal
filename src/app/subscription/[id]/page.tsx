@@ -15,20 +15,12 @@ function IconBell() {
 function IconUser() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
 }
-function IconMenu() {
-  return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
-}
-function IconXClose() {
-  return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
-}
 function IconArrowLeft() {
   return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>;
 }
 function IconCheck() {
   return <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>;
 }
-
-const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
 type Period = '6ヶ月' | '3ヶ月';
 type Delivery = '自宅' | '医院';
@@ -39,7 +31,6 @@ export default function SubscriptionOrderPage() {
   const { products, loaded: productsLoaded, error: productsError } = usePatientProducts();
   const product = products.find((p) => p.id === id && p.subscription_available);
 
-  const [menuOpen, setMenuOpen] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [period, setPeriod] = useState<Period | null>(null);
   const [delivery, setDelivery] = useState<Delivery | null>(null);
@@ -90,26 +81,11 @@ export default function SubscriptionOrderPage() {
             </div>
             <span className="text-gray-900 font-bold text-lg tracking-tight">{clinicName ?? 'デンタルポータル'}</span>
           </div>
-          <nav className="hidden md:flex items-center gap-7 text-sm text-gray-600">
-            {headerNavLinks.map((label) => (
-              <a key={label} href="#" className="hover:text-[#2563EB] transition-colors">{label}</a>
-            ))}
-          </nav>
           <div className="flex items-center gap-3 text-gray-500">
             <button className="hover:text-[#2563EB] transition-colors"><IconBell /></button>
             <button className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconUser /></button>
-            <button className="md:hidden hover:text-[#2563EB] transition-colors" onClick={() => setMenuOpen(!menuOpen)}>
-              {menuOpen ? <IconXClose /> : <IconMenu />}
-            </button>
           </div>
         </div>
-        {menuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-4 pb-4">
-            {headerNavLinks.map((label) => (
-              <a key={label} href="#" className="block py-3 text-sm text-gray-600 border-b border-gray-50 hover:text-[#2563EB] transition-colors">{label}</a>
-            ))}
-          </div>
-        )}
       </header>
 
       {/* ボトムナビ（モバイル） */}
@@ -435,11 +411,6 @@ export default function SubscriptionOrderPage() {
             <span className="text-white font-semibold">{clinicName ?? 'デンタルポータル'}</span>
           </div>
           <div className="text-gray-500 text-xs">© 2026 {clinicName ?? 'デンタルポータル'}. All Rights Reserved.</div>
-          <div className="flex items-center gap-5 flex-wrap justify-center">
-            <a href="#" className="hover:text-white transition-colors">プライバシーポリシー</a>
-            <a href="#" className="hover:text-white transition-colors">特定商取引法</a>
-            <a href="#" className="hover:text-white transition-colors">お問い合わせ</a>
-          </div>
         </div>
       </footer>
 

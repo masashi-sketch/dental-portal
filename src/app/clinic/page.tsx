@@ -32,20 +32,6 @@ function IconCart() {
     </svg>
   );
 }
-function IconMenu() {
-  return (
-    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-      <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
-  );
-}
-function IconX() {
-  return (
-    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
 function IconMapPin() {
   return (
     <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -61,8 +47,6 @@ function IconClock() {
     </svg>
   );
 }
-
-const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
 // DBにはスタッフの色情報を持たせていないため、登録順で巡回して割り当てる。
 const STAFF_COLOR_PALETTE = [
@@ -82,7 +66,6 @@ type ClinicIntroInfo = {
 } | null;
 
 export default function ClinicPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const { clinicName, navVisibility } = usePatientClinicBranding();
   const [activeTab, setActiveTab] = useState(0);
   const [staffList, setStaffList] = useState<ClinicStaff[]>([]);
@@ -131,12 +114,6 @@ export default function ClinicPage() {
             <span className="text-gray-900 font-bold text-lg tracking-tight">{clinicName ?? 'デンタルポータル'}</span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-7 text-sm text-gray-600">
-            {headerNavLinks.map((label) => (
-              <a key={label} href="#" className="hover:text-[#2563EB] transition-colors">{label}</a>
-            ))}
-          </nav>
-
           <div className="flex items-center gap-4 text-gray-500">
             <button className="hover:text-[#2563EB] transition-colors"><IconBell /></button>
             <button className="hover:text-[#2563EB] transition-colors hidden sm:block"><IconUser /></button>
@@ -144,21 +121,8 @@ export default function ClinicPage() {
               <IconCart />
               <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
             </button>
-            <button className="md:hidden hover:text-[#2563EB] transition-colors" onClick={() => setMenuOpen(!menuOpen)}>
-              {menuOpen ? <IconX /> : <IconMenu />}
-            </button>
           </div>
         </div>
-
-        {menuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-4 pb-4">
-            {headerNavLinks.map((label) => (
-              <a key={label} href="#" className="block py-3 text-sm text-gray-600 border-b border-gray-50 hover:text-[#2563EB] transition-colors">
-                {label}
-              </a>
-            ))}
-          </div>
-        )}
       </header>
 
       {/* ボトムナビ（モバイル） */}
@@ -321,11 +285,6 @@ export default function ClinicPage() {
             <span className="text-white font-semibold">{clinicName ?? 'デンタルポータル'}</span>
           </div>
           <div className="text-gray-500 text-xs">© 2026 {clinicName ?? 'デンタルポータル'}. All Rights Reserved.</div>
-          <div className="flex items-center gap-5 flex-wrap justify-center">
-            <a href="#" className="hover:text-white transition-colors">プライバシーポリシー</a>
-            <a href="#" className="hover:text-white transition-colors">特定商取引法</a>
-            <a href="#" className="hover:text-white transition-colors">お問い合わせ</a>
-          </div>
         </div>
       </footer>
 
