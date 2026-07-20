@@ -1,4 +1,4 @@
-import { Code } from "./manualComponents";
+import { Code, SubTabs } from "./manualComponents";
 
 export type ProcedureStep = { key: string; label: string; content: React.ReactNode };
 
@@ -7,40 +7,64 @@ export const procedureSteps: ProcedureStep[] = [
     key: "0",
     label: "0. 全体構成",
     content: (
-      <>
-        <p className="font-bold text-slate-800">3ポータル構成</p>
-        <ul className="list-disc list-inside pl-2">
-          <li><strong>患者様ポータル</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/</code>, <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/home</code>, <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/medication</code>など）：患者様がご自身の診断結果等を確認する画面。</li>
-          <li><strong>医院用ポータル</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/*</code>）：医院スタッフが患者様ID発行・診断登録・表示設定を行う画面。</li>
-          <li><strong>BGJポータル</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/*</code>）：バイオガイア社員が得意先・営業マスタ・システムを管理する画面。</li>
-        </ul>
-        <p className="font-bold text-slate-800 mt-2">認証（NextAuth v5、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/auth.ts</code>）</p>
-        <ul className="list-disc list-inside pl-2">
-          <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">bgj</code>：Google OAuth。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">@biogaia.jp</code>ドメインのみ許可。</li>
-          <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic</code>：ログインID・パスワード（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>テーブル、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-login</code>）。自分の得意先コードに固定される。</li>
-          <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient</code>：ログインID・パスワード（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patients</code>テーブル）。自分の患者ID・得意先コードに固定される。</li>
-          <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient-magiclink</code>：メール内リンクの使い捨てトークンによるワンクリックログイン（システム手順「8」参照）。</li>
-        </ul>
-        <p>
-          いずれのログインも5回連続で失敗すると15分間ロックされる（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/loginLockout.ts</code>、clinic/patientのみ）。
-          ほぼ全パスは<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>（Next.js 16でのmiddleware）が認証必須にしており、公開ページは明示的な許可リストで管理する。
-        </p>
-        <p className="font-bold text-slate-800 mt-2">データベース（Supabase）</p>
-        <p>
-          テーブル定義は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">supabase/schema.sql</code>が唯一のDB定義書。全テーブルで<strong>RLS有効・ポリシーなし</strong>（anon/authenticatedキーからは一切読み書き不可）とし、アクセスは必ずサーバー側の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">service_role</code>キー経由のAPIルートを介す。ブラウザに秘密鍵は一切出さない。列は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">select(&apos;*&apos;)</code>禁止で、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/supabase/types.ts</code>の列指定定数を使う。
-        </p>
-        <p className="font-bold text-slate-800 mt-2">エラー監視（Sentry）</p>
-        <p>
-          <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">@sentry/nextjs</code>導入済み。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">NEXT_PUBLIC_SENTRY_DSN</code>が未設定の間は自動的に無効化され何も送信されない。メール等の個人情報は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/sentryScrub.ts</code>でマスクしている。
-          BGJポータルの「システム管理」→「アプリ管理」画面には、Sentry API（Auth Token方式）経由で未解決issue一覧を表示する機能もある（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/app/api/bgj/system/sentry-issues/route.ts</code>）。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">SENTRY_AUTH_TOKEN</code>（scope: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">project:read</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">event:read</code>）が未設定の間はエラーにせず「未設定」表示になる。組織スラッグ・プロジェクトIDはDSNから判明する非秘密情報のためコード内に定数として埋め込んでいる。
-        </p>
-        <p className="font-bold text-slate-800 mt-2">開発環境</p>
-        <Code>{`npm run dev    # 開発サーバー（--webpack固定。Turbopackは日本語パスでクラッシュするため）
+      <SubTabs
+        items={[
+          {
+            label: "3ポータル構成",
+            content: (
+              <ul className="list-disc list-inside pl-2">
+                <li><strong>患者様ポータル</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/</code>, <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/home</code>, <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/medication</code>など）：患者様がご自身の診断結果等を確認する画面。</li>
+                <li><strong>医院用ポータル</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/*</code>）：医院スタッフが患者様ID発行・診断登録・表示設定を行う画面。</li>
+                <li><strong>BGJポータル</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/*</code>）：バイオガイア社員が得意先・営業マスタ・システムを管理する画面。</li>
+              </ul>
+            ),
+          },
+          {
+            label: "認証",
+            content: (
+              <>
+                <ul className="list-disc list-inside pl-2">
+                  <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">bgj</code>：Google OAuth。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">@biogaia.jp</code>ドメインのみ許可。</li>
+                  <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic</code>：ログインID・パスワード（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>テーブル、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-login</code>）。自分の得意先コードに固定される。</li>
+                  <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient</code>：ログインID・パスワード（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patients</code>テーブル）。自分の患者ID・得意先コードに固定される。</li>
+                  <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient-magiclink</code>：メール内リンクの使い捨てトークンによるワンクリックログイン（システム手順「8」参照）。</li>
+                </ul>
+                <p>
+                  いずれのログインも5回連続で失敗すると15分間ロックされる（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/loginLockout.ts</code>、clinic/patientのみ）。
+                  ほぼ全パスは<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>（Next.js 16でのmiddleware）が認証必須にしており、公開ページは明示的な許可リストで管理する。
+                </p>
+              </>
+            ),
+          },
+          {
+            label: "データベース",
+            content: (
+              <p>
+                テーブル定義は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">supabase/schema.sql</code>が唯一のDB定義書。全テーブルで<strong>RLS有効・ポリシーなし</strong>（anon/authenticatedキーからは一切読み書き不可）とし、アクセスは必ずサーバー側の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">service_role</code>キー経由のAPIルートを介す。ブラウザに秘密鍵は一切出さない。列は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">select(&apos;*&apos;)</code>禁止で、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/supabase/types.ts</code>の列指定定数を使う。
+              </p>
+            ),
+          },
+          {
+            label: "エラー監視",
+            content: (
+              <p>
+                <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">@sentry/nextjs</code>導入済み。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">NEXT_PUBLIC_SENTRY_DSN</code>が未設定の間は自動的に無効化され何も送信されない。メール等の個人情報は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/sentryScrub.ts</code>でマスクしている。
+                BGJポータルの「システム管理」→「アプリ管理」画面には、Sentry API（Auth Token方式）経由で未解決issue一覧を表示する機能もある（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/app/api/bgj/system/sentry-issues/route.ts</code>）。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">SENTRY_AUTH_TOKEN</code>（scope: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">project:read</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">event:read</code>）が未設定の間はエラーにせず「未設定」表示になる。組織スラッグ・プロジェクトIDはDSNから判明する非秘密情報のためコード内に定数として埋め込んでいる。
+              </p>
+            ),
+          },
+          {
+            label: "開発環境",
+            content: (
+              <Code>{`npm run dev    # 開発サーバー（--webpack固定。Turbopackは日本語パスでクラッシュするため）
 npm run lint   # ESLint
 npx tsc --noEmit  # 型チェック
 npm run test   # ユニットテスト（Vitest）
 npm run build  # 本番ビルド`}</Code>
-      </>
+            ),
+          },
+        ]}
+      />
     ),
   },
   {
@@ -209,10 +233,16 @@ alter table public.patients
     label: "8. ワンクリックログイン・パスワード再設定",
     content: (
       <>
-        <p>
-          患者様のQR自己登録（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/[slug]</code>系）でメールアドレスが必須項目になった（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patients.email</code>列、admin/patientsの手動発行では引き続き収集していない）。登録完了時に「初回登録メール」が届き、本文のリンクから<strong>パスワード入力なしでそのままログイン完了</strong>できる。
-        </p>
-        <Code>{`create table public.patient_login_tokens (
+        <SubTabs
+          items={[
+            {
+              label: "概要・DB",
+              content: (
+                <>
+                  <p>
+                    患者様のQR自己登録（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/[slug]</code>系）でメールアドレスが必須項目になった（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patients.email</code>列、admin/patientsの手動発行では引き続き収集していない）。登録完了時に「初回登録メール」が届き、本文のリンクから<strong>パスワード入力なしでそのままログイン完了</strong>できる。
+                  </p>
+                  <Code>{`create table public.patient_login_tokens (
   id          uuid primary key default gen_random_uuid(),
   patient_id  uuid not null references public.patients (id) on delete cascade,
   token_hash  text not null,
@@ -222,18 +252,30 @@ alter table public.patients
   created_at  timestamptz not null default now(),
   unique (token_hash)
 );`}</Code>
-        <p>
-          トークンは30分間有効・使い捨て（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/loginToken.ts</code>）。平文はDBに保存せずSHA-256でハッシュ化してから保存する（パスワードと違い高エントロピーな値のため低速ハッシュは不要）。NextAuthに専用の認証方式<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient-magiclink</code>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/auth.ts</code>）を追加し、リンク先<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/verify?token=...</code>でトークンを検証してログイン状態にする。
-        </p>
-        <p>
-          同じトークンの仕組みで「パスワードをお忘れの方」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/forgot-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/password-reset/request</code> → メール → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/reset-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/password-reset/confirm</code>）も実装済み。メールアドレスが登録されているかどうかに関わらず常に同じレスポンスを返し、登録有無を外部から探索されないようにしている。
-        </p>
-        <p>
-          <strong>乱用対策：</strong>認証不要の公開APIのため、同一患者・同一用途のトークン再発行に3分のクールダウンを設けている（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">hasRecentLoginToken()</code>。第三者による実在アドレスへのメール爆撃を抑止。クールダウン中も外からは成功時と同じレスポンスに見える）。また<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patients.email</code>には部分uniqueインデックス（null複数可）があり、同じアドレスでの二重登録は409で拒否する（重複するとパスワード再設定時の患者特定が不能になるため）。
-        </p>
-        <p>
-          <strong>レスポンス速度：</strong>SMTP送信は数秒かかることがあるため、メール送信は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">next/server</code>の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>でレスポンス送信後に実行する（登録・リセット要求のAPI応答をブロックしない）。送信失敗はログのみでリトライしない。
-        </p>
+                  <p>
+                    トークンは30分間有効・使い捨て（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/loginToken.ts</code>）。平文はDBに保存せずSHA-256でハッシュ化してから保存する（パスワードと違い高エントロピーな値のため低速ハッシュは不要）。NextAuthに専用の認証方式<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient-magiclink</code>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/auth.ts</code>）を追加し、リンク先<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/join/verify?token=...</code>でトークンを検証してログイン状態にする。
+                  </p>
+                  <p>
+                    同じトークンの仕組みで「パスワードをお忘れの方」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/forgot-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/password-reset/request</code> → メール → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/reset-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/password-reset/confirm</code>）も実装済み。メールアドレスが登録されているかどうかに関わらず常に同じレスポンスを返し、登録有無を外部から探索されないようにしている。
+                  </p>
+                </>
+              ),
+            },
+            {
+              label: "セキュリティ設計",
+              content: (
+                <>
+                  <p>
+                    <strong>乱用対策：</strong>認証不要の公開APIのため、同一患者・同一用途のトークン再発行に3分のクールダウンを設けている（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">hasRecentLoginToken()</code>。第三者による実在アドレスへのメール爆撃を抑止。クールダウン中も外からは成功時と同じレスポンスに見える）。また<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patients.email</code>には部分uniqueインデックス（null複数可）があり、同じアドレスでの二重登録は409で拒否する（重複するとパスワード再設定時の患者特定が不能になるため）。
+                  </p>
+                  <p>
+                    <strong>レスポンス速度：</strong>SMTP送信は数秒かかることがあるため、メール送信は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">next/server</code>の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>でレスポンス送信後に実行する（登録・リセット要求のAPI応答をブロックしない）。送信失敗はログのみでリトライしない。
+                  </p>
+                </>
+              ),
+            },
+          ]}
+        />
         <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
           <strong>ハマりどころ：</strong>新しい公開ページ・APIを追加したので、今回も<code className="bg-white px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>の許可リストに<code className="bg-white px-1.5 py-0.5 rounded text-xs">/forgot-password</code>・<code className="bg-white px-1.5 py-0.5 rounded text-xs">/reset-password</code>・<code className="bg-white px-1.5 py-0.5 rounded text-xs">/api/password-reset</code>を追加済み（<code className="bg-white px-1.5 py-0.5 rounded text-xs">/join/verify</code>は既存の<code className="bg-white px-1.5 py-0.5 rounded text-xs">/join/</code>許可で自動的にカバーされる）。
         </p>
@@ -272,11 +314,16 @@ npx vitest run <ファイルパス>  # 特定のテストだけ実行`}</Code>
     key: "10",
     label: "10. クリニック問い合わせ→Slack連携",
     content: (
-      <>
-        <p>
-          医院用ポータル（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/inquiry</code>）から送信された問い合わせを、Slackへ<strong>一方向のIncoming Webhook通知</strong>として送る機能。BGJ職員はSlack通知内のリンクからBGJポータルの専用画面（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/inquiries/[id]</code>）へ遷移して返信する。Slack上での返信をアプリ側へ自動的に取り込む仕組みは持たない（Bot Token・Events APIは使わない、意図的にシンプルな設計）。
-        </p>
-        <Code>{`create table public.app_settings (
+      <SubTabs
+        items={[
+          {
+            label: "概要・DB",
+            content: (
+              <>
+                <p>
+                  医院用ポータル（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/inquiry</code>）から送信された問い合わせを、Slackへ<strong>一方向のIncoming Webhook通知</strong>として送る機能。BGJ職員はSlack通知内のリンクからBGJポータルの専用画面（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/inquiries/[id]</code>）へ遷移して返信する。Slack上での返信をアプリ側へ自動的に取り込む仕組みは持たない（Bot Token・Events APIは使わない、意図的にシンプルな設計）。
+                </p>
+                <Code>{`create table public.app_settings (
   id smallint primary key default 1 check (id = 1),
   slack_webhook_url text,
   updated_by text,
@@ -303,19 +350,37 @@ create table public.clinic_inquiry_replies (
   body text not null,
   created_at timestamptz not null default now()
 );`}</Code>
-        <p>
-          <strong>Slack側の準備（外部作業）：</strong>対象チャンネルで「アプリを追加」→「Incoming Webhooks」を検索して追加するか、<a href="https://api.slack.com/apps" target="_blank" rel="noreferrer" className="text-violet-600 underline">api.slack.com/apps</a>で新規App作成→Incoming Webhooks機能を有効化してチャンネルを選び、Webhook URL（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">https://hooks.slack.com/services/...</code>）を発行する。発行したURLはBGJポータルの「システム管理 &gt; 共通マスタ」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/system/settings</code>）に貼り付けて保存する。
-        </p>
-        <p>
-          <strong>担当営業のメンション：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">sales_reps.slack_user_id</code>（BGJポータル「マスタ &gt; 営業担当」で編集）にSlackのメンバーidを設定すると、その営業担当が割り当てられている得意先からの問い合わせ通知で<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`<@USER_ID>`}</code>形式でメンションされる。未設定の担当者は氏名のみ表示される。
-        </p>
-        <p>
-          <strong>実装の流れ：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">POST /api/admin/inquiries</code>（clinicロール限定、自分のcustomerCodeに固定して登録）→<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/slack/postWebhookMessage.ts</code>でWebhook送信（医院名・担当者・問い合わせ内容・返信URLを含む）。Slack送信はベストエフォートで、失敗しても問い合わせ自体の登録は成功として扱う（送信成功時のみ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">slack_notified_at</code>を記録）。返信は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">POST /api/bgj/inquiries/[id]/replies</code>で保存し、初回返信時に自動的にステータスを「未対応」→「対応中」に更新する。
-        </p>
-        <p>
-          訪問記録と問い合わせは、得意先詳細画面の「行動履歴」タブ（旧「訪問記録」タブを改称）で日付降順の1つのフィードとして統合表示される（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ClinicActivityFeed.tsx</code>）。
-        </p>
-      </>
+              </>
+            ),
+          },
+          {
+            label: "Slack設定手順",
+            content: (
+              <>
+                <p>
+                  <strong>Slack側の準備（外部作業）：</strong>対象チャンネルで「アプリを追加」→「Incoming Webhooks」を検索して追加するか、<a href="https://api.slack.com/apps" target="_blank" rel="noreferrer" className="text-violet-600 underline">api.slack.com/apps</a>で新規App作成→Incoming Webhooks機能を有効化してチャンネルを選び、Webhook URL（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">https://hooks.slack.com/services/...</code>）を発行する。発行したURLはBGJポータルの「システム管理 &gt; 共通マスタ」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/system/settings</code>）に貼り付けて保存する。
+                </p>
+                <p>
+                  <strong>担当営業のメンション：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">sales_reps.slack_user_id</code>（BGJポータル「マスタ &gt; 営業担当」で編集）にSlackのメンバーidを設定すると、その営業担当が割り当てられている得意先からの問い合わせ通知で<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{`<@USER_ID>`}</code>形式でメンションされる。未設定の担当者は氏名のみ表示される。
+                </p>
+              </>
+            ),
+          },
+          {
+            label: "実装の流れ",
+            content: (
+              <>
+                <p>
+                  <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">POST /api/admin/inquiries</code>（clinicロール限定、自分のcustomerCodeに固定して登録）→<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/slack/postWebhookMessage.ts</code>でWebhook送信（医院名・担当者・問い合わせ内容・返信URLを含む）。Slack送信はベストエフォートで、失敗しても問い合わせ自体の登録は成功として扱う（送信成功時のみ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">slack_notified_at</code>を記録）。返信は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">POST /api/bgj/inquiries/[id]/replies</code>で保存し、初回返信時に自動的にステータスを「未対応」→「対応中」に更新する。
+                </p>
+                <p>
+                  訪問記録と問い合わせは、得意先詳細画面の「行動履歴」タブ（旧「訪問記録」タブを改称）で日付降順の1つのフィードとして統合表示される（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ClinicActivityFeed.tsx</code>）。
+                </p>
+              </>
+            ),
+          },
+        ]}
+      />
     ),
   },
   {
@@ -451,12 +516,18 @@ alter table public.clinics
     label: "16. 医院スタッフのパスワードリセット",
     content: (
       <>
-        <p>
-          医院スタッフログイン（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-login</code>）に、患者様と同じセルフサービスの「パスワードをお忘れの方」機能を追加した。流れは
-          <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-forgot-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinic-password-reset/request</code> → メール → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-reset-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinic-password-reset/confirm</code>。
-          従来どおりBGJ職員が得意先詳細「ログイン設定」タブから手動でパスワード再設定する運用も併存する（置き換えではない）。
-        </p>
-        <Code>{`alter table public.clinic_users add column email text;
+        <SubTabs
+          items={[
+            {
+              label: "概要・DB",
+              content: (
+                <>
+                  <p>
+                    医院スタッフログイン（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-login</code>）に、患者様と同じセルフサービスの「パスワードをお忘れの方」機能を追加した。流れは
+                    <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-forgot-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinic-password-reset/request</code> → メール → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-reset-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinic-password-reset/confirm</code>。
+                    従来どおりBGJ職員が得意先詳細「ログイン設定」タブから手動でパスワード再設定する運用も併存する（置き換えではない）。
+                  </p>
+                  <Code>{`alter table public.clinic_users add column email text;
 create unique index clinic_users_email_key on public.clinic_users (email) where email is not null;
 
 create table public.clinic_login_tokens (
@@ -469,15 +540,32 @@ create table public.clinic_login_tokens (
   created_at     timestamptz not null default now(),
   unique (token_hash)
 );`}</Code>
-        <p>
-          <strong>前提となる運用変更：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>にはメールアドレス列が無かったため、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">email</code>列を追加した。得意先詳細「ログイン設定」タブ（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ClinicLoginManager.tsx</code>）で、新規発行時のメールアドレス入力と、既存ログインへの後付け登録・編集ができる。<strong>メール未登録のスタッフはこの機能を使えない</strong>（従来どおりBGJによる手動リセットのみ）。
-        </p>
-        <p>
-          <strong>セキュリティ設計は患者様版（システム手順「8」）と同一：</strong>トークンは30分有効・使い捨て・SHA-256ハッシュ保存（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/clinicLoginToken.ts</code>。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">loginToken.ts</code>のFK先を<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>に変えた並行モジュール）。同一スタッフへの再送は3分クールダウン。メールアドレスの登録有無に関わらず常に同じ成功レスポンスを返す（アドレス探索対策）。パスワードは8文字以上。メール送信は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>でレスポンス後に実行。
-        </p>
-        <p>
-          <strong>メール文面：</strong>患者様向けと異なり<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_email_templates</code>（得意先ごとのカスタマイズ）の対象外で、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/email/templates.ts</code>の固定文面（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">DEFAULT_CLINIC_STAFF_PASSWORD_RESET_*</code>）のみ。本文はHTML版も併送し、トークン付きの長いURLがプレーンテキストの折り返しで壊れないようにしている（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">renderEmailTemplateHtml()</code>、実際に患者様版で発生した不具合への対策）。
-        </p>
+                </>
+              ),
+            },
+            {
+              label: "運用変更・セキュリティ",
+              content: (
+                <>
+                  <p>
+                    <strong>前提となる運用変更：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>にはメールアドレス列が無かったため、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">email</code>列を追加した。得意先詳細「ログイン設定」タブ（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ClinicLoginManager.tsx</code>）で、新規発行時のメールアドレス入力と、既存ログインへの後付け登録・編集ができる。<strong>メール未登録のスタッフはこの機能を使えない</strong>（従来どおりBGJによる手動リセットのみ）。
+                  </p>
+                  <p>
+                    <strong>セキュリティ設計は患者様版（システム手順「8」）と同一：</strong>トークンは30分有効・使い捨て・SHA-256ハッシュ保存（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/clinicLoginToken.ts</code>。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">loginToken.ts</code>のFK先を<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>に変えた並行モジュール）。同一スタッフへの再送は3分クールダウン。メールアドレスの登録有無に関わらず常に同じ成功レスポンスを返す（アドレス探索対策）。パスワードは8文字以上。メール送信は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>でレスポンス後に実行。
+                  </p>
+                </>
+              ),
+            },
+            {
+              label: "注意点",
+              content: (
+                <p>
+                  <strong>メール文面：</strong>患者様向けと異なり<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_email_templates</code>（得意先ごとのカスタマイズ）の対象外で、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/email/templates.ts</code>の固定文面（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">DEFAULT_CLINIC_STAFF_PASSWORD_RESET_*</code>）のみ。本文はHTML版も併送し、トークン付きの長いURLがプレーンテキストの折り返しで壊れないようにしている（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">renderEmailTemplateHtml()</code>、実際に患者様版で発生した不具合への対策）。
+                </p>
+              ),
+            },
+          ]}
+        />
         <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
           <strong>ハマりどころ（毎回恒例）：</strong>新しい公開ページ・APIのため、<code className="bg-white px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>の許可リストに<code className="bg-white px-1.5 py-0.5 rounded text-xs">/clinic-forgot-password</code>・<code className="bg-white px-1.5 py-0.5 rounded text-xs">/clinic-reset-password</code>・<code className="bg-white px-1.5 py-0.5 rounded text-xs">/api/clinic-password-reset</code>を追加済み。
         </p>
@@ -489,14 +577,20 @@ create table public.clinic_login_tokens (
     label: "17. 商品マスタと医院ごとの表示設定",
     content: (
       <>
-        <p>
-          患者ポータル「おすすめ商品」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/shop</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/shop/[id]</code>）を静的ダミーデータから実データに切り替えた（Shopify連携ロードマップのPhase 1）。構成は「<strong>BGJが商品マスタを管理 → 各医院が自院の患者ポータルへの表示有無を決定 → 患者ポータルに反映</strong>」。
-        </p>
-        <ul className="list-disc list-inside pl-2">
-          <li><strong>BGJポータル「マスタ &gt; 商品マスタ」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/master/products</code>）：商品の登録・編集・削除。基本情報（名称・カテゴリ・価格・バッジ等）、詳細ページ項目（内容量・成分・使用方法・注意事項）、先生のおすすめ（主な働き・1日の目安・推奨度・一言コメント、全医院共通）を1つのフォームで管理。「公開」ステータスのみ患者ポータルに掲載される。</li>
-          <li><strong>医院用ポータル「商品管理」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/products</code>）：公開商品ごとの表示/非表示トグルのみ（商品情報の編集は不可）。</li>
-        </ul>
-        <Code>{`create table public.products (
+        <SubTabs
+          items={[
+            {
+              label: "概要・画面構成",
+              content: (
+                <>
+                  <p>
+                    患者ポータル「おすすめ商品」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/shop</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/shop/[id]</code>）を静的ダミーデータから実データに切り替えた（Shopify連携ロードマップのPhase 1）。構成は「<strong>BGJが商品マスタを管理 → 各医院が自院の患者ポータルへの表示有無を決定 → 患者ポータルに反映</strong>」。
+                  </p>
+                  <ul className="list-disc list-inside pl-2">
+                    <li><strong>BGJポータル「マスタ &gt; 商品マスタ」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/master/products</code>）：商品の登録・編集・削除。基本情報（名称・カテゴリ・価格・バッジ等）、詳細ページ項目（内容量・成分・使用方法・注意事項）、先生のおすすめ（主な働き・1日の目安・推奨度・一言コメント、全医院共通）を1つのフォームで管理。「公開」ステータスのみ患者ポータルに掲載される。</li>
+                    <li><strong>医院用ポータル「商品管理」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/products</code>）：公開商品ごとの表示/非表示トグルのみ（商品情報の編集は不可）。</li>
+                  </ul>
+                  <Code>{`create table public.products (
   id            uuid primary key default gen_random_uuid(),
   name          text not null,
   category      text not null check (category in ('お口と喉のケア','赤ちゃん・キッズ','抵抗力サポート','胃腸のサポート','ペット向け')),
@@ -523,15 +617,32 @@ create table public.clinic_product_settings (
   updated_at    timestamptz not null default now(),
   primary key (customer_code, product_id)
 );`}</Code>
-        <p>
-          <strong>デフォルト表示の設計：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_product_settings</code>に行が無い商品は「表示」扱い。BGJが新商品を公開すると全医院の患者ポータルに自動で並び、医院が非表示にした時だけ行がupsertされる（医院側の手間を最小にする意図的な設計）。
-        </p>
-        <p>
-          <strong>API構成：</strong>BGJ用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/products</code>（全ハンドラ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">requireBgjSession</code>）、医院用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/admin/product-settings</code>（GETは公開商品＋自院設定のマージ、PATCHはclinicロール限定のupsert）、患者用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/patient-portal/products</code>（公開商品から非表示分を除外した一覧のみ）。<strong>患者用APIは意図的に一覧のみで単品取得パラメータを持たない</strong>（詳細ページも一覧からfindするため、非表示・非公開の商品は直接URLアクセスでも自動的に「見つかりません」になり、認可の抜け道ができない）。
-        </p>
-        <p>
-          商品画像は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_url</code>（実ファイル、手順19参照）が未設定の場合に<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_type</code>（CSSグラデーション＋SVG描画、共通コンポーネント<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ProductVisual.tsx</code>）でフォールバック表示する。バッジ色・カテゴリ等の候補値は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/productDisplay.ts</code>（静的クラス名マップ、clinicStatusColors.tsと同方式）に集約している。
-        </p>
+                </>
+              ),
+            },
+            {
+              label: "デフォルト表示の設計",
+              content: (
+                <p>
+                  <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_product_settings</code>に行が無い商品は「表示」扱い。BGJが新商品を公開すると全医院の患者ポータルに自動で並び、医院が非表示にした時だけ行がupsertされる（医院側の手間を最小にする意図的な設計）。
+                </p>
+              ),
+            },
+            {
+              label: "API構成",
+              content: (
+                <>
+                  <p>
+                    <strong>API構成：</strong>BGJ用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/products</code>（全ハンドラ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">requireBgjSession</code>）、医院用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/admin/product-settings</code>（GETは公開商品＋自院設定のマージ、PATCHはclinicロール限定のupsert）、患者用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/patient-portal/products</code>（公開商品から非表示分を除外した一覧のみ）。<strong>患者用APIは意図的に一覧のみで単品取得パラメータを持たない</strong>（詳細ページも一覧からfindするため、非表示・非公開の商品は直接URLアクセスでも自動的に「見つかりません」になり、認可の抜け道ができない）。
+                  </p>
+                  <p>
+                    商品画像は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_url</code>（実ファイル、手順19参照）が未設定の場合に<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_type</code>（CSSグラデーション＋SVG描画、共通コンポーネント<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ProductVisual.tsx</code>）でフォールバック表示する。バッジ色・カテゴリ等の候補値は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/productDisplay.ts</code>（静的クラス名マップ、clinicStatusColors.tsと同方式）に集約している。
+                  </p>
+                </>
+              ),
+            },
+          ]}
+        />
         <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
           <strong>外部連携待ち：</strong>Shopify同期・決済・定期購入契約の確定/変更/解約、医院別の先生コメント編集。商品画像・定期購入の商品表示・患者注文と受け取り進捗は、後述の手順19・18まで実データ化済み。
         </p>
@@ -589,36 +700,59 @@ create table public.clinic_product_settings (
     key: "20",
     label: "20. BGJダッシュボード・レポートの実データ化",
     content: (
-      <>
-        <p>
-          <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/dashboard</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/reports</code>のKPI・アラート・売上推移・担当別／エリア別集計・ランキングは、全て固定配列だった。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">get_admin_overview</code>と同じ設計規約（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">security definer</code>＋service_role限定）の新規RPC<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">get_bgj_dashboard_overview</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">get_bgj_sales_report</code>に置き換えた。
-        </p>
-        <ul className="list-disc list-inside pl-2">
-          <li><strong>ダッシュボード：</strong>総得意先数・今月売上・要フォロー件数・休眠リスク件数、要フォローアラート一覧、直近6ヶ月の月次売上推移（全体＋担当者別）、直近注文5件、当月ランキング上位5件。</li>
-          <li><strong>レポート：</strong>対象期間の売上合計・月平均・総注文件数・平均注文単価・前年比、月次推移、担当別（得意先数・当月売上・当月訪問数・1得意先あたり売上）、エリア別、上位得意先TOP5。</li>
-        </ul>
-        <p className="font-bold text-slate-800 mt-2">アラート閾値・集計期間の自己管理（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/system/settings</code>）</p>
-        <p>
-          「何日未注文で要フォローとするか」を架空の固定日数にせず、BGJが自己管理できる設定値にした。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">app_settings</code>に4列追加：
-        </p>
-        <ul className="list-disc list-inside pl-2">
-          <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">dashboard_followup_days</code>（既定60）：この日数以上未注文で「要フォロー」。</li>
-          <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">dashboard_dormant_days</code>（既定90）：この日数以上未注文で「休眠・解約リスク」。要フォロー閾値より大きい値というDB制約あり。</li>
-          <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">dashboard_include_never_ordered</code>（既定true）：1件も注文が無い得意先を、契約開始日（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">contract_since</code>）起点の経過日数でアラート対象に含めるか。</li>
-          <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">report_period_months</code>（既定6、1〜24）：レポート画面の集計対象月数（現在月を含む直近Nヶ月のローリング窓）。</li>
-        </ul>
-        <p>
-          旧固定データにあった「30日で軽微アラート」という3段階目は、上記2閾値（medium/high）に対応しない項目のため廃止し、2段階＋「担当未割当」フラグ（日数条件と独立に必ず付与）に単純化した。
-        </p>
-        <p className="font-bold text-slate-800 mt-2">月次売上推移グラフの担当者別内訳</p>
-        <p>
-          担当者数が増えても破綻しないよう、直接描画する系列は当該期間の合計値降順で上位4名までに制限し、残りは「その他」1本に合算する（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">MonthlySalesChart.tsx</code>の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">buildMonthlySalesChartData</code>）。色の割り当ては選ばれた上位4名の中で<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">staffId</code>の昇順に固定し、他の担当者の実績変動で色が入れ替わらないようにしている。
-        </p>
-        <p className="font-bold text-slate-800 mt-2">CSV出力</p>
-        <p>
-          <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/reports</code>のCSV出力ボタン（旧実装は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">onClick</code>未接続のダミー）を接続した。新規サーバーエンドポイントは作らず、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/csv.ts</code>（RFC4180エスケープ＋UTF-8 BOM付与）でクライアント側の取得済みJSONから生成し、現在選択中のタブのテーブルをそのままエクスポートする。
-        </p>
-      </>
+      <SubTabs
+        items={[
+          {
+            label: "概要（KPI一覧）",
+            content: (
+              <>
+                <p>
+                  <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/dashboard</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/reports</code>のKPI・アラート・売上推移・担当別／エリア別集計・ランキングは、全て固定配列だった。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">get_admin_overview</code>と同じ設計規約（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">security definer</code>＋service_role限定）の新規RPC<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">get_bgj_dashboard_overview</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">get_bgj_sales_report</code>に置き換えた。
+                </p>
+                <ul className="list-disc list-inside pl-2">
+                  <li><strong>ダッシュボード：</strong>総得意先数・今月売上・要フォロー件数・休眠リスク件数、要フォローアラート一覧、直近6ヶ月の月次売上推移（全体＋担当者別）、直近注文5件、当月ランキング上位5件。</li>
+                  <li><strong>レポート：</strong>対象期間の売上合計・月平均・総注文件数・平均注文単価・前年比、月次推移、担当別（得意先数・当月売上・当月訪問数・1得意先あたり売上）、エリア別、上位得意先TOP5。</li>
+                </ul>
+              </>
+            ),
+          },
+          {
+            label: "アラート閾値・集計期間の自己管理",
+            content: (
+              <>
+                <p>
+                  「何日未注文で要フォローとするか」を架空の固定日数にせず、BGJが自己管理できる設定値にした（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/system/settings</code>）。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">app_settings</code>に4列追加：
+                </p>
+                <ul className="list-disc list-inside pl-2">
+                  <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">dashboard_followup_days</code>（既定60）：この日数以上未注文で「要フォロー」。</li>
+                  <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">dashboard_dormant_days</code>（既定90）：この日数以上未注文で「休眠・解約リスク」。要フォロー閾値より大きい値というDB制約あり。</li>
+                  <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">dashboard_include_never_ordered</code>（既定true）：1件も注文が無い得意先を、契約開始日（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">contract_since</code>）起点の経過日数でアラート対象に含めるか。</li>
+                  <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">report_period_months</code>（既定6、1〜24）：レポート画面の集計対象月数（現在月を含む直近Nヶ月のローリング窓）。</li>
+                </ul>
+                <p>
+                  旧固定データにあった「30日で軽微アラート」という3段階目は、上記2閾値（medium/high）に対応しない項目のため廃止し、2段階＋「担当未割当」フラグ（日数条件と独立に必ず付与）に単純化した。
+                </p>
+              </>
+            ),
+          },
+          {
+            label: "月次売上推移グラフの担当者別内訳",
+            content: (
+              <p>
+                担当者数が増えても破綻しないよう、直接描画する系列は当該期間の合計値降順で上位4名までに制限し、残りは「その他」1本に合算する（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">MonthlySalesChart.tsx</code>の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">buildMonthlySalesChartData</code>）。色の割り当ては選ばれた上位4名の中で<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">staffId</code>の昇順に固定し、他の担当者の実績変動で色が入れ替わらないようにしている。
+              </p>
+            ),
+          },
+          {
+            label: "CSV出力",
+            content: (
+              <p>
+                <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/reports</code>のCSV出力ボタン（旧実装は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">onClick</code>未接続のダミー）を接続した。新規サーバーエンドポイントは作らず、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/csv.ts</code>（RFC4180エスケープ＋UTF-8 BOM付与）でクライアント側の取得済みJSONから生成し、現在選択中のタブのテーブルをそのままエクスポートする。
+              </p>
+            ),
+          },
+        ]}
+      />
     ),
   },
 ];
