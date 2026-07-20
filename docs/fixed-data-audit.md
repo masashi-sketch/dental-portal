@@ -57,8 +57,8 @@
 | 32 | `/admin/clinic-info/config` | 医院branding・患者ナビ設定API | 実データ | 維持 |
 | 33 | `/admin/clinic-info/contract` | 医院取引条件API | 実データ | 維持 |
 | 34 | `/admin/clinic-info/qr` | 医院QR・PIN設定API | 実データ | 維持 |
-| 35 | `/admin/campaign` | 固定6件、削除はローカルstate、追加・編集未接続 | **P0** | 所有主体決定までは追加・編集・削除を無効化し、固定一覧を業務事実として表示しない |
-| 36 | `/admin/biogaia` | 固定6件、削除はローカルstate、追加・編集未接続 | **P0** | BGJ配信コンテンツ等の正本決定までは操作を無効化し、固定一覧を業務事実として表示しない |
+| 35 | `/admin/campaign` | 固定6件、追加・編集・削除ボタンは無効化済み | **P1** | 対応済み：追加・編集・削除ボタンを無効化し、注記バナーでサンプル表示であることを明示。残るのは所有主体決定後の実データ化 |
+| 36 | `/admin/biogaia` | 固定6件、追加・編集・削除ボタンは無効化済み | **P1** | 対応済み：追加・編集・削除ボタンを無効化し、注記バナーでサンプル表示であることを明示。残るのはBGJ配信コンテンツ正本決定後の実データ化 |
 
 ## BGJポータル（18画面）
 
@@ -87,7 +87,7 @@
 
 | 対象 | 現状 | 分類 | 対応 |
 |---|---|---|---|
-| `src/app/admin/components/AdminSidebar.tsx` | キャンペーン・記事の未読数と更新日時が固定 | 対応済み | `CONTENT_UNREAD`・未読バッジ表示ロジックを撤去（`/admin/campaign`・`/admin/biogaia`自体のP0是正は別途対応） |
+| `src/app/admin/components/AdminSidebar.tsx` | キャンペーン・記事の未読数と更新日時が固定 | 対応済み | `CONTENT_UNREAD`・未読バッジ表示ロジックを撤去（`/admin/campaign`・`/admin/biogaia`自体の操作無効化は#35・#36で対応済み） |
 | `src/components/Header.tsx` / `Footer.tsx` | テスト医院名、`href="#"` | 対応済み | プロジェクト全体からimportされていない未使用コンポーネントと判明し削除（付随して同様に未使用だった`Sidebar.tsx`・`src/lib/constants.ts`も削除） |
 | `src/app/layout.tsx` | metadataがテスト医院名 | **P1** | 汎用metadataまたは医院別metadataへ変更 |
 | `bgj/dashboard/MonthlySalesChart.tsx` | 売上推移が固定 | **P0** | dashboard集計結果をpropsで受け取る |

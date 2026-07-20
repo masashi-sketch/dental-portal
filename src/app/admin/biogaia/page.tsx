@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
-import { useToast } from '@/hooks/useToast';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 type ArticleStatus = '公開中' | '準備中' | '終了';
 type ArticleCategory = '学術情報' | '製品情報' | '症例紹介' | 'お知らせ' | 'イベント';
@@ -112,17 +110,9 @@ function IconList() {
 }
 
 export default function BiogaiaPage() {
-  const [articles, setArticles] = useState<Article[]>(initialArticles);
+  const [articles] = useState<Article[]>(initialArticles);
   const [filterStatus, setFilterStatus] = useState<ArticleStatus | 'すべて'>('すべて');
   const [view, setView] = useState<'card' | 'list'>('list');
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const { toast, showToast } = useToast();
-
-  const handleDelete = (id: number) => {
-    setArticles(articles.filter((a) => a.id !== id));
-    setDeleteId(null);
-    showToast('記事を削除しました');
-  };
 
   const filtered = filterStatus === 'すべて' ? articles : articles.filter((a) => a.status === filterStatus);
 
@@ -158,7 +148,7 @@ export default function BiogaiaPage() {
                 <IconList />一覧
               </button>
             </div>
-            <Button theme="sky">
+            <Button theme="sky" disabled title="追加機能は準備中です">
               ＋ 追加
             </Button>
           </div>
@@ -166,9 +156,9 @@ export default function BiogaiaPage() {
 
         <main className="flex-1 p-5 sm:p-6 flex flex-col gap-5 bg-sky-50">
 
-          {toast && (
-            <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-sky-600 text-white text-base px-5 py-3 rounded-2xl shadow-xl">{toast}</div>
-          )}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+            この一覧は掲載イメージのサンプル表示です。配信主体・保存先が確定するまで、追加・編集・削除は行えません。
+          </div>
 
           {/* フィルタータブ */}
           <div className="flex gap-2 flex-wrap">
@@ -209,8 +199,8 @@ export default function BiogaiaPage() {
                         <td className="px-5 py-4 text-slate-600 whitespace-nowrap">{a.target}</td>
                         <td className="px-5 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <button className="text-sm text-blue-700 hover:text-blue-600 bg-blue-50 px-4 py-2 rounded-lg transition-colors cursor-pointer font-medium">編集</button>
-                            <button onClick={() => setDeleteId(a.id)} className="text-sm text-red-600 hover:text-red-500 bg-red-50 px-4 py-2 rounded-lg transition-colors cursor-pointer font-medium">削除</button>
+                            <button disabled title="準備中です" className="text-sm text-slate-400 bg-slate-50 px-4 py-2 rounded-lg font-medium cursor-not-allowed">編集</button>
+                            <button disabled title="準備中です" className="text-sm text-slate-400 bg-slate-50 px-4 py-2 rounded-lg font-medium cursor-not-allowed">削除</button>
                           </div>
                         </td>
                       </tr>
@@ -257,9 +247,9 @@ export default function BiogaiaPage() {
                     </div>
                   </div>
                   <div className="px-5 py-3 border-t border-slate-100 flex items-center gap-2">
-                    <button className="flex-1 text-sm text-blue-700 hover:text-blue-600 bg-blue-50 py-2 rounded-lg transition-colors cursor-pointer font-medium">編集</button>
-                    <button onClick={() => setDeleteId(a.id)}
-                      className="flex-1 text-sm text-red-600 hover:text-red-500 bg-red-50 py-2 rounded-lg transition-colors cursor-pointer font-medium">削除</button>
+                    <button disabled title="準備中です" className="flex-1 text-sm text-slate-400 bg-slate-50 py-2 rounded-lg font-medium cursor-not-allowed">編集</button>
+                    <button disabled title="準備中です"
+                      className="flex-1 text-sm text-slate-400 bg-slate-50 py-2 rounded-lg font-medium cursor-not-allowed">削除</button>
                   </div>
                 </Card>
               ))}
@@ -271,15 +261,6 @@ export default function BiogaiaPage() {
           )}
         </main>
       </div>
-
-      <ConfirmDialog
-        open={deleteId !== null}
-        theme="sky"
-        title="削除しますか？"
-        description="この操作は取り消せません。"
-        onCancel={() => setDeleteId(null)}
-        onConfirm={() => deleteId !== null && handleDelete(deleteId)}
-      />
     </div>
   );
 }

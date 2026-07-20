@@ -1,12 +1,10 @@
 {
   "version": 1,
   "entries": [
-    { "ruleId": "local-mock-collection", "file": "src/app/admin/biogaia/page.tsx", "expectedOccurrences": 1, "classification": "P0", "reason": "記事が固定配列で、削除もローカルstateだけのため永続API実装まで操作を止める" },
-    { "ruleId": "handlerless-add-button", "file": "src/app/admin/biogaia/page.tsx", "expectedOccurrences": 1, "classification": "P0", "reason": "追加ボタンに保存処理が接続されていない" },
-    { "ruleId": "fixed-business-date", "file": "src/app/admin/biogaia/page.tsx", "expectedOccurrences": 14, "classification": "P0", "reason": "固定記事の公開期間・本文日付。コンテンツ正本決定後に実データへ移す" },
-    { "ruleId": "local-mock-collection", "file": "src/app/admin/campaign/page.tsx", "expectedOccurrences": 1, "classification": "P0", "reason": "キャンペーンが固定配列で、削除もローカルstateだけのため永続API実装まで操作を止める" },
-    { "ruleId": "handlerless-add-button", "file": "src/app/admin/campaign/page.tsx", "expectedOccurrences": 1, "classification": "P0", "reason": "追加ボタンに保存処理が接続されていない" },
-    { "ruleId": "fixed-business-date", "file": "src/app/admin/campaign/page.tsx", "expectedOccurrences": 12, "classification": "P0", "reason": "固定キャンペーンの開始日・終了日。所有主体決定後に実データへ移す" },
+    { "ruleId": "local-mock-collection", "file": "src/app/admin/biogaia/page.tsx", "expectedOccurrences": 1, "classification": "P1", "reason": "配信主体・保存先の決定待ち。追加・編集・削除ボタンは無効化済み、注記バナーでサンプル表示であることを明示済み（2026-07-20対応）" },
+    { "ruleId": "fixed-business-date", "file": "src/app/admin/biogaia/page.tsx", "expectedOccurrences": 14, "classification": "P1", "reason": "固定記事の公開期間・本文日付。コンテンツ正本決定後に実データへ移す" },
+    { "ruleId": "local-mock-collection", "file": "src/app/admin/campaign/page.tsx", "expectedOccurrences": 1, "classification": "P1", "reason": "所有主体の決定待ち。追加・編集・削除ボタンは無効化済み、注記バナーでサンプル表示であることを明示済み（2026-07-20対応）" },
+    { "ruleId": "fixed-business-date", "file": "src/app/admin/campaign/page.tsx", "expectedOccurrences": 12, "classification": "P1", "reason": "固定キャンペーンの開始日・終了日。所有主体決定後に実データへ移す" },
     { "ruleId": "test-tenant-name", "file": "src/app/admin/components/AdminSidebar.tsx", "expectedOccurrences": 2, "classification": "P1", "reason": "医院情報取得前のfallbackを汎用名へ変更する" },
     { "ruleId": "hardcoded-customer-code", "file": "src/app/admin/patients/page.tsx", "expectedOccurrences": 1, "classification": "STATIC", "reason": "BGJ代理操作時の得意先コード入力例であり、業務データ表示ではない" },
     { "ruleId": "hardcoded-customer-code", "file": "src/app/bgj/customers/page.tsx", "expectedOccurrences": 1, "classification": "STATIC", "reason": "得意先新規登録フォームの入力例であり、業務データ表示ではない" },
