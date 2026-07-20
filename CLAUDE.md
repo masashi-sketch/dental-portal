@@ -181,6 +181,7 @@ vercel --prod
 - `SUPABASE_SERVICE_ROLE_KEY`などの秘密情報は会話・ログに出力しない。`.env.local`は`.gitignore`済み。
 - 新規APIルート（`/api/admin/*`, `/api/bgj/*`, `/api/patient-portal/*`）は原則`@/auth`の`auth()`でセッション確認してから処理する。
 - **ログインの総当たり対策**：`clinic-credentials`・`patient-credentials`は`src/lib/auth/loginLockout.ts`でアカウント単位のロックアウトを行う（5回連続失敗で15分ロック、`patients`/`clinic_users`の`failed_login_attempts`/`locked_until`列で管理）。IPベースのレート制限は未導入（必要になったらVercel/WAF等の有料機能導入を検討し、事前にユーザーへ確認する）。
+- **BGJ（Google OAuth限定）のE2E自動計測用テストセッション発行**：`scripts/mintTestSession.mjs`が`AUTH_SECRET`でNextAuthセッションCookieを直接生成する仕組みを持つ（詳細は「レスポンス計測方針」3番）。これは本物のセッションを偽造できる強力な仕組みのため、`localhost`/`127.0.0.1`以外への発行を必ず拒否するガードを外さないこと。新しいスクリプト・CIジョブからこのモジュールを呼ぶ場合も、対象URLが常にローカルであることを確認してから使う。
 
 # 共通部品の方針
 
@@ -365,7 +366,10 @@ DB変更SQLを提示するときは、以下をセットにする。
 
 1. **ブラウザ実測（RUM）**：**2026-07-20実装済み**。`src/components/WebVitalsReporter.tsx`（`src/app/layout.tsx`に常時マウント）が`next/web-vitals`の`useReportWebVitals`でTTFB／FCP／LCP／INP／CLSを取得し、`metric.rating`が`good`以外（`needs-improvement`／`poor`）の計測のみSentryへ`captureMessage('web-vital.{name}')`で送信する（無料枠消費を抑えるため、良好な計測は送らない）。属性はルート名（`pathname`）・ポータル種別（`patient`/`clinic`/`bgj`、パス先頭で判定）のみで、患者名・医院名・メール・ID等は送らない。画面データ表示完了時間の個別計測はまだ未実装（次点候補）。
 2. **API／DB計測**：重要APIについて認証、Supabase照会、RPC、外部I/O、レスポンス生成を個別spanまたは`Server-Timing`で測定する。コールドスタートとウォーム時は分けて評価する。
-3. **自動シナリオ計測**：Playwrightで専用テストアカウントを使い、患者（ログイン→ホーム→受け取り→定期購入）、医院（ログイン→ダッシュボード→注文→患者詳細）、BGJ（ダッシュボード→得意先一覧→詳細→レポート）を測る。ウォームアップ後に各10回実行し、p50／p75／p95を`docs/performance-baseline.md`へ残す。公開・ログイン画面はLighthouseも併用する。
+3. **自動シナリオ計測**：**2026-07-20実装済み**。`scripts/measure-performance.mjs`（Playwright、`playwright`パッケージをdevDependencyに追加）が、患者（プレビュー→ホーム→受け取り→定期購入）、医院（ログイン→ダッシュボード→注文→患者詳細）、BGJ（ダッシュボード→得意先一覧→詳細→レポート）の3シナリオを、ウォームアップ2回＋計測10回／ステップで実行し、`wallMs`（`networkidle`到達までの時間）・TTFB・domContentLoaded・loadEventのp50/p75/p95を算出する。実行は`npm run perf:measure`（`.env.local`を`--env-file`で読み込み、対象はローカルdevサーバーのみ）。結果は`scripts/.perf-last-run.json`に出力後、`docs/performance-baseline.md`へ手動反映する。パーセンタイル計算（`scripts/perfStats.mjs`）のみ`.test.ts`でユニットテスト済み（ブラウザ操作部分は既存のrecharts等と同様に自動テスト対象外）。公開・ログイン画面のLighthouse併用は未着手（次点候補）。
+   - **医院ポータル**：`.env.local`の`TEST_CLINIC_LOGIN_ID`/`TEST_CLINIC_LOGIN_PASSWORD`でログインする（[[project_test_credentials]]）。
+   - **患者ポータル**：直接ログイン用のテスト患者アカウントが無いため、`/admin/patients`の「患者ポータルをプレビュー」と同じ`demo-patient-id`クッキーをスクリプト側でも設定して到達する（実際の`patient-credentials`ログインフロー自体の時間は含まない）。
+   - **BGJポータル**：Google OAuth限定でPlaywrightからの自動ログインができないため、**Google側の画面は一切自動操作しない**。代わりに`scripts/mintTestSession.mjs`が、アプリ本体（`src/auth.ts`）と同じ`AUTH_SECRET`を使って`next-auth/jwt`の`encode()`でNextAuthのセッションJWE（Cookie名`authjs.session-token`）を直接発行し、ブラウザへ注入する。アプリ本体のコードは一切変更しない。**安全対策として`assertLocalBaseUrl()`がbaseURLのhostnameを検査し、`localhost`/`127.0.0.1`以外では必ず例外を投げる**（本番や共有環境へ誤用すると実質的にGoogle OAuth制限のバイパスになるため）。同種の「NextAuthセッションを直接発行してE2E計測・検証する」ニーズが今後出た場合はこのモジュールを再利用し、guardを外さない。**`src/proxy.ts`は認証済みでも`portal-selected`Cookieが無いと`/auth/signin`へ戻すため、セッションCookieと合わせて`portal-selected=true`も注入する必要がある**（実際にこれを忘れて`/bgj/customers`が`/auth/signin`にリダイレクトされる不具合が発生し、原因特定に`/api/auth/session`への直接アクセスで「セッション自体は正しくデコードされているか」を切り分けるデバッグ手順を使った）。
 4. **負荷試験**：本番書き込みでは実施せず、ステージングまたはSupabase branchで匿名化した300医院・4,000ユーザー・12ヶ月分相当のデータを使う。通常20同時接続、ピーク50、短時間スパイク100を基準シナリオとし、書き込みはテストデータと冪等キーを使う。
 5. **改善順**：基準値を取ってから、多重fetchをoverview/bootstrap APIへ統合、安定マスタや外部リンクをキャッシュ、商品取得の重複を共有hookへ統合する。患者別データへの一律キャッシュは行わない。
 

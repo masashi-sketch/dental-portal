@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "audit:static-data": "node scripts/audit-static-business-data.mjs"
+    "audit:static-data": "node scripts/audit-static-business-data.mjs",
+    "perf:measure": "node --env-file=.env.local scripts/measure-performance.mjs"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.66.0",
@@ -37,6 +38,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "jsdom": "^29.1.1",
+    "playwright": "^1.61.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite": "^6.4.1",

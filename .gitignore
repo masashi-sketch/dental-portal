@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# performance measurement raw output (see docs/performance-baseline.md for the committed summary)
+scripts/.perf-last-run.json
