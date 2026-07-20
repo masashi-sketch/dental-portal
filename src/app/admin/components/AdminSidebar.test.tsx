@@ -85,7 +85,7 @@ describe('AdminSidebar 営業担当カードのお問い合わせボタン', () 
     vi.unstubAllGlobals();
   });
 
-  it('担当者のemailが登録されていればmailto:リンクになる', async () => {
+  it('担当者のemailが登録されていても/admin/inquiryへのリンクになる（mailto:は使わない）', async () => {
     useActiveClinicMock.mockReturnValue({
       clinicName: 'テストデンタル',
       salesRep: { ...salesRep, email: 'rep@example.com' },
@@ -94,13 +94,14 @@ describe('AdminSidebar 営業担当カードのお問い合わせボタン', () 
     render(<AdminSidebar active="dashboard" />);
 
     // サイドバーナビにも「患者様用お問い合わせ」リンク（/admin/inquiry固定、名前に「お問い合わせ」を含む）が
-    // 別途存在するため、mailto:リンクが含まれることをhrefベースで確認する。
+    // 別途存在するため、mailto:リンクが含まれないことをhrefベースで確認する。
     const links = await screen.findAllByRole('link', { name: /お問い合わせ/ });
     const hrefs = links.map((el) => el.getAttribute('href'));
-    expect(hrefs).toContain('mailto:rep@example.com');
+    expect(hrefs).not.toContain('mailto:rep@example.com');
+    expect(hrefs.filter((h) => h === '/admin/inquiry').length).toBeGreaterThanOrEqual(2);
   });
 
-  it('担当者のemailが未登録の場合は/admin/inquiryへのリンクになる（クリック無反応の回帰防止）', async () => {
+  it('担当者のemailが未登録の場合も/admin/inquiryへのリンクになる（クリック無反応の回帰防止）', async () => {
     useActiveClinicMock.mockReturnValue({
       clinicName: 'テストデンタル',
       salesRep: { ...salesRep, email: null },
@@ -111,6 +112,19 @@ describe('AdminSidebar 営業担当カードのお問い合わせボタン', () 
     const links = await screen.findAllByRole('link', { name: /お問い合わせ/ });
     const hrefs = links.map((el) => el.getAttribute('href'));
     // 営業担当カード側・サイドバーナビ側の両方が/admin/inquiryを指す
+    expect(hrefs.filter((h) => h === '/admin/inquiry').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('担当営業が未割当（salesRep=null）でも/admin/inquiryへのリンクが表示される', async () => {
+    useActiveClinicMock.mockReturnValue({
+      clinicName: 'テストデンタル',
+      salesRep: null,
+      loaded: true,
+    });
+    render(<AdminSidebar active="dashboard" />);
+
+    const links = await screen.findAllByRole('link', { name: /お問い合わせ/ });
+    const hrefs = links.map((el) => el.getAttribute('href'));
     expect(hrefs.filter((h) => h === '/admin/inquiry').length).toBeGreaterThanOrEqual(2);
   });
 });

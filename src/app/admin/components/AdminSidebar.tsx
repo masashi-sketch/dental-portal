@@ -259,9 +259,18 @@ function SalesRepCard({ salesRep, loaded }: { salesRep: SalesRepWithMaster | nul
   if (!salesRep) {
     return (
       <div className="shadow-xl rounded-xl overflow-hidden">
-        <div className="bg-sky-800/60 border border-teal-500/40 rounded-xl overflow-hidden p-4 text-center">
-          <p className="text-teal-200 text-xs font-bold tracking-widest mb-2">── 営業担当 ──</p>
-          <p className="text-sky-200/70 text-xs leading-relaxed">クリニックとしてログインすると、担当者が表示されます</p>
+        <div className="bg-sky-800/60 border border-teal-500/40 rounded-xl overflow-hidden">
+          <div className="p-4 text-center">
+            <p className="text-teal-200 text-xs font-bold tracking-widest mb-2">── 営業担当 ──</p>
+            <p className="text-sky-200/70 text-xs leading-relaxed">クリニックとしてログインすると、担当者が表示されます</p>
+          </div>
+          <Link
+            href="/admin/inquiry"
+            className="flex items-center justify-center gap-2 w-full bg-teal-500 hover:bg-teal-400 text-white text-sm font-bold py-3 transition-colors border-t border-teal-500/40"
+          >
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            BGJへのお問い合わせ
+          </Link>
         </div>
       </div>
     );
@@ -289,16 +298,15 @@ function SalesRepCard({ salesRep, loaded }: { salesRep: SalesRepWithMaster | nul
             <span className="font-bold text-base tracking-wide">{salesRep.phone || '—'}</span>
           </div>
         </div>
-        {/* BGJへのお問い合わせ（枠の中、最下部）：担当者のemailが未登録の医院では
-            mailto:リンクが張れないため、Slack通知連携済みの問い合わせフォーム（/admin/inquiry）に
-            フォールバックする（クリックしても無反応になることを防ぐ） */}
-        <a
-          href={salesRep.email ? `mailto:${salesRep.email}` : '/admin/inquiry'}
+        {/* BGJへのお問い合わせ（枠の中、最下部）：mailto:だとSlack通知・DB保存を
+            バイパスしてしまうため使わず、常に問い合わせフォーム（/admin/inquiry）へ誘導する */}
+        <Link
+          href="/admin/inquiry"
           className="flex items-center justify-center gap-2 w-full bg-teal-500 hover:bg-teal-400 text-white text-sm font-bold py-3 transition-colors border-t border-teal-500/40"
         >
           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           BGJへのお問い合わせ
-        </a>
+        </Link>
       </div>
     </div>
   );
