@@ -271,6 +271,17 @@ DB変更SQLを提示するときは、以下をセットにする。
 
 - このプロジェクトのNext.jsは一般知識と異なる可能性があるため、コード変更前に`node_modules/next/dist/docs/`の該当ガイドを読む。
 - Route HandlerおよびClient Componentページの`params`はPromise。Client Componentでは`use(params)`で取り出す（`await`できないため）。
+  - **`use(params)`を使うページをテストする際は、`render()`自体を`await act(async () => { render(...) })`で包むこと。** `render()`の外で`await act(async () => {...})`を別途呼んでも効果が無い（1回目のレンダーはPromise未解決でsuspendし、Promiseの`.then()`解決による再試行レンダーが、初回`render`と同じ`act`スコープ内で待機していないとテストのDOMへ反映されない。React 19 + `@testing-library/react` 16 + jsdomの組み合わせで確認、`screen.findByText`をいくら長いtimeoutで待っても解決しない）。`Suspense`境界で包むことも必須。動作する最小形：
+    ```tsx
+    await act(async () => {
+      render(
+        <Suspense fallback={null}>
+          <SomePage params={Promise.resolve({ id: 'x' })} />
+        </Suspense>,
+      );
+    });
+    ```
+    実装例：`src/app/bgj/customers/[code]/page.test.tsx`。同じ`params`パターンを使う他のページ（`admin/patients/[id]`・`bgj/inquiries/[id]`・`join/[slug]`・`join/[slug]/mobile`）は本記述時点でまだテストが無いため、今後書く際にこのパターンを踏襲すること。
 - Cookieの読み取りはRoute Handler内で`await cookies()`を使う。
 - `'use client'`境界は広げすぎない。
 - 大きなClient Componentに重い部品を静的importしない。

@@ -62,15 +62,25 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   const qrValue = joinUrl && signupPinIssuedAt ? `${joinUrl}?t=${signupPinIssuedAt}` : joinUrl;
 
   const fetchAll = useCallback(() => {
-    fetch(`/api/bgj/clinics/${code}`)
-      .then((clinicRes) => {
+    Promise.all([
+      fetch(`/api/bgj/clinics/${code}`),
+      fetch("/api/bgj/sales-reps"),
+      fetch("/api/bgj/clinic-statuses"),
+    ])
+      .then(([clinicRes, repsRes, statusesRes]) => {
         if (!clinicRes.ok) throw new Error("得意先情報の取得に失敗しました");
-        return clinicRes.json();
+        return Promise.all([
+          clinicRes.json(),
+          repsRes.ok ? repsRes.json() : Promise.resolve(null),
+          statusesRes.ok ? statusesRes.json() : Promise.resolve(null),
+        ]);
       })
-      .then((clinicData) => {
+      .then(([clinicData, repsData, statusesData]) => {
         const { clinic } = clinicData;
         setClinic(clinic);
         if (clinic) setClinicForm(clinicToForm(clinic));
+        setSalesReps(repsData?.salesReps ?? []);
+        setClinicStatuses(statusesData?.clinicStatuses ?? []);
         setError(null);
       })
       .catch((e) => {
@@ -80,20 +90,6 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   }, [code]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
-
-  useEffect(() => {
-    fetch("/api/bgj/sales-reps")
-      .then((res) => (res.ok ? res.json() : { salesReps: [] }))
-      .then((data) => setSalesReps(data.salesReps ?? []))
-      .catch(() => setSalesReps([]));
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/bgj/clinic-statuses")
-      .then((res) => (res.ok ? res.json() : { clinicStatuses: [] }))
-      .then((data) => setClinicStatuses(data.clinicStatuses ?? []))
-      .catch(() => setClinicStatuses([]));
-  }, []);
 
   const handleSaveClinic = async () => {
     if (!clinicForm) return;
