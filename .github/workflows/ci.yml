@@ -18,6 +18,8 @@ jobs:
 
       - run: npm ci
 
+      - run: npm run audit:static-data
+
       - run: npm run lint
 
       - run: npx tsc --noEmit
