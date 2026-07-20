@@ -452,3 +452,53 @@ export type ClinicProductSetting = {
 };
 
 export const CLINIC_PRODUCT_SETTING_COLUMNS = 'customer_code, product_id, is_visible, updated_at';
+
+export type PatientOrderType = 'one_time' | 'subscription';
+export type FulfillmentMethod = 'pickup' | 'delivery';
+export type PatientOrderStatus = 'received' | 'preparing' | 'ready' | 'shipped' | 'completed' | 'canceled';
+export type CommerceSource = 'internal' | 'shopify';
+export type CommerceSyncStatus = 'local' | 'pending' | 'synced' | 'error';
+
+export type PatientOrderItem = {
+  id: string;
+  order_id: string;
+  product_id: string | null;
+  product_name: string;
+  unit_price: number;
+  quantity: number;
+  unit_snapshot: string | null;
+  image_type_snapshot: ProductImageType;
+  daily_amount_snapshot: string | null;
+  volume_snapshot: string | null;
+  caution_snapshot: string | null;
+  external_line_item_id: string | null;
+  created_at: string;
+};
+
+export type PatientOrder = {
+  id: string;
+  customer_code: string;
+  patient_id: string;
+  order_type: PatientOrderType;
+  fulfillment_method: FulfillmentMethod;
+  status: PatientOrderStatus;
+  ordered_at: string;
+  next_fulfillment_date: string | null;
+  source: CommerceSource;
+  external_order_id: string | null;
+  sync_status: CommerceSyncStatus;
+  sync_error: string | null;
+  idempotency_key: string | null;
+  external_updated_at: string | null;
+  created_at: string;
+  updated_at: string;
+  patient?: { id: string; name: string } | null;
+  items: PatientOrderItem[];
+};
+
+export const PATIENT_ORDER_COLUMNS =
+  'id, customer_code, patient_id, order_type, fulfillment_method, status, ordered_at, next_fulfillment_date, source, external_order_id, sync_status, sync_error, idempotency_key, external_updated_at, created_at, updated_at';
+export const PATIENT_ORDER_ITEM_COLUMNS =
+  'id, order_id, product_id, product_name, unit_price, quantity, unit_snapshot, image_type_snapshot, daily_amount_snapshot, volume_snapshot, caution_snapshot, external_line_item_id, created_at';
+export const PATIENT_ORDER_WITH_DETAILS_COLUMNS =
+  `${PATIENT_ORDER_COLUMNS}, patient:patients!patient_id(id, name), items:patient_order_items(${PATIENT_ORDER_ITEM_COLUMNS})`;

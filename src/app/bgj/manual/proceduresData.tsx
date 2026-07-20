@@ -533,7 +533,32 @@ create table public.clinic_product_settings (
           商品画像は実ファイルを持たず<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_type</code>（CSSグラデーション＋SVG描画、共通コンポーネント<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ProductVisual.tsx</code>）のみ。実画像はPhase 2のShopify同期時に<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_url</code>列を追加して対応予定。バッジ色・カテゴリ等の候補値は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/productDisplay.ts</code>（静的クラス名マップ、clinicStatusColors.tsと同方式）に集約している。
         </p>
         <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
-          <strong>スコープ外（今後の課題）：</strong>subscription系4画面・admin/orders・commission・dashboardの商品参照は静的ダミーのまま（Shopifyでの購入モデル確定後、Phase 2以降で対応）。医院別の先生コメント編集（clinic_recommendations）もPhase 2。
+          <strong>外部連携待ち：</strong>Shopify同期・実画像・決済・定期購入契約の確定/変更/解約、医院別の先生コメント編集。定期購入の商品表示と患者注文・受け取り進捗は、後述の手順18まで実データ化済み。
+        </p>
+      </>
+    ),
+  },
+  {
+    key: "18",
+    label: "18. 患者注文・受け取り進捗（外部連携前）",
+    content: (
+      <>
+        <p>
+          Shopify・Salesforceの接続仕様確定を待たずに完成できる部分として、医院が患者の受け取り注文を登録し、患者ポータルへ進捗を反映する内部基盤を実装した。医院用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/orders</code>の固定患者・固定商品は廃止済み。
+        </p>
+        <ul className="list-disc list-inside pl-2">
+          <li><strong>医院：</strong>実患者・自院で表示中の公開商品・数量・受け取り方法を指定して注文登録し、受付済み→準備中→準備完了/配送中→完了へ更新する。</li>
+          <li><strong>患者：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/medication</code>で本人（スタッフの場合は検証済みプレビュー患者）の注文商品・受け取り方法・進捗だけを表示する。</li>
+          <li><strong>将来連携：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">source</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">external_order_id</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">sync_status</code>で内部登録とShopify注文を同じ画面に統合できる。</li>
+        </ul>
+        <p>
+          注文明細は商品マスタへの参照に加えて、名称・価格・単位・画像種別・用量・内容量・注意事項を注文時点のスナップショットとして保存する。商品マスタを後日変更しても過去注文の表示・金額は変わらない。
+        </p>
+        <p>
+          注文登録はDB関数<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">create_internal_patient_order</code>で注文ヘッダーと明細を1トランザクションとして作成する。画面が生成する<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">idempotency_key</code>は失敗・再試行中も維持し、同じ通信が再送されても既存注文IDを返すため二重登録されない。Shopify webhookの重複配信にも同じ設計を流用する。
+        </p>
+        <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
+          <strong>未実装：</strong>決済・在庫確定・定期課金・Shopify webhook・Salesforce同期。画面だけ成功に見せる仮処理は作らず、外部仕様確定後にアダプターとして追加する。
         </p>
       </>
     ),

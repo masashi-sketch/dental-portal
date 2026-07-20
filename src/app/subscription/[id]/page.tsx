@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import BottomNav from '../../components/BottomNav';
-import PatientSidebarNav, { IconHome, IconLogout } from '@/components/PatientSidebarNav';
+import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
+import ProductVisual from '@/components/ProductVisual';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
-import { subProducts } from '../data';
+import { usePatientProducts } from '@/hooks/usePatientProducts';
 
 function IconBell() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>;
@@ -27,29 +28,6 @@ function IconCheck() {
   return <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>;
 }
 
-/* ── サプリメント商品画像（小） ── */
-function SupplementImageSm({ type }: { type: string }) {
-  const configs: Record<string, { from: string; to: string }> = {
-    capsule:  { from: '#4f46e5', to: '#818cf8' },
-    tablet:   { from: '#d97706', to: '#fbbf24' },
-    chewable: { from: '#059669', to: '#34d399' },
-    multi:    { from: '#7c3aed', to: '#c4b5fd' },
-  };
-  const c = configs[type] ?? configs.capsule;
-  return (
-    <div
-      className="w-20 h-20 shrink-0 rounded-xl flex items-center justify-center"
-      style={{ background: `linear-gradient(145deg, ${c.from}, ${c.to})` }}
-    >
-      <svg width="36" height="36" fill="none" viewBox="0 0 64 64">
-        <ellipse cx="32" cy="32" rx="12" ry="20" fill="white" fillOpacity="0.25" />
-        <ellipse cx="32" cy="22" rx="12" ry="9" fill="white" fillOpacity="0.3" />
-        <line x1="20" y1="32" x2="44" y2="32" stroke="white" strokeWidth="2" strokeOpacity="0.4" />
-      </svg>
-    </div>
-  );
-}
-
 const headerNavLinks = ['クリニック紹介', '診療案内', 'アクセス', 'よくある質問', 'お問い合わせ'];
 
 type Period = '6ヶ月' | '3ヶ月';
@@ -57,20 +35,25 @@ type Delivery = '自宅' | '医院';
 
 export default function SubscriptionOrderPage() {
   const params = useParams();
-  const id = Number(params.id);
-  const product = subProducts.find((p) => p.id === id);
+  const id = String(params.id);
+  const { products, loaded: productsLoaded, error: productsError } = usePatientProducts();
+  const product = products.find((p) => p.id === id && p.subscription_available);
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [period, setPeriod] = useState<Period | null>(null);
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const { clinicName, navVisibility } = usePatientClinicBranding();
 
-  if (!product) {
+  if (!productsLoaded) {
+    return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-sm text-gray-400">商品情報を読み込んでいます…</div>;
+  }
+
+  if (!product || productsError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <p className="text-gray-500 mb-4">商品が見つかりませんでした。</p>
+          <p className="text-gray-500 mb-4">{productsError ?? '商品が見つかりませんでした。'}</p>
           <Link href="/subscription" className="text-[#2563EB] hover:underline text-sm">← 定期購入トップへ</Link>
         </div>
       </div>
@@ -79,7 +62,7 @@ export default function SubscriptionOrderPage() {
 
   const discountRate = period === '6ヶ月' ? 0.1 : period === '3ヶ月' ? 0.05 : 0;
   const months = period === '6ヶ月' ? 6 : 3;
-  const monthlyPrice = Math.floor(product.priceMonthly * (1 - discountRate));
+  const monthlyPrice = Math.floor(product.price * (1 - discountRate));
   const totalPrice = monthlyPrice * months;
 
   const steps = [
@@ -151,7 +134,7 @@ export default function SubscriptionOrderPage() {
         <main className="flex-1 flex flex-col gap-5 min-w-0">
 
           {/* パンくず */}
-          {step < 4 && (
+          {(
             <div className="flex items-center gap-2 text-xs text-gray-400">
               <Link href="/subscription" className="flex items-center gap-1 hover:text-[#2563EB] transition-colors">
                 <IconArrowLeft />定期購入
@@ -162,23 +145,23 @@ export default function SubscriptionOrderPage() {
           )}
 
           {/* 商品サマリーカード */}
-          {step < 4 && (
+          {(
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4">
-              <SupplementImageSm type={product.imageType} />
+              <ProductVisual type={product.image_type} className="w-20 h-20 shrink-0 rounded-xl flex items-center justify-center" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-400 mb-0.5 break-all">{product.shortDesc}</p>
+                <p className="text-xs text-gray-400 mb-0.5">{product.description}</p>
                 <p className="font-bold text-gray-900 text-sm leading-snug break-all">{product.name}</p>
                 <p className="text-xs text-gray-400 mt-1 break-all">{product.volume}</p>
               </div>
               <div className="text-right shrink-0">
                 <p className="text-xs text-gray-400">月額（通常）</p>
-                <p className="text-lg font-bold text-gray-900">¥{product.priceMonthly.toLocaleString()}</p>
+                <p className="text-lg font-bold text-gray-900">¥{product.price.toLocaleString()}</p>
               </div>
             </div>
           )}
 
           {/* ステップインジケーター */}
-          {step < 4 && (
+          {(
             <div className="flex items-center gap-0">
               {steps.map((s, i) => (
                 <div key={s.num} className="flex items-center flex-1">
@@ -205,8 +188,8 @@ export default function SubscriptionOrderPage() {
           {/* ──── STEP 1: 期間選択 ──── */}
           {step === 1 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-1">定期購入の期間を選択</h2>
-              <p className="text-sm text-gray-400 mb-6">まとめて申し込むほどお得になります</p>
+              <h2 className="text-lg font-bold text-gray-900 mb-1">定期購入の料金シミュレーション</h2>
+              <p className="text-sm text-gray-400 mb-6">表示価格は参考です。正式な料金プランはShopify連携時に確定します。</p>
 
               <div className="flex flex-col gap-4">
                 {/* 6ヶ月コース */}
@@ -231,16 +214,16 @@ export default function SubscriptionOrderPage() {
                       <p className="font-bold text-gray-900 text-base">6ヶ月コース</p>
                       <div className="flex items-baseline gap-2 mt-2">
                         <span className="text-2xl font-bold text-[#4f46e5]">
-                          ¥{Math.floor(product.priceMonthly * 0.9).toLocaleString()}
+                          ¥{Math.floor(product.price * 0.9).toLocaleString()}
                         </span>
                         <span className="text-sm text-gray-400">/月</span>
-                        <span className="text-sm text-gray-300 line-through">¥{product.priceMonthly.toLocaleString()}</span>
+                        <span className="text-sm text-gray-300 line-through">¥{product.price.toLocaleString()}</span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">
-                        合計 <span className="font-semibold text-gray-900">¥{(Math.floor(product.priceMonthly * 0.9) * 6).toLocaleString()}</span>（6ヶ月分・税込）
+                        合計 <span className="font-semibold text-gray-900">¥{(Math.floor(product.price * 0.9) * 6).toLocaleString()}</span>（6ヶ月分・税込）
                       </p>
                       <p className="text-xs text-indigo-600 mt-2 font-medium">
-                        ¥{(product.priceMonthly * 6 - Math.floor(product.priceMonthly * 0.9) * 6).toLocaleString()} お得！
+                        ¥{(product.price * 6 - Math.floor(product.price * 0.9) * 6).toLocaleString()} お得！
                       </p>
                     </div>
                   </div>
@@ -268,13 +251,13 @@ export default function SubscriptionOrderPage() {
                       </div>
                       <div className="flex items-baseline gap-2 mt-2">
                         <span className="text-2xl font-bold text-emerald-600">
-                          ¥{Math.floor(product.priceMonthly * 0.95).toLocaleString()}
+                          ¥{Math.floor(product.price * 0.95).toLocaleString()}
                         </span>
                         <span className="text-sm text-gray-400">/月</span>
-                        <span className="text-sm text-gray-300 line-through">¥{product.priceMonthly.toLocaleString()}</span>
+                        <span className="text-sm text-gray-300 line-through">¥{product.price.toLocaleString()}</span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">
-                        合計 <span className="font-semibold text-gray-900">¥{(Math.floor(product.priceMonthly * 0.95) * 3).toLocaleString()}</span>（3ヶ月分・税込）
+                        合計 <span className="font-semibold text-gray-900">¥{(Math.floor(product.price * 0.95) * 3).toLocaleString()}</span>（3ヶ月分・税込）
                       </p>
                     </div>
                   </div>
@@ -304,12 +287,8 @@ export default function SubscriptionOrderPage() {
               <div className="flex flex-col gap-4">
                 {/* 自宅 */}
                 <button
-                  onClick={() => setDelivery('自宅')}
-                  className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
-                    delivery === '自宅'
-                      ? 'border-[#4f46e5] bg-indigo-50'
-                      : 'border-gray-100 hover:border-indigo-200 bg-white'
-                  }`}
+                  disabled
+                  className="w-full text-left border-2 rounded-2xl p-5 border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${
@@ -326,12 +305,7 @@ export default function SubscriptionOrderPage() {
                         </div>
                         <p className="font-bold text-gray-900 text-base">ご自宅へお届け</p>
                       </div>
-                      <p className="text-sm text-gray-500 ml-[52px]">ご登録住所へ毎月お届けします。</p>
-                      <div className="mt-3 bg-gray-50 rounded-xl px-4 py-3 text-xs text-gray-600 ml-0">
-                        <p className="font-semibold mb-1">お届け先住所（登録情報）</p>
-                        <p>〒100-0001　東京都千代田区丸の内1-1-1</p>
-                        <p>山田 太郎 様</p>
-                      </div>
+                      <p className="text-sm text-gray-500 ml-[52px]">Shopify Customer Accountの住所連携後に利用できます。</p>
                     </div>
                   </div>
                 </button>
@@ -364,7 +338,6 @@ export default function SubscriptionOrderPage() {
                       <div className="mt-3 bg-gray-50 rounded-xl px-4 py-3 text-xs text-gray-600">
                         <p className="font-semibold mb-1">受け取り先</p>
                         <p>{clinicName ?? 'デンタルポータル'}</p>
-                        <p>〒100-0000　東京都中央区銀座1-1-1　銀座ビル3F</p>
                       </div>
                       <span className="inline-block mt-2 text-xs text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full font-medium">
                         送料無料
@@ -404,7 +377,7 @@ export default function SubscriptionOrderPage() {
 
                 {/* 商品 */}
                 <div className="flex items-center gap-4 pb-5 border-b border-gray-50">
-                  <SupplementImageSm type={product.imageType} />
+                  <ProductVisual type={product.image_type} className="w-20 h-20 shrink-0 rounded-xl flex items-center justify-center" />
                   <div>
                     <p className="font-bold text-gray-900">{product.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{product.volume}</p>
@@ -428,7 +401,7 @@ export default function SubscriptionOrderPage() {
                 </div>
 
                 <div className="mt-4 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-xs text-indigo-700 leading-relaxed">
-                  定期購入のご契約後、次回お届け予定日の7日前までに解約申請がない場合は自動継続となります。
+                  これは申込前の参考シミュレーションです。現時点では契約・決済・注文は作成されません。
                 </div>
               </div>
 
@@ -440,59 +413,11 @@ export default function SubscriptionOrderPage() {
                   <IconArrowLeft />戻る
                 </button>
                 <button
-                  onClick={() => setStep(4)}
-                  className="flex-1 py-4 rounded-xl font-bold text-base bg-gradient-to-r from-[#4f46e5] to-[#6366f1] text-white hover:opacity-90 shadow-sm transition-opacity active:scale-95"
+                  disabled
+                  className="flex-1 py-4 rounded-xl font-bold text-base bg-gray-100 text-gray-400 cursor-not-allowed"
                 >
-                  この内容で申し込む
+                  Shopify接続後にお申し込みいただけます
                 </button>
-              </div>
-            </div>
-          )}
-
-          {/* ──── STEP 4: 完了 ──── */}
-          {step === 4 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 sm:p-12 flex flex-col items-center text-center">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#4f46e5] to-[#818cf8] flex items-center justify-center mb-6 shadow-lg">
-                <svg width="40" height="40" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">お申し込みが完了しました！</h2>
-              <p className="text-gray-500 text-sm leading-relaxed mb-2">
-                {product.name}の定期購入（{period}コース）を受け付けました。
-              </p>
-              <p className="text-gray-500 text-sm leading-relaxed mb-8">
-                お届け先：{delivery === '自宅' ? 'ご自宅（登録住所）' : `医院（${clinicName ?? 'デンタルポータル'}）`}
-              </p>
-
-              <div className="bg-gray-50 rounded-2xl p-5 w-full max-w-sm text-left mb-8">
-                <p className="text-xs font-semibold text-gray-500 mb-3">申込内容</p>
-                {[
-                  { label: '商品', value: product.name },
-                  { label: 'コース', value: `${period}コース` },
-                  { label: 'お届け先', value: delivery === '自宅' ? 'ご自宅' : '医院' },
-                  { label: '月額', value: `¥${monthlyPrice.toLocaleString()}` },
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex justify-between text-sm py-2 border-b border-gray-100 last:border-0">
-                    <span className="text-gray-400">{label}</span>
-                    <span className="text-gray-800 font-semibold">{value}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
-                <Link
-                  href="/home"
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#4f46e5] text-white font-semibold hover:bg-indigo-700 transition-colors"
-                >
-                  <IconHome />ホームへ戻る
-                </Link>
-                <Link
-                  href="/subscription"
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium"
-                >
-                  他の商品を見る
-                </Link>
               </div>
             </div>
           )}

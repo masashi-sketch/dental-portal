@@ -674,6 +674,149 @@ create table public.clinic_product_settings (
   primary key (customer_code, product_id)
 );
 
+-- ============================================================
+-- 9.10. 患者注文・受け取り進捗
+-- Shopify連携前はsource='internal'で医院が登録する。連携後も同じ内部IDを維持し、
+-- external_* と sync_status だけをアダプターが更新する。
+-- ============================================================
+create table public.patient_orders (
+  id                    uuid primary key default gen_random_uuid(),
+  customer_code         text not null references public.clinics (customer_code),
+  patient_id            uuid not null references public.patients (id) on delete cascade,
+  order_type            text not null default 'one_time'
+                          check (order_type in ('one_time','subscription')),
+  fulfillment_method    text not null default 'pickup'
+                          check (fulfillment_method in ('pickup','delivery')),
+  status                text not null default 'received'
+                          check (status in ('received','preparing','ready','shipped','completed','canceled')),
+  ordered_at            timestamptz not null default now(),
+  next_fulfillment_date date,
+  source                text not null default 'internal'
+                          check (source in ('internal','shopify')),
+  external_order_id     text,
+  sync_status           text not null default 'local'
+                          check (sync_status in ('local','pending','synced','error')),
+  sync_error             text,
+  idempotency_key        uuid,
+  external_updated_at   timestamptz,
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now(),
+  unique (source, external_order_id)
+);
+
+create index idx_patient_orders_patient
+  on public.patient_orders (patient_id, ordered_at desc);
+create index idx_patient_orders_clinic
+  on public.patient_orders (customer_code, ordered_at desc);
+create unique index idx_patient_orders_idempotency
+  on public.patient_orders (customer_code, idempotency_key)
+  where idempotency_key is not null;
+
+create trigger trg_patient_orders_updated_at
+  before update on public.patient_orders
+  for each row execute function public.set_updated_at_generic();
+
+-- 商品マスタ更新後も過去注文の名称・価格・注意事項が変わらないよう、注文時点の値を保存する。
+create table public.patient_order_items (
+  id                    uuid primary key default gen_random_uuid(),
+  order_id              uuid not null references public.patient_orders (id) on delete cascade,
+  product_id            uuid references public.products (id) on delete set null,
+  product_name          text not null,
+  unit_price            integer not null check (unit_price >= 0),
+  quantity              integer not null default 1 check (quantity > 0),
+  unit_snapshot         text,
+  image_type_snapshot   text not null default 'supplement'
+                          check (image_type_snapshot in ('supplement','yogurt','toothbrush','oral')),
+  daily_amount_snapshot text,
+  volume_snapshot       text,
+  caution_snapshot      text,
+  external_line_item_id text,
+  created_at            timestamptz not null default now()
+);
+
+create index idx_patient_order_items_order_id
+  on public.patient_order_items (order_id);
+
+-- 注文ヘッダーと明細を1トランザクションで作る。通信再送時は同じ冪等キーの注文IDを返す。
+-- Shopify webhook取り込み時も同じ「1イベント=1冪等キー」の考え方を流用する。
+create or replace function public.create_internal_patient_order(
+  p_customer_code text,
+  p_patient_id uuid,
+  p_product_id uuid,
+  p_quantity integer,
+  p_fulfillment_method text,
+  p_idempotency_key uuid
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_order_id uuid;
+  v_product public.products%rowtype;
+begin
+  if p_quantity < 1 or p_quantity > 100 then
+    raise exception '数量は1〜100で指定してください。';
+  end if;
+  if p_fulfillment_method not in ('pickup', 'delivery') then
+    raise exception '受け取り方法が不正です。';
+  end if;
+
+  select id into v_order_id
+    from public.patient_orders
+   where customer_code = p_customer_code and idempotency_key = p_idempotency_key;
+  if v_order_id is not null then return v_order_id; end if;
+
+  if not exists (
+    select 1 from public.patients
+     where id = p_patient_id and customer_code = p_customer_code and status = '有効'
+  ) then
+    raise exception '患者が見つかりません。';
+  end if;
+
+  select * into v_product from public.products
+   where id = p_product_id and status = '公開';
+  if not found or exists (
+    select 1 from public.clinic_product_settings
+     where customer_code = p_customer_code and product_id = p_product_id and is_visible = false
+  ) then
+    raise exception '商品が見つかりません。';
+  end if;
+
+  begin
+    insert into public.patient_orders (
+      customer_code, patient_id, fulfillment_method, order_type,
+      status, source, sync_status, idempotency_key
+    ) values (
+      p_customer_code, p_patient_id, p_fulfillment_method, 'one_time',
+      'received', 'internal', 'local', p_idempotency_key
+    ) returning id into v_order_id;
+  exception when unique_violation then
+    select id into v_order_id from public.patient_orders
+     where customer_code = p_customer_code and idempotency_key = p_idempotency_key;
+    if v_order_id is not null then return v_order_id; end if;
+    raise;
+  end;
+
+  insert into public.patient_order_items (
+    order_id, product_id, product_name, unit_price, quantity,
+    unit_snapshot, image_type_snapshot, daily_amount_snapshot,
+    volume_snapshot, caution_snapshot
+  ) values (
+    v_order_id, v_product.id, v_product.name, v_product.price, p_quantity,
+    v_product.unit, v_product.image_type, v_product.daily_amount,
+    v_product.volume, v_product.caution
+  );
+  return v_order_id;
+end;
+$$;
+
+revoke execute on function public.create_internal_patient_order(text, uuid, uuid, integer, text, uuid)
+  from public, anon, authenticated;
+grant execute on function public.create_internal_patient_order(text, uuid, uuid, integer, text, uuid)
+  to service_role;
+
 create trigger trg_clinic_product_settings_updated_at
   before update on public.clinic_product_settings
   for each row execute function public.set_updated_at_generic();
@@ -712,6 +855,8 @@ alter table public.clinic_inquiry_replies enable row level security;
 alter table public.clinic_announcements   enable row level security;
 alter table public.products               enable row level security;
 alter table public.clinic_product_settings enable row level security;
+alter table public.patient_orders          enable row level security;
+alter table public.patient_order_items     enable row level security;
 
 -- ============================================================
 -- 11. フェーズ3b：患者ポータルの歯周病診断読み取り経路のみ、

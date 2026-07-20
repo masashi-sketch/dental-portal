@@ -15,10 +15,11 @@ const diagnosis = {
   grade: { code: 'B', label: 'グレードB', name: '標準的な進行', description: '' },
 };
 
-function stub(diagnosisValue: unknown, showPeriodontalDiagnosis = true) {
+function stub(diagnosisValue: unknown, showPeriodontalDiagnosis = true, orders: unknown[] = []) {
   fetchMock.mockImplementation((url: string) => {
     if (url.includes('/clinic-branding')) return jsonResponse({ displayName: 'テスト歯科', nav: {}, showPeriodontalDiagnosis });
     if (url.includes('/diagnosis')) return jsonResponse({ diagnosis: diagnosisValue });
+    if (url.includes('/orders')) return jsonResponse({ orders });
     throw new Error(`unexpected fetch: ${url}`);
   });
 }
@@ -55,5 +56,21 @@ describe('MedicationPage 先生のおすすめへの導線', () => {
 
     await screen.findByText('サプリメントの受け取り状況');
     expect(screen.queryByRole('link', { name: /おすすめのケア用品を見る/ })).not.toBeInTheDocument();
+  });
+
+  it('医院が登録した注文商品と受け取り進捗を表示する', async () => {
+    stub(null, true, [{
+      id: 'order-1', fulfillment_method: 'pickup', status: 'ready', ordered_at: '2026-07-20T00:00:00Z',
+      items: [{
+        id: 'item-1', product_name: 'マスタ登録サプリ', quantity: 2, unit_snapshot: '箱',
+        image_type_snapshot: 'supplement', daily_amount_snapshot: '1日1粒', volume_snapshot: '30粒',
+        caution_snapshot: '高温多湿を避けてください。',
+      }],
+    }]);
+    render(<MedicationPage />);
+
+    expect(await screen.findByText('マスタ登録サプリ')).toBeInTheDocument();
+    expect(screen.getByText('現在の状態：準備完了')).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.textContent === '数量：2箱')).toBeInTheDocument();
   });
 });

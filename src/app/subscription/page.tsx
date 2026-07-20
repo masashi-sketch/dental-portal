@@ -6,9 +6,11 @@ import BottomNav from '../components/BottomNav';
 import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
+import ProductVisual from '@/components/ProductVisual';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import { usePrimaryDoctor } from '@/hooks/usePrimaryDoctor';
-import { subProducts } from './data';
+import { usePatientProducts } from '@/hooks/usePatientProducts';
+import { PRODUCT_BADGE_CLASS } from '@/lib/productDisplay';
 
 function IconBell() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>;
@@ -126,6 +128,8 @@ export default function SubscriptionPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { clinicName, navVisibility } = usePatientClinicBranding();
   const { doctor } = usePrimaryDoctor();
+  const { products, loaded: productsLoaded, error: productsError } = usePatientProducts();
+  const subscriptionProducts = products.filter((product) => product.subscription_available);
   const doctorLabel = doctor ? `${doctor.name}先生` : `${clinicName ?? 'デンタルポータル'} 院長`;
 
   return (
@@ -253,10 +257,15 @@ export default function SubscriptionPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <p className="text-base font-bold text-gray-900">定期購入 対象商品</p>
-              <span className="text-xs text-gray-400">{subProducts.length}商品</span>
+              <span className="text-xs text-gray-400">{subscriptionProducts.length}商品</span>
             </div>
+            {!productsLoaded && <p className="py-10 text-center text-sm text-gray-400">商品情報を読み込んでいます…</p>}
+            {productsError && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{productsError}</p>}
+            {productsLoaded && !productsError && subscriptionProducts.length === 0 && (
+              <p className="rounded-xl bg-white px-4 py-10 text-center text-sm text-gray-500">現在、定期購入対象の商品はありません。</p>
+            )}
             <div className="flex flex-col gap-4">
-              {subProducts.map((product) => (
+              {subscriptionProducts.map((product) => (
                 <div
                   key={product.id}
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
@@ -265,21 +274,21 @@ export default function SubscriptionPage() {
                     {/* 画像 */}
                     <div className="sm:w-56 sm:shrink-0 p-4">
                       <div className="relative">
-                        <SupplementImage type={product.imageType} size="md" />
-                        <span className={`absolute top-2.5 left-2.5 text-xs font-semibold px-2.5 py-1 rounded-full ${product.badgeColor}`}>
+                        <ProductVisual type={product.image_type} className="w-full h-48 flex items-center justify-center rounded-2xl" />
+                        {product.badge && <span className={`absolute top-2.5 left-2.5 text-xs font-semibold px-2.5 py-1 rounded-full ${PRODUCT_BADGE_CLASS[product.badge_color ?? 'slate']}`}>
                           {product.badge}
-                        </span>
+                        </span>}
                       </div>
                     </div>
 
                     {/* 商品情報 */}
                     <div className="flex-1 px-4 pb-5 sm:py-5 sm:pr-5 sm:pl-0">
                       <h2 className="text-lg font-bold text-gray-900 mb-1">{product.name}</h2>
-                      <p className="text-xs text-gray-400 mb-3 break-all">{product.shortDesc}</p>
+                      <p className="text-xs text-gray-400 mb-3">{product.description}</p>
 
                       {/* 特徴リスト */}
                       <ul className="flex flex-col gap-1.5 mb-4">
-                        {product.features.map((f) => (
+                        {[product.working_point, product.daily_amount, product.doctor_comment].filter((f): f is string => Boolean(f)).map((f) => (
                           <li key={f} className="flex items-start gap-2 text-xs text-gray-600 break-all">
                             <span className="text-indigo-500 shrink-0 mt-0.5"><IconCheck /></span>
                             {f}
@@ -288,23 +297,23 @@ export default function SubscriptionPage() {
                       </ul>
 
                       {/* 内容量 */}
-                      <p className="text-xs text-gray-400 mb-3 break-all">内容量：{product.volume}</p>
+                      {product.volume && <p className="text-xs text-gray-400 mb-3">内容量：{product.volume}</p>}
 
                       {/* 価格と割引 */}
                       <div className="flex items-end gap-3 mb-4">
                         <div>
                           <p className="text-xs text-gray-400 mb-0.5">通常価格（月額）</p>
                           <p className="text-2xl font-bold text-gray-900">
-                            ¥{product.priceMonthly.toLocaleString()}
-                            <span className="text-sm text-gray-400 font-normal ml-1">/月</span>
+                            ¥{product.price.toLocaleString()}
+                            <span className="text-sm text-gray-400 font-normal ml-1">/{product.unit ?? '月'}</span>
                           </p>
                         </div>
                         <div className="flex flex-col gap-1 pb-0.5">
                           <span className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full font-medium">
-                            3ヶ月: ¥{Math.floor(product.priceMonthly * 0.95).toLocaleString()}/月
+                            3ヶ月: ¥{Math.floor(product.price * 0.95).toLocaleString()}/月
                           </span>
                           <span className="text-xs text-[#2563EB] bg-[#EFF6FF] border border-blue-100 px-2 py-0.5 rounded-full font-medium">
-                            6ヶ月: ¥{Math.floor(product.priceMonthly * 0.9).toLocaleString()}/月
+                            6ヶ月: ¥{Math.floor(product.price * 0.9).toLocaleString()}/月
                           </span>
                         </div>
                       </div>
