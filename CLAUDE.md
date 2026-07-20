@@ -404,7 +404,7 @@ DB変更SQLを提示するときは、以下をセットにする。
 - Supabaseや`next/headers`等の外部依存は直接叩かず、mock/fakeを使う（`src/lib/auth/*.test.ts`、`src/app/api/**/*.test.ts`を参照）。APIルートハンドラ（`route.ts`のPATCH/DELETE等）は`@/auth`と`@/lib/supabase/server`を`vi.mock`し、ハンドラ関数を直接呼び出してテストできる（`src/app/api/admin/clinic-staff/[id]/route.test.ts`が雛形）。
 - **fetchするクライアントコンポーネントのテスト**は`vi.stubGlobal('fetch', fetchMock)`でURL・HTTPメソッド分岐のmockを組み、`afterEach`で`vi.unstubAllGlobals()`する（`src/components/ClinicTermsManager.test.tsx`・`ClinicLoginManager.test.tsx`が雛形）。rechartsなどjsdomで描画できない部品は`vi.mock`で差し替える（`ClinicSalesOrders.test.tsx`が雛形）。
 - フィールド数の多い`ClinicWithStaff`等の共通フィクスチャは`src/test/fixtures.ts`のファクトリ（`makeClinicWithStaff()`）を使う。テスト専用ファイルであり、アプリ本体からはimportしない。
-- 現状のカバレッジ：`src/lib/auth/`配下・`src/lib/patientNav.ts`・`src/lib/clinicForm.ts`のロジック、APIルート数本（clinic-staff・patients・diagnoses・env-check・branding・join・password-reset）、UIコンポーネント（`src/components/ui/`のButton/Card/LoadingState/ConfirmDialog、`PatientSidebarNav`、得意先詳細から抽出したClinicVisitList/ClinicBasicInfoTab/ClinicBusinessInfoTab/ClinicTermsManager/ClinicLoginManager/ClinicSalesOrders）、`useToast`。
+- 現状のカバレッジ：`src/lib/auth/`配下・`src/lib/patientNav.ts`・`src/lib/clinicForm.ts`のロジック、全APIルート（2026-07-20夜に24ファイル追加、認証必須の全ルートを網羅）、UIコンポーネント（`src/components/ui/`のButton/Card/LoadingState/ConfirmDialog、`PatientSidebarNav`、得意先詳細から抽出したClinicVisitList/ClinicBasicInfoTab/ClinicBusinessInfoTab/ClinicTermsManager/ClinicLoginManager/ClinicSalesOrders/ClinicStaffManager/ClinicQaManager/ClinicEmailTemplatesManager/SignupQrCard）、`useToast`。
 - **CI（GitHub Actions、`.github/workflows/ci.yml`）でpush/pull_request時にlint/tsc/testを自動実行する**。git pre-commitフックは未設定。
 - 新しいテストを追加する場合は既存の書き方（`vitest`のdescribe/it、上記のmockパターン）を踏襲する。
 
