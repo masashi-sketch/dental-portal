@@ -63,7 +63,7 @@ async function newPatientPreviewPage(browser) {
   return page;
 }
 
-async function shoot(page, { path: targetPath, tabClick, file, waitAfterNav = 600, waitAfterTab = 700 }) {
+async function shoot(page, { path: targetPath, tabClick, file, waitAfterNav = 600, waitAfterTab = 700, target = 'main', cardSelector }) {
   if (targetPath) {
     await page.goto(`${BASE_URL}${targetPath}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(waitAfterNav);
@@ -72,21 +72,40 @@ async function shoot(page, { path: targetPath, tabClick, file, waitAfterNav = 60
     await page.getByRole('button', { name: tabClick }).click();
     await page.waitForTimeout(waitAfterTab);
   }
-  const main = page.locator('main').first();
-  await main.waitFor({ state: 'visible' });
-  const box = await main.boundingBox();
+  const region = cardSelector
+    ? page.locator(cardSelector).last()
+    : target === 'body'
+      ? page.locator('body')
+      : page.locator('main').first();
+  await region.waitFor({ state: 'visible' });
+  const box = await region.boundingBox();
   const outPath = path.join(OUT_DIR, file);
   if (box && box.height > MAX_SHOT_HEIGHT) {
     await page.screenshot({ path: outPath, clip: { x: box.x, y: box.y, width: box.width, height: MAX_SHOT_HEIGHT } });
   } else {
-    await main.screenshot({ path: outPath });
+    await region.screenshot({ path: outPath });
   }
   console.log('  saved', file);
+}
+
+async function newPublicPage(browser) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  return context.newPage();
 }
 
 // role単位でページをまとめ、同じページ内で複数タブを連続撮影する
 // （ログイン・ページ遷移の重複を避ける）。
 const manifest = {
+  shared: [
+    {
+      role: 'public',
+      shots: [
+        { path: '/auth/signin', file: 'portal-select.png', cardSelector: '.rounded-3xl' },
+        { path: '/clinic-login', file: 'clinic-login-form.png', cardSelector: '.rounded-2xl' },
+        { path: '/', file: 'patient-login-form.png', cardSelector: '.rounded-2xl' },
+      ],
+    },
+  ],
   batch1: [
     {
       role: 'bgj',
@@ -109,10 +128,54 @@ const manifest = {
       shots: [{ path: '/admin/inquiry', file: 'admin-inquiry.png' }],
     },
   ],
+  batch3: [
+    {
+      role: 'admin',
+      shots: [
+        { path: '/admin/patients', file: 'admin-patients-list.png' },
+        { tabClick: '＋ 患者IDを発行', file: 'admin-patients-new-modal.png', cardSelector: '.rounded-2xl' },
+        { path: '/admin/clinic-info/contract', file: 'admin-clinic-contract.png' },
+        { path: '/admin/clinic-info/config', file: 'admin-clinic-config.png' },
+        { path: '/admin/clinic-info/qr', file: 'admin-clinic-qr.png' },
+        { path: '/admin/clinic-intro', file: 'admin-clinic-intro.png' },
+        { path: '/admin/qa', file: 'admin-qa.png' },
+        { path: '/admin/news', file: 'admin-news.png' },
+      ],
+    },
+    {
+      role: 'public',
+      shots: [{ path: '/forgot-password', file: 'forgot-password-form.png', cardSelector: '.rounded-2xl' }],
+    },
+    {
+      role: 'patient',
+      shots: [{ path: '/medication', file: 'patient-medication.png' }],
+    },
+    {
+      role: 'bgj',
+      shots: [
+        { path: `/bgj/customers/${CLINIC_CODE}`, tabClick: '接続情報', file: 'bgj-customer-connection-tab.png' },
+      ],
+    },
+  ],
+  // /join/[slug]/mobile は得意先のsignup_slug（PIN再発行のたびに変わる）に依存するため
+  // 固定マニフェストに入れず、直前にbgj-customer-connection-tab等で確認した最新スラッグを
+  // 都度指定して単発実行する。例:
+  //   node --env-file=.env.local scripts/capture-manual-screenshots.mjs joinMobile:5nH26-WIsI1CgnGQojd0lQ
 };
 
 async function run(batchNames) {
   const browser = await chromium.launch();
+
+  const joinMobileArg = batchNames.find((name) => name.startsWith('joinMobile:'));
+  if (joinMobileArg) {
+    const slug = joinMobileArg.split(':')[1];
+    const page = await newPublicPage(browser);
+    await shoot(page, { path: `/join/${slug}/mobile`, file: 'join-signup-mobile.png', target: 'body' });
+    await browser.close();
+    console.log('完了（joinMobile単発実行）');
+    return;
+  }
+
   const targets = batchNames.length > 0 ? batchNames : Object.keys(manifest);
 
   for (const batchName of targets) {
@@ -129,7 +192,9 @@ async function run(batchNames) {
           ? await newBgjPage(browser)
           : group.role === 'admin'
             ? await newClinicPage(browser)
-            : await newPatientPreviewPage(browser);
+            : group.role === 'public'
+              ? await newPublicPage(browser)
+              : await newPatientPreviewPage(browser);
       for (const shotDef of group.shots) {
         await shoot(page, shotDef);
       }
