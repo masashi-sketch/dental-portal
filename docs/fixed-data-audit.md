@@ -43,7 +43,7 @@
 
 | # | ルート | 現在のデータ源 | 判定 | 次の対応 |
 |---:|---|---|---|---|
-| 21 | `/admin` | 任意入力後にdashboardへ遷移する疑似ログイン | **P0** | 正式な`/clinic-login`または認証済みdashboardへリダイレクト |
+| 21 | `/admin` | `/bgj`と同型のサーバーリダイレクト（`redirect('/admin/dashboard')`） | 対応済み | `/clinic-login`のNextAuth認証後にここへ着地し、即座にdashboardへ進む |
 | 22 | `/admin/dashboard` | `useAdminOverview`／`get_admin_overview` | 実データ | 参考注文金額と確定売上を引き続き区別 |
 | 23 | `/admin/commission` | `useAdminOverview`／契約率／内部注文集計 | 実データ＋外部待ち | Shopify確定売上・確定コミッションは連携まで`—`を維持 |
 | 24 | `/admin/orders` | 患者・商品・患者注文API | 実データ | 3 API初期取得を性能計測対象にする |
@@ -87,8 +87,8 @@
 
 | 対象 | 現状 | 分類 | 対応 |
 |---|---|---|---|
-| `src/app/admin/components/AdminSidebar.tsx` | キャンペーン・記事の未読数と更新日時が固定 | **P0** | 実データができるまでバッジを非表示 |
-| `src/components/Header.tsx` / `Footer.tsx` | テスト医院名、`href="#"` | **P0/P1** | 医院名を動的化し、リンクを正式routeへ接続または撤去 |
+| `src/app/admin/components/AdminSidebar.tsx` | キャンペーン・記事の未読数と更新日時が固定 | 対応済み | `CONTENT_UNREAD`・未読バッジ表示ロジックを撤去（`/admin/campaign`・`/admin/biogaia`自体のP0是正は別途対応） |
+| `src/components/Header.tsx` / `Footer.tsx` | テスト医院名、`href="#"` | 対応済み | プロジェクト全体からimportされていない未使用コンポーネントと判明し削除（付随して同様に未使用だった`Sidebar.tsx`・`src/lib/constants.ts`も削除） |
 | `src/app/layout.tsx` | metadataがテスト医院名 | **P1** | 汎用metadataまたは医院別metadataへ変更 |
 | `bgj/dashboard/MonthlySalesChart.tsx` | 売上推移が固定 | **P0** | dashboard集計結果をpropsで受け取る |
 | `bgj/reports/ReportsCharts.tsx` | 月次・エリア別データが固定 | **P0** | reports集計結果をpropsで受け取る |

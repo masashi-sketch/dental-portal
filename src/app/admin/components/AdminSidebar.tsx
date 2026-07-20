@@ -5,16 +5,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { useActiveClinic } from '@/hooks/useActiveClinic';
-import { safeGetItem, safeSetItem } from '@/lib/safeLocalStorage';
 import type { ExternalLink, SalesRepWithMaster } from '@/lib/supabase/types';
 
 export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'clinicContract' | 'clinicConfig' | 'clinicQr' | 'clinicIntro' | 'clinicQa' | 'inquiry';
-
-// モック：未読件数と最終更新日時
-const CONTENT_UNREAD: Partial<Record<AdminPage, { updatedAt: string; count: number }>> = {
-  campaign: { updatedAt: '2026-06-07T09:00:00', count: 2 },
-  biogaia:  { updatedAt: '2026-06-06T18:00:00', count: 3 },
-};
 
 function IconDashboard() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>;
@@ -162,12 +155,10 @@ function GroupNavRow({
 function NavItems({
   active,
   onNavClick,
-  unreadCounts,
   externalLinks,
 }: {
   active: AdminPage;
   onNavClick?: () => void;
-  unreadCounts: Map<AdminPage, number>;
   externalLinks: ExternalLink[];
 }) {
   return (
@@ -178,7 +169,6 @@ function NavItems({
           return <GroupNavRow key={item.label} item={item} active={active} onNavClick={onNavClick} />;
         }
 
-        const count = unreadCounts.get(item.key) ?? 0;
         return (
           <div key={item.key}>
             {item.dividerBefore && (
@@ -198,13 +188,9 @@ function NavItems({
               </span>
               {/* テキストは折り返して全体表示 */}
               <span className="flex-1 leading-snug">{item.label}</span>
-              {count > 0 ? (
-                <span className="min-w-[20px] h-5 px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shrink-0">
-                  {count}
-                </span>
-              ) : active === item.key ? (
+              {active === item.key && (
                 <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
-              ) : null}
+              )}
             </Link>
           </div>
         );
@@ -314,7 +300,6 @@ function SalesRepCard({ salesRep, loaded }: { salesRep: SalesRepWithMaster | nul
 
 export default function AdminSidebar({ active }: { active: AdminPage }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [unreadCounts, setUnreadCounts] = useState<Map<AdminPage, number>>(new Map());
   const [externalLinks, setExternalLinks] = useState<ExternalLink[]>([]);
   const { clinicName, salesRep, loaded: clinicLoaded } = useActiveClinic();
 
@@ -328,29 +313,6 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
   useEffect(() => {
     fetchExternalLinks();
   }, [fetchExternalLinks]);
-
-  useEffect(() => {
-    const counts = new Map<AdminPage, number>();
-    for (const page of Object.keys(CONTENT_UNREAD) as AdminPage[]) {
-      const data = CONTENT_UNREAD[page]!;
-      const lastRead = safeGetItem(`admin_lastRead_${page}`);
-      if (!lastRead || new Date(lastRead) < new Date(data.updatedAt)) {
-        counts.set(page, data.count);
-      }
-    }
-    // 現在のページを既読にする
-    if (CONTENT_UNREAD[active] !== undefined) {
-      safeSetItem(`admin_lastRead_${active}`, new Date().toISOString());
-      counts.delete(active);
-    }
-    // localStorageの同期読み取りはSSR時に実行不可なため、マウント後・active変更後に
-    // 反映する。hydration mismatchを避けるため、あえてクライアント側のeffectでのみ反映する。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUnreadCounts(counts);
-  }, [active]);
-
-  // モバイルトップバー用：未読合計
-  const totalUnread = Array.from(unreadCounts.values()).reduce((a, b) => a + b, 0);
 
   const { data: session } = useSession();
 
@@ -404,7 +366,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
           <LogoBlock clinicName={clinicName} loaded={clinicLoaded} />
         </div>
         <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-          <NavItems active={active} unreadCounts={unreadCounts} externalLinks={externalLinks} />
+          <NavItems active={active} externalLinks={externalLinks} />
         </nav>
         {portalSection()}
         {logoutSection()}
@@ -418,11 +380,6 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
           aria-label="メニューを開く"
         >
           <IconMenu />
-          {totalUnread > 0 && (
-            <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-              {totalUnread}
-            </span>
-          )}
         </button>
         <div className="w-7 h-7 bg-sky-400 rounded-lg flex items-center justify-center shrink-0">
           <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -461,7 +418,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
           </button>
         </div>
         <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-          <NavItems active={active} onNavClick={() => setMobileOpen(false)} unreadCounts={unreadCounts} externalLinks={externalLinks} />
+          <NavItems active={active} onNavClick={() => setMobileOpen(false)} externalLinks={externalLinks} />
         </nav>
         {portalSection(() => setMobileOpen(false))}
         {logoutSection(() => setMobileOpen(false))}
