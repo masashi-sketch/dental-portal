@@ -178,7 +178,7 @@ export default function ClinicQaManager({
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-bold text-slate-800 mb-5">{editItem ? 'Q&amp;Aを編集' : 'Q&amp;Aを追加'}</h2>
+            <h2 className="text-lg font-bold text-slate-800 mb-5">{editItem ? 'Q&Aを編集' : 'Q&Aを追加'}</h2>
             <div className="flex flex-col gap-3">
               <div>
                 <label className="text-xs font-semibold text-slate-500 mb-1 block">カテゴリ</label>

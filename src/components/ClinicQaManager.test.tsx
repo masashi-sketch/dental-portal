@@ -91,10 +91,7 @@ describe('ClinicQaManager', () => {
     fireEvent.click(screen.getByRole('button', { name: '追加' }));
 
     expect(fetchMock.mock.calls.filter(([, init]) => (init as RequestInit)?.method === 'POST')).toHaveLength(0);
-    // モーダル見出しは既存の表示バグでJS文字列リテラル内の"&amp;"がエンティティ変換されず
-    // 文字どおり表示される（他3箇所のJSXテキストの"&amp;"は正しく"&"に変換される）。
-    // ここではテスト対象外の既存挙動として実際の表示文言に合わせている。
-    expect(screen.getByText('Q&amp;Aを追加')).toBeInTheDocument();
+    expect(screen.getByText('Q&Aを追加')).toBeInTheDocument();
   });
 
   it('編集すると内容が更新される', async () => {
