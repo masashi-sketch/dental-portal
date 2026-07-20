@@ -74,3 +74,35 @@ describe('MedicationPage 先生のおすすめへの導線', () => {
     expect(screen.getByText((_, element) => element?.textContent === '数量：2箱')).toBeInTheDocument();
   });
 });
+
+describe('MedicationPage ご注文情報カード', () => {
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('注文がある場合、実際の注文日を表示し、担当者・次回来院の伏字は表示しない', async () => {
+    stub(null, true, [{
+      id: 'order-1', fulfillment_method: 'pickup', status: 'ready', ordered_at: '2026-07-20T00:00:00Z',
+      items: [],
+    }]);
+    render(<MedicationPage />);
+
+    expect(await screen.findByText('注文日')).toBeInTheDocument();
+    expect(screen.getByText(new Date('2026-07-20T00:00:00Z').toLocaleDateString('ja-JP'))).toBeInTheDocument();
+    expect(screen.queryByText('担当スタッフ')).not.toBeInTheDocument();
+    expect(screen.queryByText('次回受診予定')).not.toBeInTheDocument();
+  });
+
+  it('注文が無い場合、ご注文情報カード自体を表示しない', async () => {
+    stub(null, true, []);
+    render(<MedicationPage />);
+
+    await screen.findByText('現在、受け取り予定の商品はありません。');
+    expect(screen.queryByText('ご注文情報')).not.toBeInTheDocument();
+  });
+});

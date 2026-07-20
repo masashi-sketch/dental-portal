@@ -25,6 +25,7 @@ describe('HomePage お知らせ表示', () => {
     fetchMock.mockImplementation((url: string) => {
       if (url.includes('/clinic-branding')) return jsonResponse({ displayName: null, nav: {}, showPeriodontalDiagnosis: true });
       if (url.includes('/clinic-intro')) return jsonResponse({ info: null, staff: [] });
+      if (url.includes('/profile')) return jsonResponse({ name: null });
       if (url.includes('/announcements')) return jsonResponse({ announcements: [announcement] });
       throw new Error(`unexpected fetch: ${url}`);
     });
@@ -46,6 +47,7 @@ describe('HomePage お知らせ表示', () => {
     fetchMock.mockImplementation((url: string) => {
       if (url.includes('/clinic-branding')) return jsonResponse({ displayName: null, nav: {}, showPeriodontalDiagnosis: true });
       if (url.includes('/clinic-intro')) return jsonResponse({ info: null, staff: [] });
+      if (url.includes('/profile')) return jsonResponse({ name: null });
       if (url.includes('/announcements')) return jsonResponse({ announcements: [] });
       throw new Error(`unexpected fetch: ${url}`);
     });
@@ -58,6 +60,7 @@ describe('HomePage お知らせ表示', () => {
     fetchMock.mockImplementation((url: string) => {
       if (url.includes('/clinic-branding')) return jsonResponse({ displayName: null, nav: {}, showPeriodontalDiagnosis: true });
       if (url.includes('/clinic-intro')) return jsonResponse({ info: null, staff: [] });
+      if (url.includes('/profile')) return jsonResponse({ name: null });
       if (url.includes('/announcements')) return Promise.resolve({ ok: false, json: async () => ({}) });
       throw new Error(`unexpected fetch: ${url}`);
     });
@@ -81,6 +84,7 @@ describe('HomePage 先生からのメッセージ', () => {
     fetchMock.mockImplementation((url: string) => {
       if (url.includes('/clinic-branding')) return jsonResponse({ displayName: null, nav: {}, showPeriodontalDiagnosis: true });
       if (url.includes('/clinic-intro')) return jsonResponse({ info: null, staff });
+      if (url.includes('/profile')) return jsonResponse({ name: null });
       if (url.includes('/announcements')) return jsonResponse({ announcements: [] });
       throw new Error(`unexpected fetch: ${url}`);
     });
@@ -107,5 +111,38 @@ describe('HomePage 先生からのメッセージ', () => {
     render(<HomePage />);
     expect(await screen.findByText('メニュー')).toBeInTheDocument();
     expect(screen.queryByText('歯科衛生士')).not.toBeInTheDocument();
+  });
+});
+
+describe('HomePage あいさつカードの患者名', () => {
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stubProfile(name: string | null) {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/clinic-branding')) return jsonResponse({ displayName: null, nav: {}, showPeriodontalDiagnosis: true });
+      if (url.includes('/clinic-intro')) return jsonResponse({ info: null, staff: [] });
+      if (url.includes('/profile')) return jsonResponse({ name });
+      if (url.includes('/announcements')) return jsonResponse({ announcements: [] });
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+  }
+
+  it('取得した患者名を「◯◯ 様」の形式で表示する', async () => {
+    stubProfile('佐藤花子');
+    render(<HomePage />);
+    expect(await screen.findByText('佐藤花子 様')).toBeInTheDocument();
+  });
+
+  it('患者名が取得できない間・失敗時は汎用の「患者様」を表示する', async () => {
+    stubProfile(null);
+    render(<HomePage />);
+    expect(await screen.findByText('患者様')).toBeInTheDocument();
   });
 });

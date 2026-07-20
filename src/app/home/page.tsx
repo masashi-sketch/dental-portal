@@ -9,6 +9,7 @@ import PreviewModeBanner from '@/components/PreviewModeBanner';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import { usePrimaryDoctor } from '@/hooks/usePrimaryDoctor';
+import { usePatientProfile } from '@/hooks/usePatientProfile';
 import { isPatientNavKeyVisible, type PatientNavKey } from '@/lib/patientNav';
 import type { ClinicAnnouncement } from '@/lib/supabase/types';
 
@@ -154,6 +155,7 @@ const navCards: { label: string; desc: string; href: string; icon: React.ReactNo
 export default function HomePage() {
   const { clinicName, navVisibility } = usePatientClinicBranding();
   const { doctor } = usePrimaryDoctor();
+  const { name: patientName } = usePatientProfile();
   const [announcements, setAnnouncements] = useState<ClinicAnnouncement[] | null>(null);
 
   useEffect(() => {
@@ -244,13 +246,7 @@ export default function HomePage() {
           {/* あいさつカード */}
           <div className="bg-gradient-to-r from-[#2563EB] to-[#60a5fa] rounded-2xl p-5 sm:p-6 text-white">
             <p className="text-blue-100 text-sm mb-1">{greeting}、</p>
-            <p className="text-xl sm:text-2xl font-bold mb-3">◯◯　◯◯ 様</p>
-            <div className="flex items-center gap-3 bg-white/20 rounded-xl px-4 py-3 text-sm">
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-              </svg>
-              <span>次回のご予約：<span className="font-semibold">◯月◯日（◯）◯◯:◯◯</span></span>
-            </div>
+            <p className="text-xl sm:text-2xl font-bold">{patientName ? `${patientName} 様` : '患者様'}</p>
           </div>
 
           {/* 先生からのメッセージ */}

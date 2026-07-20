@@ -113,25 +113,17 @@ export default function MedicationPage() {
         <main className="flex-1 flex flex-col gap-6 min-w-0">
 
           {/* ご注文情報カード */}
-          <div className="bg-gradient-to-r from-[#2563EB] to-[#60a5fa] rounded-2xl p-5 sm:p-6 text-white">
-            <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-3">
-              ご注文情報
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
-              <div>
+          {activeOrder && (
+            <div className="bg-gradient-to-r from-[#2563EB] to-[#60a5fa] rounded-2xl p-5 sm:p-6 text-white">
+              <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-3">
+                ご注文情報
+              </span>
+              <div className="text-sm">
                 <p className="text-blue-100 text-xs mb-1">注文日</p>
-                <p className="font-semibold">◯月◯日（◯）</p>
-              </div>
-              <div>
-                <p className="text-blue-100 text-xs mb-1">担当スタッフ</p>
-                <p className="font-semibold">◯◯　◯◯</p>
-              </div>
-              <div>
-                <p className="text-blue-100 text-xs mb-1">次回受診予定</p>
-                <p className="font-semibold">◯月◯日（◯）◯◯:◯◯</p>
+                <p className="font-semibold">{new Date(activeOrder.ordered_at).toLocaleDateString('ja-JP')}</p>
               </div>
             </div>
-          </div>
+          )}
 
           {/* 歯周病の状態 */}
           {diagnosisLoaded && showPeriodontalDiagnosis && (
