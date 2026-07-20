@@ -363,7 +363,7 @@ DB変更SQLを提示するときは、以下をセットにする。
 
 追加サービスを先に契約せず、導入済みのSentryとNext.jsの標準機能を使う。
 
-1. **ブラウザ実測（RUM）**：小さいClient Componentで`useReportWebVitals`を使い、TTFB／FCP／LCP／INP／CLSと画面データ表示完了時間を記録する。Sentryへ送る属性はルート名・ポータル種別程度に限定し、患者名、医院名、メール、ID等の個人情報・機密情報は送らない。
+1. **ブラウザ実測（RUM）**：**2026-07-20実装済み**。`src/components/WebVitalsReporter.tsx`（`src/app/layout.tsx`に常時マウント）が`next/web-vitals`の`useReportWebVitals`でTTFB／FCP／LCP／INP／CLSを取得し、`metric.rating`が`good`以外（`needs-improvement`／`poor`）の計測のみSentryへ`captureMessage('web-vital.{name}')`で送信する（無料枠消費を抑えるため、良好な計測は送らない）。属性はルート名（`pathname`）・ポータル種別（`patient`/`clinic`/`bgj`、パス先頭で判定）のみで、患者名・医院名・メール・ID等は送らない。画面データ表示完了時間の個別計測はまだ未実装（次点候補）。
 2. **API／DB計測**：重要APIについて認証、Supabase照会、RPC、外部I/O、レスポンス生成を個別spanまたは`Server-Timing`で測定する。コールドスタートとウォーム時は分けて評価する。
 3. **自動シナリオ計測**：Playwrightで専用テストアカウントを使い、患者（ログイン→ホーム→受け取り→定期購入）、医院（ログイン→ダッシュボード→注文→患者詳細）、BGJ（ダッシュボード→得意先一覧→詳細→レポート）を測る。ウォームアップ後に各10回実行し、p50／p75／p95を`docs/performance-baseline.md`へ残す。公開・ログイン画面はLighthouseも併用する。
 4. **負荷試験**：本番書き込みでは実施せず、ステージングまたはSupabase branchで匿名化した300医院・4,000ユーザー・12ヶ月分相当のデータを使う。通常20同時接続、ピーク50、短時間スパイク100を基準シナリオとし、書き込みはテストデータと冪等キーを使う。
