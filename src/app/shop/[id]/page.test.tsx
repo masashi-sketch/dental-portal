@@ -23,6 +23,7 @@ function makeProduct(overrides: Partial<Product>): Product {
     price: 3980,
     unit: '本',
     image_type: 'supplement',
+    image_url: null,
     badge: '歯科医推奨',
     badge_color: 'indigo',
     subscription_available: true,

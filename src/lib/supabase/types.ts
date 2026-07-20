@@ -410,7 +410,7 @@ export const CLINIC_LOGIN_TOKEN_COLUMNS = 'id, clinic_user_id, expires_at, used_
 export type DbTableUsage = { table_name: string; size_bytes: number; row_estimate: number };
 
 // 商品マスタ（BGJポータル /bgj/master/products で管理、Shopify連携Phase 1）。
-// 画像は実ファイルを持たずimage_type（CSSグラデーション＋SVG描画キー）のみ。
+// image_urlが未設定の場合はimage_type（CSSグラデーション＋SVG描画キー）でフォールバック表示する。
 export type ProductCategory = 'お口と喉のケア' | '赤ちゃん・キッズ' | '抵抗力サポート' | '胃腸のサポート' | 'ペット向け';
 export type ProductImageType = 'supplement' | 'yogurt' | 'toothbrush' | 'oral';
 export type ProductBadgeColor = 'indigo' | 'rose' | 'amber' | 'emerald' | 'sky' | 'slate';
@@ -423,6 +423,7 @@ export type Product = {
   price: number;
   unit: string | null;
   image_type: ProductImageType;
+  image_url: string | null;
   badge: string | null;
   badge_color: ProductBadgeColor | null;
   subscription_available: boolean;
@@ -441,7 +442,7 @@ export type Product = {
 };
 
 export const PRODUCT_COLUMNS =
-  'id, name, category, description, price, unit, image_type, badge, badge_color, subscription_available, volume, ingredients, how_to_use, caution, working_point, daily_amount, recommendation_level, doctor_comment, status, sort_order, created_at, updated_at';
+  'id, name, category, description, price, unit, image_type, image_url, badge, badge_color, subscription_available, volume, ingredients, how_to_use, caution, working_point, daily_amount, recommendation_level, doctor_comment, status, sort_order, created_at, updated_at';
 
 // 医院ごとの患者ポータル表示設定。行が無い商品は「表示」扱い。
 export type ClinicProductSetting = {

@@ -40,6 +40,9 @@ export function validateProductBody(body: unknown): { row: ValidatedRow } | { er
 
   const optionalText = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
+  const imageUrl = optionalText(b.imageUrl);
+  if (imageUrl && !/^https?:\/\//.test(imageUrl)) return { error: '画像URLの形式が不正です。' };
+
   return {
     row: {
       name,
@@ -48,6 +51,7 @@ export function validateProductBody(body: unknown): { row: ValidatedRow } | { er
       price,
       unit: optionalText(b.unit),
       image_type: imageType,
+      image_url: imageUrl,
       badge: optionalText(b.badge),
       badge_color: badgeColor,
       subscription_available: !!b.subscriptionAvailable,

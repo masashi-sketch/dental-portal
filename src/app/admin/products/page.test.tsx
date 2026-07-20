@@ -26,6 +26,7 @@ const product: Product & { isVisible: boolean } = {
   price: 3980,
   unit: '本',
   image_type: 'supplement',
+  image_url: null,
   badge: '歯科医推奨',
   badge_color: 'indigo',
   subscription_available: true,

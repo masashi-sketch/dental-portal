@@ -13,6 +13,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import LoadingState from "@/components/ui/LoadingState";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import ProductVisual from "@/components/ProductVisual";
 
 type ProductForm = {
   name: string;
@@ -21,6 +22,7 @@ type ProductForm = {
   price: string;
   unit: string;
   imageType: string;
+  imageUrl: string;
   badge: string;
   badgeColor: string;
   subscriptionAvailable: boolean;
@@ -43,6 +45,7 @@ const EMPTY_FORM: ProductForm = {
   price: "",
   unit: "",
   imageType: "supplement",
+  imageUrl: "",
   badge: "",
   badgeColor: "",
   subscriptionAvailable: false,
@@ -66,6 +69,7 @@ function toForm(p: Product): ProductForm {
     price: String(p.price),
     unit: p.unit ?? "",
     imageType: p.image_type,
+    imageUrl: p.image_url ?? "",
     badge: p.badge ?? "",
     badgeColor: p.badge_color ?? "",
     subscriptionAvailable: p.subscription_available,
@@ -90,6 +94,7 @@ function toRequestBody(form: ProductForm) {
     price: Number(form.price),
     unit: form.unit,
     imageType: form.imageType,
+    imageUrl: form.imageUrl || null,
     badge: form.badge,
     badgeColor: form.badgeColor || null,
     subscriptionAvailable: form.subscriptionAvailable,
@@ -120,6 +125,7 @@ export default function ProductsMasterPage() {
   const [editItem, setEditItem] = useState<Product | null>(null);
   const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fetchProducts = () => {
@@ -178,6 +184,25 @@ export default function ProductsMasterPage() {
     }
   };
 
+  const handleImageUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/bgj/products/upload-image", { method: "POST", body: fd });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? "画像のアップロードに失敗しました");
+      }
+      const data = await res.json();
+      setForm((f) => ({ ...f, imageUrl: data.url }));
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     try {
       const res = await fetch(`/api/bgj/products/${id}`, { method: "DELETE" });
@@ -223,6 +248,7 @@ export default function ProductsMasterPage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">画像</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">商品名</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">カテゴリ</th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500">価格</th>
@@ -234,12 +260,15 @@ export default function ProductsMasterPage() {
               </tr>
             </thead>
             <tbody>
-              {loading && <LoadingState variant="table-row" colSpan={8} />}
+              {loading && <LoadingState variant="table-row" colSpan={9} />}
               {!loading && products.length === 0 && (
-                <tr><td colSpan={8} className="px-5 py-8 text-center text-slate-400">商品がまだ登録されていません</td></tr>
+                <tr><td colSpan={9} className="px-5 py-8 text-center text-slate-400">商品がまだ登録されていません</td></tr>
               )}
               {products.map((p) => (
                 <tr key={p.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
+                  <td className="px-5 py-3">
+                    <ProductVisual type={p.image_type} imageUrl={p.image_url} className="w-10 h-10 rounded-lg flex items-center justify-center" />
+                  </td>
                   <td className="px-5 py-3 text-slate-800 font-semibold">{p.name}</td>
                   <td className="px-5 py-3 text-slate-600">{p.category}</td>
                   <td className="px-5 py-3 text-right text-slate-800">¥{p.price.toLocaleString()}</td>
@@ -291,10 +320,36 @@ export default function ProductsMasterPage() {
                 </select>
               </div>
               <div>
-                <label className={labelClass}>画像タイプ</label>
+                <label className={labelClass}>画像タイプ（画像未アップロード時のプレースホルダー）</label>
                 <select value={form.imageType} onChange={(e) => setForm({ ...form, imageType: e.target.value })} className={inputClass}>
                   {PRODUCT_IMAGE_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>商品画像（jpeg/png/webp/gif、5MBまで）</label>
+                <div className="flex items-center gap-3">
+                  <ProductVisual type={form.imageType} imageUrl={form.imageUrl || null} className="w-16 h-16 rounded-lg flex items-center justify-center shrink-0" />
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      data-testid="product-image-file-input"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      disabled={uploading}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file);
+                        e.target.value = "";
+                      }}
+                      className="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
+                    />
+                    {uploading && <p className="text-xs text-slate-400 mt-1">アップロード中...</p>}
+                    {form.imageUrl && !uploading && (
+                      <button type="button" onClick={() => setForm({ ...form, imageUrl: "" })} className="text-xs text-red-600 hover:text-red-800 mt-1">
+                        画像を削除
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
               <div>
                 <label className={labelClass}>価格（税込・円、必須）</label>

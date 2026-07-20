@@ -18,6 +18,7 @@ function makeProduct(overrides: Partial<Product>): Product {
     price: 1000,
     unit: '本',
     image_type: 'supplement',
+    image_url: null,
     badge: null,
     badge_color: null,
     subscription_available: false,

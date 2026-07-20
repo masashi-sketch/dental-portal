@@ -121,12 +121,20 @@ describe('POST /api/bgj/products', () => {
     expect(insertSpy).not.toHaveBeenCalled();
   });
 
+  it('imageUrlの形式が不正（httpから始まらない）なら400', async () => {
+    sessionValue = makeSession();
+    const res = await POST(makeRequest({ ...validBody, imageUrl: 'not-a-url' }));
+    expect(res.status).toBe(400);
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+
   it('bgjロールなら作成でき、snake_caseの行に変換される（未入力の任意項目はnull）', async () => {
     sessionValue = makeSession();
     const res = await POST(
       makeRequest({
         ...validBody,
         imageType: 'oral',
+        imageUrl: 'https://example.supabase.co/storage/v1/object/public/product-images/test.png',
         badge: '新着',
         badgeColor: 'rose',
         subscriptionAvailable: true,
@@ -143,6 +151,7 @@ describe('POST /api/bgj/products', () => {
         category: 'お口と喉のケア',
         price: 1000,
         image_type: 'oral',
+        image_url: 'https://example.supabase.co/storage/v1/object/public/product-images/test.png',
         badge: '新着',
         badge_color: 'rose',
         subscription_available: true,

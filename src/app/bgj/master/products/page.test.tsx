@@ -17,6 +17,7 @@ const product: Product = {
   price: 3980,
   unit: '本',
   image_type: 'supplement',
+  image_url: null,
   badge: '歯科医推奨',
   badge_color: 'indigo',
   subscription_available: true,
@@ -93,6 +94,39 @@ describe('ProductsMasterPage', () => {
     const body = JSON.parse((postCall![1] as RequestInit).body as string);
     expect(body.name).toBe('新しいサプリ');
     expect(body.price).toBe(2000);
+  });
+
+  it('画像を選択するとアップロードAPIへPOSTし、保存時のbodyにimageUrlが含まれる', async () => {
+    const uploadedUrl = 'https://example.supabase.co/storage/v1/object/public/product-images/a.png';
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/bgj/products/upload-image') return jsonResponse({ url: uploadedUrl }, true);
+      if (init?.method === 'POST') return jsonResponse({ product }, true);
+      return jsonResponse({ products: [] });
+    });
+    render(<ProductsMasterPage />);
+    await screen.findByText('商品がまだ登録されていません');
+
+    fireEvent.click(screen.getByText('商品を追加'));
+    fireEvent.change(screen.getByPlaceholderText('例）オーラルプロバイオティクス 30日分'), { target: { value: '新しいサプリ' } });
+    fireEvent.change(screen.getByPlaceholderText('例）3980'), { target: { value: '2000' } });
+
+    const file = new File(['x'], 'a.png', { type: 'image/png' });
+    const fileInput = screen.getByTestId('product-image-file-input');
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/bgj/products/upload-image', expect.objectContaining({ method: 'POST' }));
+    });
+    await screen.findByText('画像を削除');
+
+    fireEvent.click(screen.getByText('追加'));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/bgj/products', expect.objectContaining({ method: 'POST' }));
+    });
+    const postCall = fetchMock.mock.calls.find(([url, init]) => url === '/api/bgj/products' && (init as RequestInit)?.method === 'POST');
+    const body = JSON.parse((postCall![1] as RequestInit).body as string);
+    expect(body.imageUrl).toBe(uploadedUrl);
   });
 
   it('編集を開くと既存値がフォームに入り、更新でPATCHが飛ぶ', async () => {

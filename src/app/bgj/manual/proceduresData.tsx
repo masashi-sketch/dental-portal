@@ -530,10 +530,10 @@ create table public.clinic_product_settings (
           <strong>API構成：</strong>BGJ用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/products</code>（全ハンドラ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">requireBgjSession</code>）、医院用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/admin/product-settings</code>（GETは公開商品＋自院設定のマージ、PATCHはclinicロール限定のupsert）、患者用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/patient-portal/products</code>（公開商品から非表示分を除外した一覧のみ）。<strong>患者用APIは意図的に一覧のみで単品取得パラメータを持たない</strong>（詳細ページも一覧からfindするため、非表示・非公開の商品は直接URLアクセスでも自動的に「見つかりません」になり、認可の抜け道ができない）。
         </p>
         <p>
-          商品画像は実ファイルを持たず<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_type</code>（CSSグラデーション＋SVG描画、共通コンポーネント<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ProductVisual.tsx</code>）のみ。実画像はPhase 2のShopify同期時に<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_url</code>列を追加して対応予定。バッジ色・カテゴリ等の候補値は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/productDisplay.ts</code>（静的クラス名マップ、clinicStatusColors.tsと同方式）に集約している。
+          商品画像は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_url</code>（実ファイル、手順19参照）が未設定の場合に<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_type</code>（CSSグラデーション＋SVG描画、共通コンポーネント<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ProductVisual.tsx</code>）でフォールバック表示する。バッジ色・カテゴリ等の候補値は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/productDisplay.ts</code>（静的クラス名マップ、clinicStatusColors.tsと同方式）に集約している。
         </p>
         <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
-          <strong>外部連携待ち：</strong>Shopify同期・実画像・決済・定期購入契約の確定/変更/解約、医院別の先生コメント編集。定期購入の商品表示と患者注文・受け取り進捗は、後述の手順18まで実データ化済み。
+          <strong>外部連携待ち：</strong>Shopify同期・決済・定期購入契約の確定/変更/解約、医院別の先生コメント編集。商品画像・定期購入の商品表示・患者注文と受け取り進捗は、後述の手順19・18まで実データ化済み。
         </p>
       </>
     ),
@@ -559,6 +559,28 @@ create table public.clinic_product_settings (
         </p>
         <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
           <strong>未実装：</strong>決済・在庫確定・定期課金・Shopify webhook・Salesforce同期。画面だけ成功に見せる仮処理は作らず、外部仕様確定後にアダプターとして追加する。
+        </p>
+      </>
+    ),
+  },
+  {
+    key: "19",
+    label: "19. 商品画像アップロード（Supabase Storage）",
+    content: (
+      <>
+        <p>
+          商品マスタ（手順17）にSupabase Storageへの実画像アップロード機能を追加した。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">products.image_url</code>が設定されている商品は共通コンポーネント<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">ProductVisual.tsx</code>が実画像を表示し、未設定の商品は従来通り<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_type</code>のグラデーション表示にフォールバックする。
+        </p>
+        <ul className="list-disc list-inside pl-2">
+          <li><strong>バケット：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">product-images</code>（public、5MB上限、jpeg/png/webp/gifのみ許可をバケット設定にも二重で設定）。このプロジェクトでSupabase Storageを使うのはこれが最初。</li>
+          <li><strong>アップロードAPI：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/products/upload-image</code>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">requireBgjSession</code>限定）。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">FormData</code>で受け取ったファイルをMIME・サイズ検証後、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">crypto.randomUUID()</code>で採番したファイル名でservice_roleキーによりアップロードし、公開URLを返す。</li>
+          <li><strong>保存の流れ：</strong>BGJの商品追加・編集モーダルでファイルを選択すると即アップロードして公開URLをフォームstateに保持し、他フィールドと一緒に既存の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">POST/PATCH /api/bgj/products</code>で保存する（新規商品もID発行前にアップロードできるよう、商品IDに依存しない設計）。</li>
+        </ul>
+        <p>
+          <strong>セキュリティ設計：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">storage.objects</code>にはRLSポリシーを一切定義しない。読み取りはpublicバケットのpublicエンドポイントで完結し、書き込みは上記APIのservice_roleキー経由のみに限定される（DBの「RLS有効・ポリシーなし・service_roleキー経由のみ」という既存方針をStorageにも踏襲したもの。商品写真自体は非機密の販促用コンテンツのため読み取りのみ意図的に公開にしている）。
+        </p>
+        <p className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
+          <strong>既知の制約：</strong>画像差し替え・商品削除時に旧Storageオブジェクトの自動削除は行わない（意図的なスコープ外）。
         </p>
       </>
     ),

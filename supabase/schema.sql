@@ -627,9 +627,10 @@ create trigger trg_clinic_announcements_updated_at
 -- ============================================================
 -- 9.9. 商品マスタ（BGJポータル /bgj/master/products で管理）と
 --      医院ごとの患者ポータル表示設定（Shopify連携ロードマップPhase 1）。
---      患者ポータル /shop・/shop/[id] はこの実データを表示する。
---      画像は実ファイルを持たず image_type（CSSグラデーション＋SVG描画キー）のみ。
---      実画像はPhase 2のShopify同期時に image_url 列を追加して対応予定。
+--      患者ポータル /shop・/shop[id] はこの実データを表示する。
+--      image_urlが未設定の場合はimage_type（CSSグラデーション＋SVG描画キー）でフォールバック表示する。
+--      image_urlはSupabase Storageのpublicバケット product-images（storage.buckets、本ファイル末尾の
+--      Storage設定コメント参照）にBGJが管理画面からアップロードした画像の公開URLを保存する。
 -- ============================================================
 create table public.products (
   id            uuid primary key default gen_random_uuid(),
@@ -641,6 +642,7 @@ create table public.products (
   unit          text,                -- 例「本」「個」「セット」
   image_type    text not null default 'supplement'
     check (image_type in ('supplement','yogurt','toothbrush','oral')),
+  image_url     text,                -- Supabase Storage（product-imagesバケット）の公開URL。未設定ならimage_typeのプレースホルダーを表示
   badge         text,                -- 例「歯科医推奨」（null=バッジなし）
   badge_color   text check (badge_color in ('indigo','rose','amber','emerald','sky','slate')),
   subscription_available boolean not null default false,
@@ -673,6 +675,16 @@ create table public.clinic_product_settings (
   updated_at    timestamptz not null default now(),
   primary key (customer_code, product_id)
 );
+
+-- 商品画像用Storageバケット（products.image_url）。publicバケットのため読み取りは
+-- publicエンドポイント経由で誰でも取得可（商品写真は非機密の販促用コンテンツ）。
+-- storage.objectsへのポリシーは定義せず、書き込みは/api/bgj/products/upload-image
+-- （service_roleキー・BGJ限定）経由のみに限定する。
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('product-images', 'product-images', true, 5242880, array['image/jpeg','image/png','image/webp','image/gif'])
+on conflict (id) do update set
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
 
 -- ============================================================
 -- 9.10. 患者注文・受け取り進捗

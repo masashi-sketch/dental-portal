@@ -55,11 +55,20 @@ const CONFIG: Record<ProductImageType, { from: string; to: string; icon: React.R
 
 export default function ProductVisual({
   type,
+  imageUrl,
   className = 'w-full h-36 sm:h-44 flex items-center justify-center rounded-t-2xl',
 }: {
   type: ProductImageType | string;
+  imageUrl?: string | null;
   className?: string;
 }) {
+  if (imageUrl) {
+    // Supabase Storageの公開URLは任意ホストのため、SalesRepAvatar.tsxと同じ理由で
+    // next/imageのremotePatterns設定を避け、素の<img>タグを使う。
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img data-testid="product-visual" src={imageUrl} alt="" className={`${className} object-cover`} />;
+  }
+
   const c = CONFIG[type as ProductImageType] ?? CONFIG.oral;
   return (
     <div

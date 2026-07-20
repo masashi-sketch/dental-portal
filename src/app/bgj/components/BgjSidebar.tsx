@@ -126,6 +126,8 @@ const navItems: NavItem[] = [
           { label: "15. BGJ患者一覧", href: "/bgj/manual?tab=procedure&step=15" },
           { label: "16. 医院スタッフのパスワードリセット", href: "/bgj/manual?tab=procedure&step=16" },
           { label: "17. 商品マスタと医院ごとの表示設定", href: "/bgj/manual?tab=procedure&step=17" },
+          { label: "18. 患者注文・受け取り進捗（外部連携前）", href: "/bgj/manual?tab=procedure&step=18" },
+          { label: "19. 商品画像アップロード（Supabase Storage）", href: "/bgj/manual?tab=procedure&step=19" },
         ],
       },
     ],

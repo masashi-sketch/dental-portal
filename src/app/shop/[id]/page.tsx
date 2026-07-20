@@ -183,7 +183,7 @@ export default function ProductDetailPage() {
                   {/* 画像エリア */}
                   <div className="sm:w-72 sm:shrink-0 p-4 sm:p-6">
                     <div className="relative">
-                      <ProductVisual type={product.image_type} className="w-full h-64 sm:h-72 flex items-center justify-center rounded-2xl" />
+                      <ProductVisual type={product.image_type} imageUrl={product.image_url} className="w-full h-64 sm:h-72 flex items-center justify-center rounded-2xl" />
                       {product.badge && product.badge_color && (
                         <span className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full ${PRODUCT_BADGE_CLASS[product.badge_color]}`}>
                           {product.badge}
@@ -271,7 +271,7 @@ export default function ProductDetailPage() {
                         href={`/shop/${p.id}`}
                         className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                       >
-                        <ProductVisual type={p.image_type} className="w-full h-44 flex items-center justify-center rounded-t-2xl" />
+                        <ProductVisual type={p.image_type} imageUrl={p.image_url} className="w-full h-44 flex items-center justify-center rounded-t-2xl" />
                         <div className="p-3">
                           <p className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1">{p.name}</p>
                           <p className="text-sm font-bold text-gray-900">

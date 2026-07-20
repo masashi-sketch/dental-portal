@@ -277,7 +277,7 @@ export default function ShopPage() {
                 >
                   {/* 商品画像（詳細ページへリンク） */}
                   <Link href={`/shop/${product.id}`} className="relative block">
-                    <ProductVisual type={product.image_type} />
+                    <ProductVisual type={product.image_type} imageUrl={product.image_url} />
                     {product.badge && product.badge_color && (
                       <span className={`absolute top-3 left-3 text-[11px] font-semibold px-2 py-0.5 rounded-full ${PRODUCT_BADGE_CLASS[product.badge_color]}`}>
                         {product.badge}
