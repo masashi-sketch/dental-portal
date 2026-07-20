@@ -8,14 +8,8 @@
     { "ruleId": "test-tenant-name", "file": "src/app/admin/components/AdminSidebar.tsx", "expectedOccurrences": 2, "classification": "P1", "reason": "医院情報取得前のfallbackを汎用名へ変更する" },
     { "ruleId": "hardcoded-customer-code", "file": "src/app/admin/patients/page.tsx", "expectedOccurrences": 1, "classification": "STATIC", "reason": "BGJ代理操作時の得意先コード入力例であり、業務データ表示ではない" },
     { "ruleId": "hardcoded-customer-code", "file": "src/app/bgj/customers/page.tsx", "expectedOccurrences": 1, "classification": "STATIC", "reason": "得意先新規登録フォームの入力例であり、業務データ表示ではない" },
-    { "ruleId": "hardcoded-business-collection", "file": "src/app/bgj/dashboard/MonthlySalesChart.tsx", "expectedOccurrences": 1, "classification": "P0", "reason": "月次売上チャートが固定配列" },
-    { "ruleId": "hardcoded-business-collection", "file": "src/app/bgj/dashboard/page.tsx", "expectedOccurrences": 4, "classification": "P0", "reason": "アラート・注文・医院ランキング・KPIが固定配列" },
-    { "ruleId": "fixed-business-date", "file": "src/app/bgj/dashboard/page.tsx", "expectedOccurrences": 6, "classification": "P0", "reason": "固定注文日と固定集計月を実データの期間へ置き換える" },
     { "ruleId": "hardcoded-customer-code", "file": "src/app/bgj/master/staff/page.tsx", "expectedOccurrences": 3, "classification": "P1", "reason": "担当変更履歴が固定サンプル。監査ログ実装まで欄を撤去する" },
     { "ruleId": "fixed-business-date", "file": "src/app/bgj/master/staff/page.tsx", "expectedOccurrences": 3, "classification": "P1", "reason": "担当変更履歴の日付が固定サンプル" },
-    { "ruleId": "hardcoded-business-collection", "file": "src/app/bgj/reports/ReportsCharts.tsx", "expectedOccurrences": 2, "classification": "P0", "reason": "月次・エリア別チャートが固定配列" },
-    { "ruleId": "hardcoded-business-collection", "file": "src/app/bgj/reports/page.tsx", "expectedOccurrences": 3, "classification": "P0", "reason": "担当別・エリア別・上位得意先が固定配列" },
-    { "ruleId": "fixed-business-date", "file": "src/app/bgj/reports/page.tsx", "expectedOccurrences": 1, "classification": "P0", "reason": "レポート対象期間が固定表示" },
     { "ruleId": "business-placeholder", "file": "src/app/clinic/page.tsx", "expectedOccurrences": 1, "classification": "P1", "reason": "診療メニューの説明が伏字固定値" },
     { "ruleId": "test-tenant-name", "file": "src/app/layout.tsx", "expectedOccurrences": 3, "classification": "P1", "reason": "root metadataを汎用名または医院別metadataへ変更する" }
   ]

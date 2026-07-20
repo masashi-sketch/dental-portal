@@ -65,8 +65,8 @@
 | # | ルート | 現在のデータ源 | 判定 | 次の対応 |
 |---:|---|---|---|---|
 | 37 | `/bgj` | `/bgj/dashboard`へのserver redirect | 静的許可 | 維持 |
-| 38 | `/bgj/dashboard` | KPI・アラート・注文・ランキング・グラフが固定配列 | **P0** | `clinic_orders`、`clinic_visits`、医院・担当者マスタの集計RPCへ置換 |
-| 39 | `/bgj/reports` | 担当別・エリア別・上位得意先・グラフ・期間が固定 | **P0** | 実集計API化し、CSVも表示中の実データから生成 |
+| 38 | `/bgj/dashboard` | `get_bgj_dashboard_overview` RPC（`clinic_orders`・`clinic_visits`・医院・担当者マスタの集計） | 対応済み | KPI・アラート・注文・ランキング・月次売上推移を実データ化。アラート閾値は`/bgj/system/settings`でBGJが自己管理 |
+| 39 | `/bgj/reports` | `get_bgj_sales_report` RPC | 対応済み | サマリー・月次推移・担当別・エリア別・上位得意先を実データ化。CSV出力は表示中タブの実データから生成。集計期間（月数）は`/bgj/system/settings`でBGJが自己管理 |
 | 40 | `/bgj/customers` | 医院・取引条件・営業担当・ステータスAPI | 実データ | 4 API初期取得を性能計測対象にする |
 | 41 | `/bgj/customers/[code]` | 医院詳細と各タブの実API | 実データ | 初期取得とタブ別取得を性能計測対象にする |
 | 42 | `/bgj/patients` | BGJ患者検索API | 実データ | 維持 |
@@ -90,8 +90,8 @@
 | `src/app/admin/components/AdminSidebar.tsx` | キャンペーン・記事の未読数と更新日時が固定 | 対応済み | `CONTENT_UNREAD`・未読バッジ表示ロジックを撤去（`/admin/campaign`・`/admin/biogaia`自体の操作無効化は#35・#36で対応済み） |
 | `src/components/Header.tsx` / `Footer.tsx` | テスト医院名、`href="#"` | 対応済み | プロジェクト全体からimportされていない未使用コンポーネントと判明し削除（付随して同様に未使用だった`Sidebar.tsx`・`src/lib/constants.ts`も削除） |
 | `src/app/layout.tsx` | metadataがテスト医院名 | **P1** | 汎用metadataまたは医院別metadataへ変更 |
-| `bgj/dashboard/MonthlySalesChart.tsx` | 売上推移が固定 | **P0** | dashboard集計結果をpropsで受け取る |
-| `bgj/reports/ReportsCharts.tsx` | 月次・エリア別データが固定 | **P0** | reports集計結果をpropsで受け取る |
+| `bgj/dashboard/MonthlySalesChart.tsx` | 売上推移が固定 | 対応済み | `monthlySales`をpropsで受け取る設計に変更。担当者別直接描画は上位4名までとし、超過分は「その他」に合算（dataviz skillのCVD検証済みカテゴリカル色は4色まで） |
+| `bgj/reports/ReportsCharts.tsx` | 月次・エリア別データが固定 | 対応済み | `monthlyTrend`・`byArea`をpropsで受け取る設計に変更 |
 | `src/components/ProductVisual.tsx` | 実画像前の生成ビジュアル | 静的許可／外部待ち | 「画像準備中」相当として維持し、Shopify商品画像連携時に置換 |
 
 ## CI監査の運用

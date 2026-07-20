@@ -585,4 +585,40 @@ create table public.clinic_product_settings (
       </>
     ),
   },
+  {
+    key: "20",
+    label: "20. BGJダッシュボード・レポートの実データ化",
+    content: (
+      <>
+        <p>
+          <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/dashboard</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/reports</code>のKPI・アラート・売上推移・担当別／エリア別集計・ランキングは、全て固定配列だった。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">get_admin_overview</code>と同じ設計規約（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">security definer</code>＋service_role限定）の新規RPC<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">get_bgj_dashboard_overview</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">get_bgj_sales_report</code>に置き換えた。
+        </p>
+        <ul className="list-disc list-inside pl-2">
+          <li><strong>ダッシュボード：</strong>総得意先数・今月売上・要フォロー件数・休眠リスク件数、要フォローアラート一覧、直近6ヶ月の月次売上推移（全体＋担当者別）、直近注文5件、当月ランキング上位5件。</li>
+          <li><strong>レポート：</strong>対象期間の売上合計・月平均・総注文件数・平均注文単価・前年比、月次推移、担当別（得意先数・当月売上・当月訪問数・1得意先あたり売上）、エリア別、上位得意先TOP5。</li>
+        </ul>
+        <p className="font-bold text-slate-800 mt-2">アラート閾値・集計期間の自己管理（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/system/settings</code>）</p>
+        <p>
+          「何日未注文で要フォローとするか」を架空の固定日数にせず、BGJが自己管理できる設定値にした。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">app_settings</code>に4列追加：
+        </p>
+        <ul className="list-disc list-inside pl-2">
+          <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">dashboard_followup_days</code>（既定60）：この日数以上未注文で「要フォロー」。</li>
+          <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">dashboard_dormant_days</code>（既定90）：この日数以上未注文で「休眠・解約リスク」。要フォロー閾値より大きい値というDB制約あり。</li>
+          <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">dashboard_include_never_ordered</code>（既定true）：1件も注文が無い得意先を、契約開始日（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">contract_since</code>）起点の経過日数でアラート対象に含めるか。</li>
+          <li><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">report_period_months</code>（既定6、1〜24）：レポート画面の集計対象月数（現在月を含む直近Nヶ月のローリング窓）。</li>
+        </ul>
+        <p>
+          旧固定データにあった「30日で軽微アラート」という3段階目は、上記2閾値（medium/high）に対応しない項目のため廃止し、2段階＋「担当未割当」フラグ（日数条件と独立に必ず付与）に単純化した。
+        </p>
+        <p className="font-bold text-slate-800 mt-2">月次売上推移グラフの担当者別内訳</p>
+        <p>
+          担当者数が増えても破綻しないよう、直接描画する系列は当該期間の合計値降順で上位4名までに制限し、残りは「その他」1本に合算する（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">MonthlySalesChart.tsx</code>の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">buildMonthlySalesChartData</code>）。色の割り当ては選ばれた上位4名の中で<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">staffId</code>の昇順に固定し、他の担当者の実績変動で色が入れ替わらないようにしている。
+        </p>
+        <p className="font-bold text-slate-800 mt-2">CSV出力</p>
+        <p>
+          <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/reports</code>のCSV出力ボタン（旧実装は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">onClick</code>未接続のダミー）を接続した。新規サーバーエンドポイントは作らず、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/csv.ts</code>（RFC4180エスケープ＋UTF-8 BOM付与）でクライアント側の取得済みJSONから生成し、現在選択中のタブのテーブルをそのままエクスポートする。
+        </p>
+      </>
+    ),
+  },
 ];
