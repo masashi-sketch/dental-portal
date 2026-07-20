@@ -42,6 +42,28 @@ export function Steps({
   );
 }
 
+// システム手順の文章（<Steps>の番号付きリストではなく<p>/<Code>の自由記述）に
+// 画像を添えるための汎用ラッパー。左に既存の文章、右に画面キャプチャを置く。
+export function WithImage({
+  image,
+  children,
+}: {
+  image: { src: string; alt: string };
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2 items-start">
+      <div className="flex flex-col gap-4">{children}</div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={image.src}
+        alt={image.alt}
+        className="w-full h-auto rounded-xl border border-slate-200"
+      />
+    </div>
+  );
+}
+
 export type SubTabItem = { label: string; content: React.ReactNode; activeClassName?: string };
 
 // カードを縦に積んでスクロールさせるのではなく、タブで1つずつ切り替えて見せるための

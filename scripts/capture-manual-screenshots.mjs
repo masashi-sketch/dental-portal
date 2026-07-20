@@ -45,27 +45,43 @@ async function newBgjPage(browser) {
 async function newClinicPage(browser) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
-  await page.goto(`${BASE_URL}/clinic-login`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE_URL}/clinic-login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  // domcontentloaded直後はReactのhydrationが終わっていないことがあり、
+  // その状態でfillすると直後の再レンダリングで入力値が空文字に巻き戻される
+  // （controlled inputがhydration後にstate側の初期値へ揃うため）。
+  // hydration完了の目印としてボタンがクリック可能になるまで待ってから入力する。
+  const loginButton = page.getByRole('button', { name: 'ログイン' });
+  await loginButton.waitFor({ state: 'visible' });
+  await page.waitForTimeout(800);
   await page.fill('input[type="text"]', CLINIC_LOGIN_ID);
   await page.fill('input[type="password"]', CLINIC_LOGIN_PASSWORD);
-  await page.getByRole('button', { name: 'ログイン' }).click();
-  await page.waitForTimeout(1000);
-  await page.waitForLoadState('networkidle');
+  await loginButton.click();
+  // NextAuthのcredentialsサインインはdevサーバー負荷時に数秒かかることがあるため、
+  // 固定待機ではなくセッションCookieが実際に付与されるまでポーリングする。
+  const deadline = Date.now() + 20000;
+  while (Date.now() < deadline) {
+    const cookies = await page.context().cookies();
+    if (cookies.some((c) => c.name === 'authjs.session-token')) break;
+    await page.waitForTimeout(500);
+  }
+  await page.waitForTimeout(500);
   return page;
 }
 
 async function newPatientPreviewPage(browser) {
   const page = await newClinicPage(browser);
-  await page.goto(`${BASE_URL}/admin/patients`, { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: /プレビュー/ }).first().click();
-  await page.waitForTimeout(500);
-  await page.waitForLoadState('networkidle');
+  await page.goto(`${BASE_URL}/admin/patients`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.getByRole('button', { name: /プレビュー/ }).first().click({ timeout: 60000 });
+  await page.waitForTimeout(1200);
   return page;
 }
 
-async function shoot(page, { path: targetPath, tabClick, file, waitAfterNav = 600, waitAfterTab = 700, target = 'main', cardSelector }) {
+async function shoot(page, { path: targetPath, tabClick, file, waitAfterNav = 1200, waitAfterTab = 700, target = 'main', cardSelector }) {
   if (targetPath) {
-    await page.goto(`${BASE_URL}${targetPath}`, { waitUntil: 'networkidle' });
+    // dev serverはHMR再コンパイル・複数コンテキストの同時アクセスで重くなりやすく、
+    // networkidle待ちはフォントのpreload等で不安定にタイムアウトすることがあるため、
+    // domcontentloaded＋明示的な要素待ちに寄せる。
+    await page.goto(`${BASE_URL}${targetPath}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForTimeout(waitAfterNav);
   }
   if (tabClick) {
@@ -77,7 +93,7 @@ async function shoot(page, { path: targetPath, tabClick, file, waitAfterNav = 60
     : target === 'body'
       ? page.locator('body')
       : page.locator('main').first();
-  await region.waitFor({ state: 'visible' });
+  await region.waitFor({ state: 'visible', timeout: 60000 });
   const box = await region.boundingBox();
   const outPath = path.join(OUT_DIR, file);
   if (box && box.height > MAX_SHOT_HEIGHT) {
@@ -155,6 +171,30 @@ const manifest = {
       shots: [
         { path: `/bgj/customers/${CLINIC_CODE}`, tabClick: '接続情報', file: 'bgj-customer-connection-tab.png' },
       ],
+    },
+  ],
+  batch4: [
+    {
+      role: 'bgj',
+      shots: [
+        { path: '/bgj/system/dashboard', file: 'bgj-system-dashboard.png', waitAfterNav: 6000 },
+        { path: '/bgj/patients', file: 'bgj-patients-list.png', waitAfterNav: 4000 },
+        { path: '/bgj/master/products', file: 'bgj-master-products-list.png' },
+        { tabClick: '商品を追加', file: 'bgj-master-products-modal.png', cardSelector: '.rounded-2xl' },
+        { path: '/bgj/dashboard', file: 'bgj-dashboard.png', waitAfterNav: 8000 },
+        { path: '/bgj/reports', file: 'bgj-reports.png', waitAfterNav: 8000 },
+      ],
+    },
+    {
+      role: 'admin',
+      shots: [
+        { path: '/admin/products', file: 'admin-products.png', waitAfterNav: 8000 },
+        { path: '/admin/orders', file: 'admin-orders.png' },
+      ],
+    },
+    {
+      role: 'patient',
+      shots: [{ path: '/shop', file: 'patient-shop.png', waitAfterNav: 9000 }],
     },
   ],
   // /join/[slug]/mobile は得意先のsignup_slug（PIN再発行のたびに変わる）に依存するため
