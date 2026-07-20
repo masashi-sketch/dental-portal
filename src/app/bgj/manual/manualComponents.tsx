@@ -10,13 +10,34 @@ export function Code({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Steps({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
+export function Steps({
+  title,
+  image,
+  children,
+}: {
+  title: string;
+  image?: { src: string; alt: string };
+  children: React.ReactNode;
+}) {
+  const body = (
     <div>
       <p className="text-sm font-bold text-slate-800 mb-2">{title}</p>
       <ol className="list-decimal list-inside text-sm text-slate-700 leading-relaxed flex flex-col gap-1.5 pl-1">
         {children}
       </ol>
+    </div>
+  );
+  if (!image) return body;
+  return (
+    <div className="grid gap-4 md:grid-cols-2 items-start">
+      {body}
+      {/* 画面ごとにアスペクト比が異なりnext/imageのwidth/height固定が不向きなため素のimgタグを使う */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={image.src}
+        alt={image.alt}
+        className="w-full h-auto rounded-xl border border-slate-200"
+      />
     </div>
   );
 }

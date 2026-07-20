@@ -21,7 +21,7 @@ function ManualPageContent() {
   if (tab === "procedure") {
     const step = procedureSteps.find((s) => s.key === searchParams.get("step")) ?? procedureSteps[0];
     return (
-      <div className="p-4 sm:p-6 max-w-3xl">
+      <div className="p-4 sm:p-6 max-w-6xl">
         <header className="mb-5">
           <h1 className="text-xl font-bold text-slate-800">マニュアル：システム手順</h1>
           <p className="text-slate-500 text-sm mt-0.5">{step.label}</p>
@@ -38,7 +38,7 @@ function ManualPageContent() {
 
   const section = usageSections.find((s) => s.key === searchParams.get("audience")) ?? usageSections[0];
   return (
-    <div className="p-4 sm:p-6 max-w-3xl">
+    <div className="p-4 sm:p-6 max-w-6xl">
       <header className="mb-5">
         <h1 className="text-xl font-bold text-slate-800">マニュアル：利用マニュアル</h1>
         <p className="text-slate-500 text-sm mt-0.5">{section.label}</p>
@@ -52,7 +52,7 @@ function ManualPageContent() {
 
 export default function ManualPage() {
   return (
-    <Suspense fallback={<div className="p-4 sm:p-6 max-w-3xl" />}>
+    <Suspense fallback={<div className="p-4 sm:p-6 max-w-6xl" />}>
       <ManualPageContent />
     </Suspense>
   );
