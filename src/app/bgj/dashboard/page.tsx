@@ -3,67 +3,86 @@
 import Link from "next/link";
 import nextDynamic from "next/dynamic";
 import Card from "@/components/ui/Card";
+import { useBgjDashboardOverview } from "@/hooks/useBgjDashboardOverview";
 
 const MonthlySalesChart = nextDynamic(() => import("./MonthlySalesChart"), {
   ssr: false,
   loading: () => <p className="text-slate-400 text-sm text-center py-16">グラフを読み込み中...</p>,
 });
 
-const alerts = [
-  { code: "TK-0042", name: "さくら歯科クリニック", issue: "90日以上注文なし", level: "high" },
-  { code: "OS-0118", name: "みなと歯科医院", issue: "60日以上注文なし", level: "medium" },
-  { code: "SB-0203", name: "ひまわり歯科", issue: "担当未割当", level: "medium" },
-  { code: "TK-0077", name: "青葉デンタルクリニック", issue: "30日以上注文なし", level: "low" },
-];
-
-const recentOrders = [
-  { code: "OS-0055", name: "海岸歯科医院", date: "2026-06-06", amount: 48600, staff: "山本権兵衛" },
-  { code: "TK-0031", name: "中央歯科クリニック", date: "2026-06-05", amount: 32400, staff: "田中花子" },
-  { code: "SB-0091", name: "緑が丘歯科", date: "2026-06-05", amount: 64800, staff: "佐藤次郎" },
-  { code: "OS-0072", name: "港南デンタル", date: "2026-06-04", amount: 21600, staff: "山本権兵衛" },
-  { code: "TK-0108", name: "駅前歯科医院", date: "2026-06-04", amount: 43200, staff: "田中花子" },
-];
-
-const clinicRanking = [
-  { rank: 1, code: "SB-0091", name: "緑が丘歯科",          staff: "佐藤次郎",  monthly: 64800, growth: "+8.2%"  },
-  { rank: 2, code: "FK-0014", name: "博多デンタルクリニック", staff: "佐藤次郎",  monthly: 54000, growth: "+3.1%"  },
-  { rank: 3, code: "OS-0055", name: "海岸歯科医院",         staff: "山本権兵衛", monthly: 48600, growth: "+12.5%" },
-  { rank: 4, code: "TK-0108", name: "駅前歯科医院",         staff: "田中花子",  monthly: 43200, growth: "+2.0%"  },
-  { rank: 5, code: "TK-0031", name: "中央歯科クリニック",   staff: "田中花子",  monthly: 32400, growth: "-1.2%"  },
-];
-
-const kpis = [
-  { label: "総得意先数", value: "248", sub: "前月比 +3", color: "text-violet-600", bg: "bg-violet-50 border-violet-200" },
-  { label: "今月売上合計", value: "¥6,120千", sub: "前月比 +3.9%", color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200" },
-  { label: "要フォロー", value: "12件", sub: "60日以上注文なし", color: "text-amber-600", bg: "bg-amber-50 border-amber-200" },
-  { label: "休眠・解約リスク", value: "4件", sub: "90日以上注文なし", color: "text-red-600", bg: "bg-red-50 border-red-200" },
-];
-
 const alertColors: Record<string, string> = {
   high: "bg-red-100 text-red-700 border-red-200",
   medium: "bg-amber-100 text-amber-700 border-amber-200",
-  low: "bg-sky-100 text-sky-700 border-sky-200",
 };
 const alertLabels: Record<string, string> = {
   high: "緊急",
   medium: "注意",
-  low: "確認",
 };
 
+function formatYen(amount: number) {
+  return `¥${amount.toLocaleString()}`;
+}
+
+function formatPct(pct: number | null) {
+  if (pct === null) return "—";
+  return `${pct > 0 ? "+" : ""}${pct}%`;
+}
+
 export default function BgjDashboard() {
+  const { overview, loading, error } = useBgjDashboardOverview();
+  const kpis = overview?.kpis;
+  const generatedDate = overview
+    ? new Intl.DateTimeFormat("ja-JP", { dateStyle: "long", timeZone: "Asia/Tokyo" }).format(new Date(overview.generatedAt))
+    : null;
+
+  const kpiCards = [
+    {
+      label: "総得意先数",
+      value: kpis ? `${kpis.totalClinicCount}` : undefined,
+      sub: kpis ? `今月 ${kpis.totalClinicCountDelta >= 0 ? "+" : ""}${kpis.totalClinicCountDelta}` : "",
+      color: "text-violet-600",
+      bg: "bg-violet-50 border-violet-200",
+    },
+    {
+      label: "今月売上合計",
+      value: kpis ? formatYen(kpis.currentMonthSalesTotal) : undefined,
+      sub: kpis ? `前月比 ${formatPct(kpis.currentMonthSalesGrowthPct)}` : "",
+      color: "text-emerald-600",
+      bg: "bg-emerald-50 border-emerald-200",
+    },
+    {
+      label: "要フォロー",
+      value: kpis ? `${kpis.followUpCount}件` : undefined,
+      sub: "設定した日数以上未注文",
+      color: "text-amber-600",
+      bg: "bg-amber-50 border-amber-200",
+    },
+    {
+      label: "休眠・解約リスク",
+      value: kpis ? `${kpis.dormantRiskCount}件` : undefined,
+      sub: "設定した日数以上未注文",
+      color: "text-red-600",
+      bg: "bg-red-50 border-red-200",
+    },
+  ];
+
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-slate-800">ダッシュボード</h1>
-        <p className="text-sm text-slate-500 mt-0.5">2026年6月 — 全得意先の概況</p>
+        <p className="text-sm text-slate-500 mt-0.5">{generatedDate ? `${generatedDate}時点 — 全得意先の概況` : "全得意先の概況"}</p>
       </div>
+
+      {error && (
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
+      )}
 
       {/* KPIカード */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {kpis.map((kpi) => (
+        {kpiCards.map((kpi) => (
           <div key={kpi.label} className={`rounded-2xl border p-4 ${kpi.bg}`}>
             <p className="text-xs text-slate-500 mb-1">{kpi.label}</p>
-            <p className={`text-2xl font-bold ${kpi.color}`}>{kpi.value}</p>
+            <p className={`text-2xl font-bold ${kpi.color}`}>{kpi.value ?? "—"}</p>
             <p className="text-xs text-slate-400 mt-1">{kpi.sub}</p>
           </div>
         ))}
@@ -72,23 +91,27 @@ export default function BgjDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         {/* 売上グラフ */}
         <Card className="lg:col-span-2 p-5">
-          <h2 className="text-sm font-bold text-slate-700 mb-4">月次売上推移（千円）</h2>
-          <MonthlySalesChart />
+          <h2 className="text-sm font-bold text-slate-700 mb-4">月次売上推移</h2>
+          {overview && <MonthlySalesChart monthlySales={overview.monthlySales} />}
         </Card>
 
         {/* アラート */}
         <Card className="p-5">
           <h2 className="text-sm font-bold text-slate-700 mb-3">要フォローアラート</h2>
           <div className="flex flex-col gap-2">
-            {alerts.map((a) => (
-              <Link key={a.code} href={`/bgj/customers/${a.code}`}
+            {loading && <p className="text-sm text-slate-400 py-4 text-center">読み込み中...</p>}
+            {!loading && overview?.alerts.length === 0 && (
+              <p className="text-sm text-slate-400 py-4 text-center">現在アラートはありません</p>
+            )}
+            {overview?.alerts.map((a) => (
+              <Link key={a.customerCode} href={`/bgj/customers/${a.customerCode}`}
                 className="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-slate-100">
                 <span className={`text-xs font-bold px-1.5 py-0.5 rounded border shrink-0 mt-0.5 ${alertColors[a.level]}`}>
                   {alertLabels[a.level]}
                 </span>
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-slate-700 truncate">{a.name}</p>
-                  <p className="text-xs text-slate-400">{a.code} · {a.issue}</p>
+                  <p className="text-xs text-slate-400">{a.customerCode} · {a.issue}</p>
                 </div>
               </Link>
             ))}
@@ -119,17 +142,23 @@ export default function BgjDashboard() {
               </tr>
             </thead>
             <tbody>
-              {recentOrders.map((order) => (
-                <tr key={order.code} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+              {loading && (
+                <tr><td colSpan={5} className="py-8 text-center text-sm text-slate-400">読み込み中...</td></tr>
+              )}
+              {!loading && overview?.recentOrders.length === 0 && (
+                <tr><td colSpan={5} className="py-8 text-center text-sm text-slate-400">注文はまだありません</td></tr>
+              )}
+              {overview?.recentOrders.map((order) => (
+                <tr key={`${order.customerCode}-${order.orderDate}-${order.amount}`} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                   <td className="py-2.5">
-                    <Link href={`/bgj/customers/${order.code}`} className="text-violet-600 hover:underline font-mono text-xs">
-                      {order.code}
+                    <Link href={`/bgj/customers/${order.customerCode}`} className="text-violet-600 hover:underline font-mono text-xs">
+                      {order.customerCode}
                     </Link>
                   </td>
-                  <td className="py-2.5 text-slate-700">{order.name}</td>
-                  <td className="py-2.5 text-slate-500 text-xs">{order.staff}</td>
-                  <td className="py-2.5 text-right font-semibold text-slate-700">¥{order.amount.toLocaleString()}</td>
-                  <td className="py-2.5 text-right text-slate-400 text-xs">{order.date}</td>
+                  <td className="py-2.5 text-slate-700">{order.clinicName}</td>
+                  <td className="py-2.5 text-slate-500 text-xs">{order.staffName}</td>
+                  <td className="py-2.5 text-right font-semibold text-slate-700">{formatYen(order.amount)}</td>
+                  <td className="py-2.5 text-right text-slate-400 text-xs">{order.orderDate}</td>
                 </tr>
               ))}
             </tbody>
@@ -146,37 +175,44 @@ export default function BgjDashboard() {
           </Link>
         </div>
         <div className="flex flex-col gap-2">
-          {clinicRanking.map((c) => (
-            <Link
-              key={c.code}
-              href={`/bgj/customers/${c.code}`}
-              className={`flex items-center gap-3 p-3 rounded-xl transition-colors hover:opacity-90 ${
-                c.rank === 1 ? 'bg-amber-50 border border-amber-200' :
-                c.rank === 2 ? 'bg-slate-50 border border-slate-200' :
-                c.rank === 3 ? 'bg-orange-50 border border-orange-200' :
-                'border border-slate-100 hover:bg-slate-50'
-              }`}
-            >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
-                c.rank === 1 ? 'bg-amber-400 text-white' :
-                c.rank === 2 ? 'bg-slate-400 text-white' :
-                c.rank === 3 ? 'bg-amber-700 text-white' :
-                'bg-slate-200 text-slate-500'
-              }`}>
-                {c.rank}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 truncate">{c.name}</p>
-                <p className="text-xs text-slate-400">{c.code} · {c.staff}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-sm font-bold text-slate-700">¥{c.monthly.toLocaleString()}</p>
-                <p className={`text-xs font-semibold ${c.growth.startsWith('+') ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {c.growth} 前月比
-                </p>
-              </div>
-            </Link>
-          ))}
+          {loading && <p className="text-sm text-slate-400 py-4 text-center">読み込み中...</p>}
+          {!loading && overview?.ranking.length === 0 && (
+            <p className="text-sm text-slate-400 py-4 text-center">今月の注文実績がまだありません</p>
+          )}
+          {overview?.ranking.map((c, index) => {
+            const rank = index + 1;
+            return (
+              <Link
+                key={c.customerCode}
+                href={`/bgj/customers/${c.customerCode}`}
+                className={`flex items-center gap-3 p-3 rounded-xl transition-colors hover:opacity-90 ${
+                  rank === 1 ? 'bg-amber-50 border border-amber-200' :
+                  rank === 2 ? 'bg-slate-50 border border-slate-200' :
+                  rank === 3 ? 'bg-orange-50 border border-orange-200' :
+                  'border border-slate-100 hover:bg-slate-50'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
+                  rank === 1 ? 'bg-amber-400 text-white' :
+                  rank === 2 ? 'bg-slate-400 text-white' :
+                  rank === 3 ? 'bg-amber-700 text-white' :
+                  'bg-slate-200 text-slate-500'
+                }`}>
+                  {rank}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-800 truncate">{c.clinicName}</p>
+                  <p className="text-xs text-slate-400">{c.customerCode} · {c.staffName}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold text-slate-700">{formatYen(c.currentMonthAmount)}</p>
+                  <p className={`text-xs font-semibold ${c.growthPct !== null && c.growthPct < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                    {formatPct(c.growthPct)} 前月比
+                  </p>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </Card>
     </div>

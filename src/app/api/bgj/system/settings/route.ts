@@ -32,6 +32,10 @@ export async function GET() {
   return NextResponse.json({
     configured: !!data.slack_webhook_url,
     webhookUrlPreview: data.slack_webhook_url ? maskWebhookUrl(data.slack_webhook_url) : null,
+    dashboardFollowupDays: data.dashboard_followup_days,
+    dashboardDormantDays: data.dashboard_dormant_days,
+    dashboardIncludeNeverOrdered: data.dashboard_include_never_ordered,
+    reportPeriodMonths: data.report_period_months,
   });
 }
 
@@ -42,14 +46,52 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { webhookUrl } = body ?? {};
+  const { webhookUrl, dashboardFollowupDays, dashboardDormantDays, dashboardIncludeNeverOrdered, reportPeriodMonths } = body ?? {};
 
   // 空欄送信は「変更なし」を意味する。既存値を消したい場合のUIは別途設けない
   // （設定を消す運用は想定していない。誤操作で通知が止まる事故を防ぐため）。
   const update: Record<string, unknown> = { updated_by: session.user.email };
   if (webhookUrl) update.slack_webhook_url = webhookUrl;
 
+  if (dashboardFollowupDays !== undefined) {
+    if (!Number.isInteger(dashboardFollowupDays) || dashboardFollowupDays < 1) {
+      return NextResponse.json({ error: '要フォロー閾値は1以上の整数で指定してください。' }, { status: 400 });
+    }
+    update.dashboard_followup_days = dashboardFollowupDays;
+  }
+  if (dashboardDormantDays !== undefined) {
+    if (!Number.isInteger(dashboardDormantDays) || dashboardDormantDays < 1) {
+      return NextResponse.json({ error: '休眠リスク閾値は1以上の整数で指定してください。' }, { status: 400 });
+    }
+    update.dashboard_dormant_days = dashboardDormantDays;
+  }
+  if (dashboardIncludeNeverOrdered !== undefined) {
+    update.dashboard_include_never_ordered = !!dashboardIncludeNeverOrdered;
+  }
+  if (reportPeriodMonths !== undefined) {
+    if (!Number.isInteger(reportPeriodMonths) || reportPeriodMonths < 1 || reportPeriodMonths > 24) {
+      return NextResponse.json({ error: 'レポート集計期間は1〜24ヶ月で指定してください。' }, { status: 400 });
+    }
+    update.report_period_months = reportPeriodMonths;
+  }
+
   const supabase = getSupabaseServerClient();
+
+  // followup/dormantのどちらか一方だけを更新する場合も、DBのCHECK制約
+  // （dormant > followup）を先回りで検証できるよう、未指定側は現在値を読む。
+  if (update.dashboard_followup_days !== undefined || update.dashboard_dormant_days !== undefined) {
+    const { data: current } = await supabase
+      .from('app_settings')
+      .select('dashboard_followup_days, dashboard_dormant_days')
+      .eq('id', 1)
+      .single();
+    const followup = (update.dashboard_followup_days as number | undefined) ?? current?.dashboard_followup_days;
+    const dormant = (update.dashboard_dormant_days as number | undefined) ?? current?.dashboard_dormant_days;
+    if (followup !== undefined && dormant !== undefined && dormant <= followup) {
+      return NextResponse.json({ error: '休眠リスク閾値は要フォロー閾値より大きい値にしてください。' }, { status: 400 });
+    }
+  }
+
   const { error } = await supabase.from('app_settings').update(update).eq('id', 1);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

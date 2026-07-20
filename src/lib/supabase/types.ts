@@ -291,6 +291,10 @@ export type ClinicInquiryReply = {
 export type AppSettings = {
   id: 1;
   slack_webhook_url: string | null;
+  dashboard_followup_days: number;
+  dashboard_dormant_days: number;
+  dashboard_include_never_ordered: boolean;
+  report_period_months: number;
   updated_by: string | null;
   updated_at: string;
 };
@@ -384,7 +388,8 @@ export const CLINIC_INQUIRY_REPLY_COLUMNS =
 
 // slack_webhook_urlは値そのものをクライアントへ返さないため、APIルート側で
 // マスク処理してからレスポンスに含める（このAPP_SETTINGS_COLUMNSはDB取得専用）。
-export const APP_SETTINGS_COLUMNS = 'id, slack_webhook_url, updated_by, updated_at';
+export const APP_SETTINGS_COLUMNS =
+  'id, slack_webhook_url, dashboard_followup_days, dashboard_dormant_days, dashboard_include_never_ordered, report_period_months, updated_by, updated_at';
 
 export const SALES_REP_COLUMNS =
   'id, name, role_id, area_id, phone, email, photo_url, slack_user_id, created_at, updated_at';
