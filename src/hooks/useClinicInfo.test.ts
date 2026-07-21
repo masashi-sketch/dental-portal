@@ -7,6 +7,7 @@ vi.mock('next-auth/react', () => ({
 }));
 
 const { useClinicInfo } = await import('./useClinicInfo');
+const { clearClinicInfoRequestCache } = await import('@/lib/client/clinicInfoRequest');
 
 const fetchMock = vi.fn();
 
@@ -20,6 +21,7 @@ function clearCookies() {
 
 describe('useClinicInfo', () => {
   beforeEach(() => {
+    clearClinicInfoRequestCache();
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
     clearCookies();

@@ -38,18 +38,12 @@ export default function AdminOrdersPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [ordersResponse, patientsResponse, productsResponse] = await Promise.all([
-        fetch('/api/admin/orders'),
-        fetch('/api/admin/patients'),
-        fetch('/api/admin/product-settings'),
-      ]);
-      if (!ordersResponse.ok || !patientsResponse.ok || !productsResponse.ok) throw new Error('注文管理データを取得できませんでした');
-      const [ordersData, patientsData, productsData] = await Promise.all([
-        ordersResponse.json(), patientsResponse.json(), productsResponse.json(),
-      ]);
-      setOrders(ordersData.orders ?? []);
-      setPatients((patientsData.patients ?? []).filter((patient: PatientPublic) => patient.status === '有効'));
-      setProducts((productsData.products ?? []).filter((product: ProductWithVisibility) => product.isVisible));
+      const response = await fetch('/api/admin/orders/bootstrap');
+      if (!response.ok) throw new Error('注文管理データを取得できませんでした');
+      const data = await response.json();
+      setOrders(data.orders ?? []);
+      setPatients((data.patients ?? []).filter((patient: PatientPublic) => patient.status === '有効'));
+      setProducts((data.products ?? []).filter((product: ProductWithVisibility) => product.isVisible));
       setError(null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'エラーが発生しました');

@@ -70,6 +70,7 @@ describe('GET /api/bgj/external-links', () => {
     sessionValue = makeSession({ role: 'clinic', customerCode: 'A000001' });
     const res = await GET();
     expect(res.status).toBe(200);
+    expect(res.headers.get('server-timing')).toMatch(/auth;dur=.*database;dur=.*total;dur=/);
     const body = await res.json();
     expect(body.externalLinks).toEqual(listedRows);
   });

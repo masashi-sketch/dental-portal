@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useSafeState } from './useSafeState';
 import type { SalesRepWithMaster } from '@/lib/supabase/types';
 import { effectiveAdminCustomerCode } from '@/lib/auth/effectiveAdminCustomerCode';
+import { requestClinicInfo } from '@/lib/client/clinicInfoRequest';
 
 // 医院用ポータルの「今どのクリニックとして見るか」の情報を取得する。
 // クリニックログイン（clinic-credentials）はセッションのcustomerCodeを使う。
@@ -21,11 +22,10 @@ export function useActiveClinic() {
 
   useEffect(() => {
     if (sessionStatus === 'loading' || !code) return;
-    fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(code)}`)
-      .then((res) => (res.ok ? res.json() : { clinic: null }))
-      .then((data) => {
-        setClinicName(data.clinic?.display_name ?? data.clinic?.name ?? null);
-        setSalesRep(data.clinic?.staff ?? null);
+    requestClinicInfo(code)
+      .then((clinic) => {
+        setClinicName(clinic?.display_name ?? clinic?.name ?? null);
+        setSalesRep(clinic?.staff ?? null);
       })
       .catch(() => {
         setClinicName(null);

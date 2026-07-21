@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { useActiveClinic } from '@/hooks/useActiveClinic';
 import type { ExternalLink, SalesRepWithMaster } from '@/lib/supabase/types';
+import { requestExternalLinks } from '@/lib/client/externalLinksRequest';
 
 export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'clinicContract' | 'clinicConfig' | 'clinicQr' | 'clinicIntro' | 'clinicQa' | 'inquiry';
 
@@ -303,16 +304,13 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
   const [externalLinks, setExternalLinks] = useState<ExternalLink[]>([]);
   const { clinicName, salesRep, loaded: clinicLoaded } = useActiveClinic();
 
-  const fetchExternalLinks = useCallback(() => {
-    fetch('/api/bgj/external-links')
-      .then((res) => (res.ok ? res.json() : Promise.resolve({ externalLinks: [] })))
-      .then((data) => setExternalLinks(data.externalLinks ?? []))
-      .catch(() => setExternalLinks([]));
-  }, []);
-
   useEffect(() => {
-    fetchExternalLinks();
-  }, [fetchExternalLinks]);
+    let cancelled = false;
+    requestExternalLinks().then((items) => {
+      if (!cancelled) setExternalLinks(items);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const { data: session } = useSession();
 

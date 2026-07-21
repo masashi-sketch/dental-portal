@@ -34,6 +34,9 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   const isClinicPasswordResetPath =
     pathname.startsWith("/clinic-forgot-password") || pathname.startsWith("/clinic-reset-password");
   const isClinicPasswordResetApiPath = pathname.startsWith("/api/clinic-password-reset");
+  // LINKマスタのGETは医院サイドバーからも利用する。API自身が認証済みセッションを
+  // 検証するため、clinicロールをBGJ領域として弾く前に通す。更新系は従来通りBGJ限定。
+  const isSharedExternalLinksGet = pathname === "/api/bgj/external-links" && req.method === "GET";
 
   if (isApiAuth) return NextResponse.next();
   if (isAuthPath) return NextResponse.next();
@@ -47,6 +50,7 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   if (isPasswordResetApiPath) return NextResponse.next();
   if (isClinicPasswordResetPath) return NextResponse.next();
   if (isClinicPasswordResetApiPath) return NextResponse.next();
+  if (isSharedExternalLinksGet) return NextResponse.next();
 
   const role = req.auth?.user?.role;
   const isPatientPortalPath = PATIENT_PORTAL_PATHS.some(
@@ -95,5 +99,21 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Proxyは認証・権限制御が必要な領域だけで実行する。公開ログイン画面やpublic配下の
+  // 画像までauth()を通すと、静的画面でもVercel Functionの起動待ちが発生する。
+  // 各Route Handlerも認可を検証するため、Proxyだけに認可を依存しない。
+  matcher: [
+    "/admin/:path*",
+    "/bgj/:path*",
+    "/home/:path*",
+    "/medication/:path*",
+    "/shop/:path*",
+    "/subscription/:path*",
+    "/qa/:path*",
+    "/clinic/:path*",
+    "/api/admin/:path*",
+    "/api/bgj/:path*",
+    "/api/patient-portal/:path*",
+    "/api/periodontal/:path*",
+  ],
 };

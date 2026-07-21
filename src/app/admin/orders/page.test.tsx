@@ -10,13 +10,12 @@ vi.mock('../components/AdminSidebar', () => ({ default: () => <nav>sidebar</nav>
 describe('AdminOrdersPage', () => {
   beforeEach(() => {
     fetchMock.mockImplementation((url: string) => {
-      if (url === '/api/admin/orders') return jsonResponse({ orders: [{
+      if (url === '/api/admin/orders/bootstrap') return jsonResponse({ orders: [{
         id: 'order-1', ordered_at: '2026-07-20T00:00:00Z', status: 'received',
         fulfillment_method: 'pickup', source: 'internal', patient: { id: 'patient-1', name: '実患者' },
         items: [{ id: 'item-1', product_name: '実商品', quantity: 2, unit_price: 1200 }],
-      }] });
-      if (url === '/api/admin/patients') return jsonResponse({ patients: [{ id: 'patient-1', name: '実患者', patient_no: 'T-00001', status: '有効' }] });
-      if (url === '/api/admin/product-settings') return jsonResponse({ products: [{ id: 'product-1', name: '実商品', price: 1200, isVisible: true }] });
+      }], patients: [{ id: 'patient-1', name: '実患者', patient_no: 'T-00001', status: '有効' }],
+      products: [{ id: 'product-1', name: '実商品', price: 1200, isVisible: true }] });
       throw new Error(`unexpected fetch: ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);

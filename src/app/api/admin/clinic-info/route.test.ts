@@ -95,6 +95,7 @@ describe('GET /api/admin/clinic-info', () => {
     const res = await GET(getRequest(null));
     const body = await res.json();
     expect(res.status).toBe(200);
+    expect(res.headers.get('server-timing')).toMatch(/auth;dur=.*clinic_database;dur=.*total;dur=/);
     expect(body.clinic).toEqual(expect.objectContaining({ customer_code: 'A000001', name: 'サンプル歯科', staff: null }));
   });
 });

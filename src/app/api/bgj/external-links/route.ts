@@ -3,13 +3,16 @@ import { auth } from '@/auth';
 import { requireBgjSession } from '@/lib/auth/clinicScope';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { EXTERNAL_LINK_COLUMNS } from '@/lib/supabase/types';
+import { ServerTiming } from '@/lib/serverTiming';
 
 export const dynamic = 'force-dynamic';
 
 // 医院用ポータルのサイドバー「LINKS」欄からも読み取るため、GETはBGJ限定にせず
 // 任意の認証済みセッション（bgj/clinic/patient）で許可する。
 export async function GET() {
+  const timing = new ServerTiming();
   const session = await auth();
+  timing.mark('auth');
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -20,9 +23,10 @@ export async function GET() {
     .select(EXTERNAL_LINK_COLUMNS)
     .order('created_at', { ascending: true })
     .limit(200);
+  timing.mark('database');
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ externalLinks: data });
+  return NextResponse.json({ externalLinks: data }, { headers: { 'Server-Timing': timing.header() } });
 }
 
 export async function POST(request: NextRequest) {

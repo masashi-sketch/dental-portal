@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type { Clinic, ClinicIntroInfo, ClinicPatientSettings, SalesRepWithMaster } from '@/lib/supabase/types';
 import { effectiveAdminCustomerCode } from '@/lib/auth/effectiveAdminCustomerCode';
+import { requestClinicInfo } from '@/lib/client/clinicInfoRequest';
 
 // APIレスポンスはclinics・clinic_patient_settings・clinic_intro_infoを
 // フラットにマージした1つのオブジェクトを返すため、型もそれに合わせて合成する。
@@ -36,11 +37,9 @@ export function useClinicInfo(onLoad?: (clinic: ClinicWithStaff | null) => void)
   useEffect(() => {
     if (sessionStatus === 'loading' || !customerCode) return;
     let cancelled = false;
-    fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(customerCode)}`)
-      .then((res) => (res.ok ? res.json() : { clinic: null }))
-      .then((data) => {
+    requestClinicInfo(customerCode)
+      .then((next) => {
         if (cancelled) return;
-        const next: ClinicWithStaff | null = data.clinic ?? null;
         setClinic(next);
         onLoadRef.current?.(next);
       })

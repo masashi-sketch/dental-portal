@@ -11,6 +11,7 @@ import {
 } from '@/lib/supabase/types';
 import { resolveScopedCustomerCode } from '@/lib/auth/clinicScope';
 import { generateSignupPin, generateSignupSlug } from '@/lib/auth/signupPin';
+import { ServerTiming } from '@/lib/serverTiming';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,13 +21,16 @@ export const dynamic = 'force-dynamic';
 // clinic_patient_settings・clinic_intro_infoの内容もclinics本体とマージし、
 // 呼び出し側には従来通り1つのフラットなclinicオブジェクトとして返す。
 export async function GET(request: NextRequest) {
+  const timing = new ServerTiming();
   const session = await auth();
+  timing.mark('auth');
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const requestedCode = request.nextUrl.searchParams.get('customerCode');
   const code = await resolveScopedCustomerCode(session, requestedCode);
+  timing.mark('scope');
   if (!code) return NextResponse.json({ clinic: null });
 
   const supabase = getSupabaseServerClient();
@@ -35,6 +39,7 @@ export async function GET(request: NextRequest) {
     supabase.from('clinic_patient_settings').select(CLINIC_PATIENT_SETTINGS_COLUMNS).eq('customer_code', code).maybeSingle(),
     supabase.from('clinic_intro_info').select(CLINIC_INTRO_INFO_COLUMNS).eq('customer_code', code).maybeSingle(),
   ]);
+  timing.mark('clinic_database');
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ clinic: null });
@@ -54,8 +59,12 @@ export async function GET(request: NextRequest) {
       staff = { ...rep, role: role ?? null, area: area ?? null };
     }
   }
+  timing.mark('staff_database');
 
-  return NextResponse.json({ clinic: { ...data, ...settings, ...intro, staff } });
+  return NextResponse.json(
+    { clinic: { ...data, ...settings, ...intro, staff } },
+    { headers: { 'Server-Timing': timing.header() } },
+  );
 }
 
 // クリニック自身によるブランディング（表示名・背景画像URL）・クリニック紹介の

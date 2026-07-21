@@ -49,6 +49,7 @@ describe('GET /api/admin/overview', () => {
     sessionValue = { user: { role: 'clinic', customerCode: 'A000001' }, expires: '2099-01-01' } as Session;
     const response = await GET(request('?customerCode=OTHER'));
     expect(response.status).toBe(200);
+    expect(response.headers.get('server-timing')).toMatch(/auth;dur=.*database;dur=.*total;dur=/);
     expect(rpcSpy).toHaveBeenCalledWith('get_admin_overview', { p_customer_code: 'A000001' });
     expect((await response.json()).overview).toEqual({ counts: { patientCount: 2 } });
   });

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import AdminSidebar from './AdminSidebar';
+import { clearExternalLinksRequestCache } from '@/lib/client/externalLinksRequest';
 
 vi.mock('next-auth/react', () => ({
   useSession: () => ({ data: { user: { name: 'クリニック担当者' } } }),
@@ -28,6 +29,7 @@ const link = {
 
 describe('AdminSidebar 外部リンク（LINKS）', () => {
   beforeEach(() => {
+    clearExternalLinksRequestCache();
     useActiveClinicMock.mockReturnValue({ clinicName: 'テストデンタル', salesRep: null, loaded: true });
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
