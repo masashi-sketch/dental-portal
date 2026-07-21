@@ -35,25 +35,21 @@ describe('CustomerDetailPage 初期データ取得', () => {
     vi.unstubAllGlobals();
   });
 
-  it('得意先・営業担当・ステータスを1回ずつ並列取得し、得意先名を表示する', async () => {
+  it('得意先・営業担当・ステータスを1本の初期APIで取得し、得意先名を表示する', async () => {
     fetchMock.mockImplementation((url: string) => {
-      if (url === '/api/bgj/clinics/A000001') return jsonResponse({ clinic });
-      if (url === '/api/bgj/sales-reps') return jsonResponse({ salesReps: [] });
-      if (url === '/api/bgj/clinic-statuses') return jsonResponse({ clinicStatuses: [] });
+      if (url === '/api/bgj/clinics/A000001?include=edit-options') return jsonResponse({ clinic, salesReps: [], clinicStatuses: [] });
       throw new Error(`unexpected fetch: ${url}`);
     });
 
     await renderPage("A000001");
 
     expect(await screen.findByRole('heading', { name: 'サンプル歯科医院' })).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('営業担当・ステータスの取得に失敗しても得意先本体は表示する', async () => {
+  it('営業担当・ステータスが0件でも得意先本体は表示する', async () => {
     fetchMock.mockImplementation((url: string) => {
-      if (url === '/api/bgj/clinics/A000001') return jsonResponse({ clinic });
-      if (url === '/api/bgj/sales-reps') return jsonResponse({}, false);
-      if (url === '/api/bgj/clinic-statuses') return jsonResponse({}, false);
+      if (url === '/api/bgj/clinics/A000001?include=edit-options') return jsonResponse({ clinic, salesReps: [], clinicStatuses: [] });
       throw new Error(`unexpected fetch: ${url}`);
     });
 
@@ -64,9 +60,7 @@ describe('CustomerDetailPage 初期データ取得', () => {
 
   it('得意先本体の取得に失敗した場合はエラーメッセージを表示する', async () => {
     fetchMock.mockImplementation((url: string) => {
-      if (url === '/api/bgj/clinics/A000001') return jsonResponse({}, false);
-      if (url === '/api/bgj/sales-reps') return jsonResponse({ salesReps: [] });
-      if (url === '/api/bgj/clinic-statuses') return jsonResponse({ clinicStatuses: [] });
+      if (url === '/api/bgj/clinics/A000001?include=edit-options') return jsonResponse({}, false);
       throw new Error(`unexpected fetch: ${url}`);
     });
 
@@ -77,9 +71,7 @@ describe('CustomerDetailPage 初期データ取得', () => {
 
   it('「医院ポータルを開く（ビュー）」を押すとcookieをセットし別タブで/adminを開く', async () => {
     fetchMock.mockImplementation((url: string) => {
-      if (url === '/api/bgj/clinics/A000001') return jsonResponse({ clinic });
-      if (url === '/api/bgj/sales-reps') return jsonResponse({ salesReps: [] });
-      if (url === '/api/bgj/clinic-statuses') return jsonResponse({ clinicStatuses: [] });
+      if (url === '/api/bgj/clinics/A000001?include=edit-options') return jsonResponse({ clinic, salesReps: [], clinicStatuses: [] });
       throw new Error(`unexpected fetch: ${url}`);
     });
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);

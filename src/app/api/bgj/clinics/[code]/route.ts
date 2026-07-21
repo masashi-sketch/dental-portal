@@ -13,6 +13,7 @@ import {
   STAFF_AREA_COLUMNS,
   STAFF_ROLE_COLUMNS,
 } from '@/lib/supabase/types';
+import { ServerTiming } from '@/lib/serverTiming';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,15 +33,54 @@ async function fetchMergedClinic(supabase: SupabaseClient, code: string) {
   return { data: { ...data, ...settings, ...intro }, error: null };
 }
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ code: string }> }) {
+  const timing = new ServerTiming();
   const session = await auth();
+  timing.mark('auth');
   if (!requireBgjSession(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { code } = await params;
   const supabase = getSupabaseServerClient();
+  const includeEditOptions = request.nextUrl.searchParams.get('include') === 'edit-options';
+
+  if (includeEditOptions) {
+    const [clinicResult, repsResult, rolesResult, areasResult, statusesResult] = await Promise.all([
+      fetchMergedClinic(supabase, code),
+      supabase.from('sales_reps').select(SALES_REP_COLUMNS).order('name', { ascending: true }).limit(200),
+      supabase.from('staff_roles').select(STAFF_ROLE_COLUMNS).limit(200),
+      supabase.from('staff_areas').select(STAFF_AREA_COLUMNS).limit(200),
+      supabase.from('clinic_statuses').select(CLINIC_STATUS_COLUMNS).order('name', { ascending: true }).limit(200),
+    ]);
+    timing.mark('database');
+
+    if (clinicResult.error) return NextResponse.json({ error: clinicResult.error.message }, { status: 500 });
+    if (!clinicResult.data) return NextResponse.json({ clinic: null });
+
+    const roleMap = new Map((rolesResult.data ?? []).map((role) => [role.id, role]));
+    const areaMap = new Map((areasResult.data ?? []).map((area) => [area.id, area]));
+    const salesReps = (repsResult.data ?? []).map((rep) => ({
+      ...rep,
+      role: rep.role_id ? roleMap.get(rep.role_id) ?? null : null,
+      area: rep.area_id ? areaMap.get(rep.area_id) ?? null : null,
+    }));
+    const clinicStatuses = statusesResult.data ?? [];
+    const staff = clinicResult.data.staff_id
+      ? salesReps.find((rep) => rep.id === clinicResult.data?.staff_id) ?? null
+      : null;
+    const status = clinicResult.data.status_id
+      ? clinicStatuses.find((item) => item.id === clinicResult.data?.status_id) ?? null
+      : null;
+
+    return NextResponse.json(
+      { clinic: { ...clinicResult.data, staff, status }, salesReps, clinicStatuses },
+      { headers: { 'Server-Timing': timing.header() } },
+    );
+  }
+
   const { data, error } = await fetchMergedClinic(supabase, code);
+  timing.mark('clinic_database');
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ clinic: null });
@@ -66,8 +106,12 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const { data: st } = await supabase.from('clinic_statuses').select(CLINIC_STATUS_COLUMNS).eq('id', data.status_id).maybeSingle();
     status = st ?? null;
   }
+  timing.mark('relations_database');
 
-  return NextResponse.json({ clinic: { ...data, staff, status } });
+  return NextResponse.json(
+    { clinic: { ...data, staff, status } },
+    { headers: { 'Server-Timing': timing.header() } },
+  );
 }
 
 const CORE_FIELD_MAP: Record<string, string> = {

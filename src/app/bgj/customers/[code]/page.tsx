@@ -62,25 +62,17 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
   const qrValue = joinUrl && signupPinIssuedAt ? `${joinUrl}?t=${signupPinIssuedAt}` : joinUrl;
 
   const fetchAll = useCallback(() => {
-    Promise.all([
-      fetch(`/api/bgj/clinics/${code}`),
-      fetch("/api/bgj/sales-reps"),
-      fetch("/api/bgj/clinic-statuses"),
-    ])
-      .then(([clinicRes, repsRes, statusesRes]) => {
-        if (!clinicRes.ok) throw new Error("得意先情報の取得に失敗しました");
-        return Promise.all([
-          clinicRes.json(),
-          repsRes.ok ? repsRes.json() : Promise.resolve(null),
-          statusesRes.ok ? statusesRes.json() : Promise.resolve(null),
-        ]);
+    fetch(`/api/bgj/clinics/${code}?include=edit-options`)
+      .then((response) => {
+        if (!response.ok) throw new Error("得意先情報の取得に失敗しました");
+        return response.json();
       })
-      .then(([clinicData, repsData, statusesData]) => {
-        const { clinic } = clinicData;
+      .then((data) => {
+        const { clinic } = data;
         setClinic(clinic);
         if (clinic) setClinicForm(clinicToForm(clinic));
-        setSalesReps(repsData?.salesReps ?? []);
-        setClinicStatuses(statusesData?.clinicStatuses ?? []);
+        setSalesReps(data.salesReps ?? []);
+        setClinicStatuses(data.clinicStatuses ?? []);
         setError(null);
       })
       .catch((e) => {

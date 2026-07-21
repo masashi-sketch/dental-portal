@@ -13,6 +13,8 @@ const settingsRow: Record<string, unknown> = { customer_code: 'A000001' };
 const introRow: Record<string, unknown> = { customer_code: 'A000001' };
 const updateSpy = vi.fn();
 const upsertSpy = vi.fn();
+const salesRepRows = [{ id: 'rep-1', name: '営業担当', role_id: null, area_id: null }];
+const clinicStatusRows = [{ id: 'status-1', name: '契約中', color: 'emerald' }];
 
 vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServerClient: () => ({
@@ -44,8 +46,23 @@ vi.mock('@/lib/supabase/server', () => ({
           },
         };
       }
-      if (table === 'sales_reps' || table === 'staff_roles' || table === 'staff_areas' || table === 'clinic_statuses') {
-        return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }) };
+      if (table === 'sales_reps') {
+        return { select: () => ({
+          eq: () => ({ maybeSingle: async () => ({ data: null }) }),
+          order: () => ({ limit: async () => ({ data: salesRepRows, error: null }) }),
+        }) };
+      }
+      if (table === 'staff_roles' || table === 'staff_areas') {
+        return { select: () => ({
+          eq: () => ({ maybeSingle: async () => ({ data: null }) }),
+          limit: async () => ({ data: [], error: null }),
+        }) };
+      }
+      if (table === 'clinic_statuses') {
+        return { select: () => ({
+          eq: () => ({ maybeSingle: async () => ({ data: null }) }),
+          order: () => ({ limit: async () => ({ data: clinicStatusRows, error: null }) }),
+        }) };
       }
       throw new Error(`unexpected table: ${table}`);
     },
@@ -101,6 +118,21 @@ describe('GET /api/bgj/clinics/[code]', () => {
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.clinic).toEqual(expect.objectContaining({ customer_code: 'A000001', staff: null, status: null }));
+  });
+
+  it('edit-options指定時は得意先・営業担当・ステータスを一括で返す', async () => {
+    sessionValue = makeSession();
+    clinicRow = { customer_code: 'A000001', name: '得意先1', staff_id: 'rep-1', status_id: 'status-1' };
+    const res = await GET(new NextRequest('http://localhost/api/bgj/clinics/A000001?include=edit-options'), { params });
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(res.headers.get('server-timing')).toMatch(/auth;dur=.*database;dur=.*total;dur=/);
+    expect(body.clinic).toEqual(expect.objectContaining({
+      staff: expect.objectContaining({ id: 'rep-1' }),
+      status: expect.objectContaining({ id: 'status-1' }),
+    }));
+    expect(body.salesReps).toHaveLength(1);
+    expect(body.clinicStatuses).toHaveLength(1);
   });
 });
 
