@@ -41,7 +41,10 @@ async function gotoWithRetry(page, url, options) {
 
 async function measureNavigation(page, url) {
   const start = Date.now();
-  await gotoWithRetry(page, url, { waitUntil: 'networkidle' });
+  await gotoWithRetry(page, url, { waitUntil: 'domcontentloaded' });
+  await page.locator('[data-app-ready="true"]').waitFor({ state: 'visible', timeout: NAV_TIMEOUT_MS });
+  const displayReadyMs = Date.now() - start;
+  await page.waitForLoadState('networkidle', { timeout: NAV_TIMEOUT_MS });
   const wallMs = Date.now() - start;
   const timing = await page.evaluate(() => {
     const nav = performance.getEntriesByType('navigation')[0];
@@ -52,16 +55,17 @@ async function measureNavigation(page, url) {
       loadEventMs: nav.loadEventEnd - nav.startTime,
     };
   });
-  return { wallMs, ...timing };
+  return { displayReadyMs, wallMs, ...timing };
 }
 
 async function runScenarioStep(page, label, url, results) {
   for (let i = 0; i < WARMUP_RUNS; i++) {
     await measureNavigation(page, url);
   }
-  const samples = { wallMs: [], ttfbMs: [], domContentLoadedMs: [], loadEventMs: [] };
+  const samples = { displayReadyMs: [], wallMs: [], ttfbMs: [], domContentLoadedMs: [], loadEventMs: [] };
   for (let i = 0; i < MEASURED_RUNS; i++) {
     const m = await measureNavigation(page, url);
+    samples.displayReadyMs.push(m.displayReadyMs);
     samples.wallMs.push(m.wallMs);
     if (m.ttfbMs != null) samples.ttfbMs.push(m.ttfbMs);
     if (m.domContentLoadedMs != null) samples.domContentLoadedMs.push(m.domContentLoadedMs);
@@ -70,12 +74,13 @@ async function runScenarioStep(page, label, url, results) {
   results.push({
     label,
     url,
+    displayReadyMs: summarize(samples.displayReadyMs),
     wallMs: summarize(samples.wallMs),
     ttfbMs: summarize(samples.ttfbMs),
     domContentLoadedMs: summarize(samples.domContentLoadedMs),
     loadEventMs: summarize(samples.loadEventMs),
   });
-  console.log(`  ${label}: p50=${Math.round(summarize(samples.wallMs).p50)}ms p75=${Math.round(summarize(samples.wallMs).p75)}ms p95=${Math.round(summarize(samples.wallMs).p95)}ms`);
+  console.log(`  ${label}: 表示完了 p50=${Math.round(summarize(samples.displayReadyMs).p50)}ms p75=${Math.round(summarize(samples.displayReadyMs).p75)}ms p95=${Math.round(summarize(samples.displayReadyMs).p95)}ms`);
 }
 
 async function loginAsClinic(page) {
@@ -94,7 +99,10 @@ async function captureApiTimings(page, url) {
   return page.evaluate(() => {
     return performance
       .getEntriesByType('resource')
-      .filter((e) => e.name.includes('/api/'))
+      .filter((e) => {
+        const resourceUrl = new URL(e.name);
+        return resourceUrl.origin === location.origin && resourceUrl.pathname.startsWith('/api/');
+      })
       .map((e) => ({
         path: e.name.replace(location.origin, ''),
         startMs: e.startTime,

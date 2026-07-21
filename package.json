@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:e2e:loading": "node scripts/test-loading-response.mjs",
     "audit:static-data": "node scripts/audit-static-business-data.mjs",
     "perf:measure": "node --env-file=.env.local scripts/measure-performance.mjs",
     "smoke:bgj": "node --env-file=.env.local scripts/smoke-test-bgj.mjs"

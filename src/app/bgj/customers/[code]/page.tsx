@@ -2,25 +2,31 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { formatTimestampCompact } from "@/lib/formatTimestamp";
-import SignupQrCard from "@/components/SignupQrCard";
 import SalesRepAvatar from "@/components/SalesRepAvatar";
-import ClinicStaffManager from "@/components/ClinicStaffManager";
-import ClinicQaManager from "@/components/ClinicQaManager";
-import ClinicAnnouncementManager from "@/components/ClinicAnnouncementManager";
-import ClinicEmailTemplatesManager from "@/components/ClinicEmailTemplatesManager";
-import ClinicLoginManager from "@/components/ClinicLoginManager";
-import ClinicTermsManager from "@/components/ClinicTermsManager";
-import ClinicSalesOrders from "@/components/ClinicSalesOrders";
 import ClinicBasicInfoTab from "@/components/ClinicBasicInfoTab";
-import ClinicBusinessInfoTab from "@/components/ClinicBusinessInfoTab";
-import ClinicActivityFeed from "@/components/ClinicActivityFeed";
 import { useToast } from "@/hooks/useToast";
 import type { ClinicStatusMaster, SalesRepWithMaster } from "@/lib/supabase/types";
 import { CLINIC_STATUS_BADGE_CLASS } from "@/lib/clinicStatusColors";
 import { clinicToForm, type ClinicFormState, type ClinicWithStaff } from "@/lib/clinicForm";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+
+const tabLoading = <p className="py-8 text-center text-sm text-slate-400">タブを読み込み中...</p>;
+
+// 初期表示で使う「基本情報」以外は、タブを開いた時にだけ読み込む。
+// QR/PDF・グラフ・各管理画面を初期JavaScriptから外し、得意先詳細の表示を軽くする。
+const ClinicBusinessInfoTab = dynamic(() => import("@/components/ClinicBusinessInfoTab"), { loading: () => tabLoading });
+const ClinicSalesOrders = dynamic(() => import("@/components/ClinicSalesOrders"), { loading: () => tabLoading });
+const ClinicTermsManager = dynamic(() => import("@/components/ClinicTermsManager"), { loading: () => tabLoading });
+const ClinicActivityFeed = dynamic(() => import("@/components/ClinicActivityFeed"), { loading: () => tabLoading });
+const ClinicLoginManager = dynamic(() => import("@/components/ClinicLoginManager"), { loading: () => tabLoading });
+const SignupQrCard = dynamic(() => import("@/components/SignupQrCard"), { loading: () => tabLoading });
+const ClinicEmailTemplatesManager = dynamic(() => import("@/components/ClinicEmailTemplatesManager"), { loading: () => tabLoading });
+const ClinicStaffManager = dynamic(() => import("@/components/ClinicStaffManager"), { loading: () => tabLoading });
+const ClinicAnnouncementManager = dynamic(() => import("@/components/ClinicAnnouncementManager"), { loading: () => tabLoading });
+const ClinicQaManager = dynamic(() => import("@/components/ClinicQaManager"), { loading: () => tabLoading });
 
 const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "行動履歴", "ログイン管理", "接続情報", "メール設定", "クリニック紹介", "お知らせ", "Q&A"];
 

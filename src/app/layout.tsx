@@ -3,6 +3,7 @@ import { M_PLUS_Rounded_1c } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import WebVitalsReporter from "@/components/WebVitalsReporter";
+import AppReadyBoundary from "@/components/AppReadyBoundary";
 
 const mPlusRounded = M_PLUS_Rounded_1c({
   weight: ["400", "700"],
@@ -30,7 +31,9 @@ export default function RootLayout({
     <html lang="ja" className={mPlusRounded.className}>
       <body className="min-h-screen flex flex-col overflow-x-hidden">
         <WebVitalsReporter />
-        <Providers>{children}</Providers>
+        <Providers>
+          <AppReadyBoundary>{children}</AppReadyBoundary>
+        </Providers>
       </body>
     </html>
   );
