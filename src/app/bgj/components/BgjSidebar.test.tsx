@@ -15,22 +15,46 @@ vi.mock('next-auth/react', () => ({
 }));
 
 describe('BgjSidebar', () => {
-  it('マスタ・システム管理・ヘルプの各グループラベルとLINKマスタへのリンクを表示する', () => {
+  it('マスタ・受発注管理・在庫管理・システム管理・ヘルプの各グループラベルを表示する', () => {
     usePathnameMock.mockReturnValue('/bgj/dashboard');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
     render(<BgjSidebar />);
     const labels = screen.getAllByText('マスタ');
     expect(labels.length).toBeGreaterThan(0);
+    expect(screen.getAllByText('受発注管理').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('在庫管理').length).toBeGreaterThan(0);
     expect(screen.getAllByText('システム管理').length).toBeGreaterThan(0);
     expect(screen.getAllByText('ヘルプ').length).toBeGreaterThan(0);
+    expect(screen.queryByText('LINKマスタ')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByLabelText('マスタを開く')[0]);
+
     expect(screen.getAllByText('LINKマスタ').length).toBeGreaterThan(0);
     expect(screen.getAllByRole('link', { name: /LINKマスタ/ })[0]).toHaveAttribute('href', '/bgj/master/links');
+  });
+
+  it('受発注管理と在庫管理を開くと各メニューを表示する', () => {
+    usePathnameMock.mockReturnValue('/bgj/dashboard');
+    useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    render(<BgjSidebar />);
+
+    expect(screen.queryByText('受注一覧')).not.toBeInTheDocument();
+    expect(screen.queryByText('在庫一覧')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByLabelText('受発注管理を開く')[0]);
+    fireEvent.click(screen.getAllByLabelText('在庫管理を開く')[0]);
+
+    expect(screen.getAllByRole('link', { name: '受注一覧' })[0]).toHaveAttribute('href', '/bgj/orders?view=received');
+    expect(screen.getAllByRole('link', { name: '発注一覧' })[0]).toHaveAttribute('href', '/bgj/orders?view=purchase');
+    expect(screen.getAllByRole('link', { name: '在庫一覧' })[0]).toHaveAttribute('href', '/bgj/inventory?view=stock');
+    expect(screen.getAllByRole('link', { name: '入出庫履歴' })[0]).toHaveAttribute('href', '/bgj/inventory?view=movements');
   });
 
   it('システム管理グループの先頭にシステムダッシュボードへのリンクを表示する', () => {
     usePathnameMock.mockReturnValue('/bgj/dashboard');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
     render(<BgjSidebar />);
+    fireEvent.click(screen.getAllByLabelText('システム管理を開く')[0]);
     expect(screen.getAllByRole('link', { name: 'システムダッシュボード' })[0]).toHaveAttribute(
       'href',
       '/bgj/system/dashboard'
@@ -45,6 +69,7 @@ describe('BgjSidebar', () => {
     expect(screen.queryByText('アプリ管理')).not.toBeInTheDocument();
     expect(screen.queryByText('共通マスタ')).not.toBeInTheDocument();
 
+    fireEvent.click(screen.getAllByLabelText('システム管理を開く')[0]);
     fireEvent.click(screen.getAllByLabelText('システムダッシュボードの詳細を開く')[0]);
 
     expect(screen.getAllByRole('link', { name: 'DB管理' })[0]).toHaveAttribute('href', '/bgj/system/db');
@@ -56,6 +81,7 @@ describe('BgjSidebar', () => {
     usePathnameMock.mockReturnValue('/bgj/dashboard');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
     render(<BgjSidebar />);
+    fireEvent.click(screen.getAllByLabelText('マスタを開く')[0]);
     expect(screen.getAllByRole('link', { name: '患者一覧' })[0]).toHaveAttribute('href', '/bgj/patients');
   });
 
@@ -66,6 +92,7 @@ describe('BgjSidebar', () => {
     expect(screen.queryByText('役職マスタ')).not.toBeInTheDocument();
     expect(screen.queryByText('担当エリア')).not.toBeInTheDocument();
 
+    fireEvent.click(screen.getAllByLabelText('マスタを開く')[0]);
     fireEvent.click(screen.getAllByLabelText('営業担当の詳細を開く')[0]);
 
     expect(screen.getAllByText('役職マスタ').length).toBeGreaterThan(0);
@@ -86,6 +113,7 @@ describe('BgjSidebar', () => {
     render(<BgjSidebar />);
     expect(screen.queryByText('ステータス')).not.toBeInTheDocument();
 
+    fireEvent.click(screen.getAllByLabelText('マスタを開く')[0]);
     fireEvent.click(screen.getAllByLabelText('得意先一覧の詳細を開く')[0]);
 
     const statusLinks = screen.getAllByRole('link', { name: 'ステータス' });
@@ -96,8 +124,21 @@ describe('BgjSidebar', () => {
     usePathnameMock.mockReturnValue('/bgj/dashboard');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
     render(<BgjSidebar />);
+    expect(screen.queryByRole('link', { name: 'マニュアル' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByLabelText('ヘルプを開く')[0]);
+
     expect(screen.getAllByRole('link', { name: 'マニュアル' })[0]).toHaveAttribute('href', '/bgj/manual');
     expect(screen.queryByLabelText('マニュアルの詳細を開く')).not.toBeInTheDocument();
     expect(screen.queryByText('利用マニュアル')).not.toBeInTheDocument();
+  });
+
+  it('マニュアル画面ではヘルプグループが自動的に展開される', () => {
+    usePathnameMock.mockReturnValue('/bgj/manual');
+    useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    render(<BgjSidebar />);
+
+    expect(screen.getAllByRole('link', { name: 'マニュアル' })[0]).toHaveAttribute('href', '/bgj/manual');
+    expect(screen.getAllByLabelText('ヘルプを閉じる').length).toBeGreaterThan(0);
   });
 });

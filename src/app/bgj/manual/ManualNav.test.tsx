@@ -10,7 +10,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('ManualNav', () => {
-  it('利用マニュアル・システム手順が表示され、正しいクエリ付きhrefを持つ', () => {
+  it('利用マニュアル・システム手順・DB定義書が表示され、正しいクエリ付きhrefを持つ', () => {
     usePathnameMock.mockReturnValue('/bgj/manual');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
     render(<ManualNav />);
@@ -19,6 +19,7 @@ describe('ManualNav', () => {
     expect(usageLinks[0]).toHaveAttribute('href', '/bgj/manual?tab=usage&audience=bgj');
     const procedureLinks = screen.getAllByRole('link', { name: 'システム手順' });
     expect(procedureLinks[0]).toHaveAttribute('href', '/bgj/manual?tab=procedure&step=0');
+    expect(screen.getByRole('link', { name: 'DB定義書' })).toHaveAttribute('href', '/bgj/manual?tab=db');
   });
 
   it('利用マニュアルを開くと5つの対象者別リンクが表示される', () => {

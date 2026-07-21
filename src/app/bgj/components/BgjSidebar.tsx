@@ -3,7 +3,7 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
-import { type ChildNavItem, NavItemRow } from "./navTree";
+import { ChevronIcon, hasActiveDescendant, isHrefActive, type ChildNavItem, NavItemRow } from "./navTree";
 
 type NavItem = ChildNavItem & {
   dividerAfter?: boolean;
@@ -67,6 +67,28 @@ const navItems: NavItem[] = [
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" /></svg>,
   },
   {
+    label: "受注一覧",
+    href: "/bgj/orders?view=received",
+    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5h6m-6 4h6m-7 4h8m-8 4h5M6 3h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2z" /></svg>,
+    sectionLabel: "受発注管理",
+  },
+  {
+    label: "発注一覧",
+    href: "/bgj/orders?view=purchase",
+    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 6h13v10H3zM16 10h3l2 3v3h-5zM7 19a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z" /></svg>,
+  },
+  {
+    label: "在庫一覧",
+    href: "/bgj/inventory?view=stock",
+    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 7l8-4 8 4-8 4-8-4zm0 0v10l8 4 8-4V7M12 11v10" /></svg>,
+    sectionLabel: "在庫管理",
+  },
+  {
+    label: "入出庫履歴",
+    href: "/bgj/inventory?view=movements",
+    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-3-3m3 3l-3 3M16 17H4m0 0l3-3m-3 3l3 3" /></svg>,
+  },
+  {
     label: "システムダッシュボード",
     href: "/bgj/system/dashboard",
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M8 17V9m4 8V5m4 12v-6" /></svg>,
@@ -92,7 +114,7 @@ type NavGroup = { sectionLabel: string | null; items: NavItem[] };
 
 // sectionLabelを起点にnavItemsを自動的にグループ化し、描画側でグループ単位に
 // 枠で囲む。今後navItemsに項目を追加するときの方針：
-// ・既存グループ（マスタ／システム管理／ヘルプ）に項目を追加する場合は、
+// ・既存グループ（マスタ／受発注管理／在庫管理／システム管理／ヘルプ）に項目を追加する場合は、
 //   そのグループの末尾（次のsectionLabel項目の手前）に、sectionLabelを
 //   付けずに追加するだけで自動的に同じ枠に入る。
 // ・新しいグループを作る場合は、そのグループの最初の項目にだけ
@@ -119,6 +141,8 @@ function SidebarContent({
   userEmail: string | null | undefined;
   onNavClick: () => void;
 }) {
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
   return (
     <>
       {/* ロゴ */}
@@ -138,26 +162,55 @@ function SidebarContent({
 
       {/* ナビゲーション */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-        {navGroups.map((group, groupIndex) => (
-          <div
-            key={groupIndex}
-            className={group.sectionLabel ? "bg-violet-950/40 border border-violet-700/40 rounded-xl p-1.5 mb-2" : undefined}
-          >
-            {group.sectionLabel && (
-              <p className="text-violet-200 text-[11px] font-bold tracking-widest px-2 pt-1 pb-1.5">{group.sectionLabel}</p>
-            )}
-            {group.items.map((item) => (
-              <NavItemRow
-                key={item.href}
-                item={item}
-                pathname={pathname}
-                searchParams={searchParams}
-                onNavClick={onNavClick}
-                dividerAfter={item.dividerAfter}
-              />
-            ))}
-          </div>
-        ))}
+        {navGroups.map((group, groupIndex) => {
+          const groupLabel = group.sectionLabel;
+          const isCollapsibleGroup = groupLabel === "マスタ"
+            || groupLabel === "受発注管理"
+            || groupLabel === "在庫管理"
+            || groupLabel === "システム管理"
+            || groupLabel === "ヘルプ";
+          const groupHasActiveItem = group.items.some(
+            (item) => isHrefActive(item.href, pathname, searchParams) || hasActiveDescendant(item, pathname, searchParams)
+          );
+          const hasManualGroupState = !!groupLabel && Object.prototype.hasOwnProperty.call(expandedGroups, groupLabel);
+          const groupExpanded = !isCollapsibleGroup || (hasManualGroupState
+            ? !!expandedGroups[groupLabel!]
+            : groupHasActiveItem);
+
+          return (
+            <div
+              key={groupIndex}
+              className={group.sectionLabel ? "bg-violet-950/40 border border-violet-700/40 rounded-xl p-1.5 mb-2" : undefined}
+            >
+              {isCollapsibleGroup && groupLabel ? (
+                <button
+                  type="button"
+                  onClick={() => setExpandedGroups((current) => ({
+                    ...current,
+                    [groupLabel]: !groupExpanded,
+                  }))}
+                  aria-label={groupExpanded ? `${groupLabel}を閉じる` : `${groupLabel}を開く`}
+                  className="flex w-full items-center justify-between px-2 py-1 text-left text-[11px] font-bold tracking-widest text-violet-200 hover:text-white"
+                >
+                  <span>{groupLabel}</span>
+                  <ChevronIcon expanded={groupExpanded} />
+                </button>
+              ) : group.sectionLabel ? (
+                <p className="text-violet-200 text-[11px] font-bold tracking-widest px-2 pt-1 pb-1.5">{group.sectionLabel}</p>
+              ) : null}
+              {groupExpanded && group.items.map((item) => (
+                <NavItemRow
+                  key={item.href}
+                  item={item}
+                  pathname={pathname}
+                  searchParams={searchParams}
+                  onNavClick={onNavClick}
+                  dividerAfter={item.dividerAfter}
+                />
+              ))}
+            </div>
+          );
+        })}
       </nav>
 
       {/* ユーザー情報 */}

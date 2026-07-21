@@ -35,6 +35,17 @@ describe('ManualPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('tab=db のときはマニュアル領域内にDB定義書を表示する', () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('tab=db'));
+    render(<ManualPage />);
+
+    expect(screen.getByText('マニュアル：DB定義書')).toBeInTheDocument();
+    expect(screen.getByTitle('医院向け患者注文管理 DB定義書')).toHaveAttribute(
+      'src',
+      '/manuals/clinic-order-db-definition.html?embed=1&v=2#overview'
+    );
+  });
+
   it('不正なstep値のときは先頭項目（0. 全体構成）にフォールバックする', () => {
     useSearchParamsMock.mockReturnValue(new URLSearchParams('tab=procedure&step=99'));
     render(<ManualPage />);
