@@ -81,12 +81,12 @@ describe('BgjPatientsPage', () => {
     expect(await screen.findByText('ロック中')).toBeInTheDocument();
   });
 
-  it('行の詳細リンクはadmin/patients/[id]を指す', async () => {
+  it('行の詳細リンクはBGJ専用のbgj/patients/[id]を指す', async () => {
     stubResponses();
     render(<BgjPatientsPage />);
 
     const links = await screen.findAllByRole('link', { name: '詳細へ' });
-    expect(links[0]).toHaveAttribute('href', '/admin/patients/p1');
+    expect(links[0]).toHaveAttribute('href', '/bgj/patients/p1');
   });
 
   it('検索語を入力すると/api/bgj/patientsにqパラメータ付きでリクエストする', async () => {

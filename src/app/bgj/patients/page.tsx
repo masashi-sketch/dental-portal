@@ -124,7 +124,7 @@ export default function BgjPatientsPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{p.registered_at}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <Link href={`/admin/patients/${p.id}`} className="text-xs font-semibold text-violet-600 hover:underline">
+                      <Link href={`/bgj/patients/${p.id}`} className="text-xs font-semibold text-violet-600 hover:underline">
                         詳細へ
                       </Link>
                     </td>
