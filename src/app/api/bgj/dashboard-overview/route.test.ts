@@ -13,6 +13,13 @@ let settingsRow: Record<string, unknown> | null = {
 let rpcResult: { data: unknown; error: { message: string } | null } = { data: { kpis: { totalClinicCount: 3 } }, error: null };
 const rpcSpy = vi.fn();
 
+vi.mock('@/lib/bgjAggregationSettings', () => ({
+  getBgjAggregationSettings: async () => {
+    if (!settingsRow) throw new Error('settings error');
+    return settingsRow;
+  },
+}));
+
 vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServerClient: () => ({
     from: () => ({
@@ -67,6 +74,7 @@ describe('GET /api/bgj/dashboard-overview', () => {
     settingsRow = { dashboard_followup_days: 45, dashboard_dormant_days: 75, dashboard_include_never_ordered: false };
     const res = await GET();
     expect(res.status).toBe(200);
+    expect(res.headers.get('server-timing')).toMatch(/auth;dur=.*settings;dur=.*aggregation;dur=.*total;dur=/);
     expect(rpcSpy).toHaveBeenCalledWith('get_bgj_dashboard_overview', {
       p_followup_days: 45,
       p_dormant_days: 75,

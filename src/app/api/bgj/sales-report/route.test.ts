@@ -9,6 +9,13 @@ let settingsRow: Record<string, unknown> | null = { report_period_months: 6 };
 let rpcResult: { data: unknown; error: { message: string } | null } = { data: { summary: { totalSales: 1000 } }, error: null };
 const rpcSpy = vi.fn();
 
+vi.mock('@/lib/bgjAggregationSettings', () => ({
+  getBgjAggregationSettings: async () => {
+    if (!settingsRow) throw new Error('settings error');
+    return settingsRow;
+  },
+}));
+
 vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServerClient: () => ({
     from: () => ({
@@ -59,6 +66,7 @@ describe('GET /api/bgj/sales-report', () => {
     settingsRow = { report_period_months: 12 };
     const res = await GET();
     expect(res.status).toBe(200);
+    expect(res.headers.get('server-timing')).toMatch(/auth;dur=.*settings;dur=.*aggregation;dur=.*total;dur=/);
     expect(rpcSpy).toHaveBeenCalledWith('get_bgj_sales_report', { p_months: 12 });
   });
 

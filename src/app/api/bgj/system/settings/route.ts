@@ -3,6 +3,8 @@ import { auth } from '@/auth';
 import { requireBgjSession } from '@/lib/auth/clinicScope';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { APP_SETTINGS_COLUMNS } from '@/lib/supabase/types';
+import { revalidateTag } from 'next/cache';
+import { BGJ_AGGREGATION_SETTINGS_TAG } from '@/lib/bgjAggregationSettings';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,5 +97,6 @@ export async function PATCH(request: NextRequest) {
   const { error } = await supabase.from('app_settings').update(update).eq('id', 1);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  revalidateTag(BGJ_AGGREGATION_SETTINGS_TAG, { expire: 0 });
   return NextResponse.json({ ok: true });
 }

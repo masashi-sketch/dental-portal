@@ -4,6 +4,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Session } from 'next-auth';
 
+const { revalidateTagSpy } = vi.hoisted(() => ({ revalidateTagSpy: vi.fn() }));
+vi.mock('next/cache', () => ({
+  unstable_cache: (callback: () => unknown) => callback,
+  revalidateTag: revalidateTagSpy,
+}));
+
 let sessionValue: Session | null = null;
 vi.mock('@/auth', () => ({
   auth: async () => sessionValue,
@@ -114,6 +120,7 @@ describe('PATCH /api/bgj/system/settings', () => {
     sessionValue = null;
     settingsRow = defaultSettingsRow();
     updateSpy.mockReset();
+    revalidateTagSpy.mockReset();
   });
 
   it('未認証なら401', async () => {
@@ -126,6 +133,7 @@ describe('PATCH /api/bgj/system/settings', () => {
     sessionValue = makeSession();
     const res = await PATCH(makeRequest({ webhookUrl: 'https://hooks.slack.com/services/new' }));
     expect(res.status).toBe(200);
+    expect(revalidateTagSpy).toHaveBeenCalledWith('bgj-aggregation-settings', { expire: 0 });
     expect(updateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ slack_webhook_url: 'https://hooks.slack.com/services/new', updated_by: 'staff@biogaia.jp' }),
     );
