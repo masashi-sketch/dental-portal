@@ -67,22 +67,16 @@ export default function PatientDetailPanel({
   const [periodontalEnabled, setPeriodontalEnabled] = useState(true);
 
   const fetchAll = useCallback(() => {
-    Promise.all([
-      fetch(`/api/admin/patients/${id}`),
-      fetch(`/api/admin/patients/${id}/diagnoses`),
-      fetch('/api/periodontal/master'),
-    ])
-      .then(([patientRes, diagnosesRes, masterRes]) => {
-        if (!patientRes.ok) throw new Error('患者情報の取得に失敗しました');
-        if (!diagnosesRes.ok) throw new Error('診断履歴の取得に失敗しました');
-        if (!masterRes.ok) throw new Error('マスタ情報の取得に失敗しました');
-        return Promise.all([patientRes.json(), diagnosesRes.json(), masterRes.json()]);
+    fetch(`/api/admin/patients/${id}/bootstrap`)
+      .then((response) => {
+        if (!response.ok) throw new Error('患者詳細情報の取得に失敗しました');
+        return response.json();
       })
-      .then(([patientData, diagnosesData, masterData]) => {
-        setPatient(patientData.patient);
-        setDiagnoses(diagnosesData.diagnoses);
-        setStages(masterData.stages);
-        setGrades(masterData.grades);
+      .then((data) => {
+        setPatient(data.patient);
+        setDiagnoses(data.diagnoses);
+        setStages(data.stages);
+        setGrades(data.grades);
         setError(null);
       })
       .catch((e) => {

@@ -2,6 +2,7 @@ import { act, Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import BgjPatientDetailPage from './page';
+import { clearClinicInfoRequestCache } from '@/lib/client/clinicInfoRequest';
 
 // use(params)がSuspenseをトリガーするため、ルートツリーが自動で提供するSuspense境界を
 // テストでも明示的に用意する（admin/patients/[id]/page.test.tsxと同じパターン）。
@@ -36,11 +37,12 @@ const PATIENT = {
 
 describe('BgjPatientDetailPage', () => {
   beforeEach(() => {
+    clearClinicInfoRequestCache();
     fetchMock.mockReset();
     fetchMock.mockImplementation((url: string) => {
-      if (url === '/api/admin/patients/p1') return jsonResponse({ patient: PATIENT });
-      if (url === '/api/admin/patients/p1/diagnoses') return jsonResponse({ diagnoses: [] });
-      if (url === '/api/periodontal/master') return jsonResponse({ stages: [], grades: [] });
+      if (url === '/api/admin/patients/p1/bootstrap') {
+        return jsonResponse({ patient: PATIENT, diagnoses: [], stages: [], grades: [] });
+      }
       if (url === '/api/admin/clinic-info?customerCode=A000001') {
         return jsonResponse({ clinic: { show_periodontal_diagnosis: false } });
       }
@@ -54,7 +56,7 @@ describe('BgjPatientDetailPage', () => {
     vi.unstubAllGlobals();
   });
 
-  it('医院ポータルの患者詳細と同じ既存API（/api/admin/patients/[id]）を再利用して表示する', async () => {
+  it('医院ポータルの患者詳細と同じbootstrap APIを再利用して表示する', async () => {
     await renderPage(Promise.resolve({ id: 'p1' }));
 
     expect(await screen.findByRole('heading', { name: '山田太郎' })).toBeInTheDocument();

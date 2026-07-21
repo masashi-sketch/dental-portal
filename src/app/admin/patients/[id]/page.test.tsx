@@ -51,9 +51,9 @@ describe('AdminPatientDetailPage', () => {
     fetchMock.mockReset();
     useSessionMock.mockReturnValue({ data: { user: { role: 'bgj' } }, status: 'authenticated' });
     fetchMock.mockImplementation((url: string) => {
-      if (url === '/api/admin/patients/p1') return jsonResponse({ patient: PATIENT });
-      if (url === '/api/admin/patients/p1/diagnoses') return jsonResponse({ diagnoses: [] });
-      if (url === '/api/periodontal/master') return jsonResponse({ stages: [], grades: [] });
+      if (url === '/api/admin/patients/p1/bootstrap') {
+        return jsonResponse({ patient: PATIENT, diagnoses: [], stages: [], grades: [] });
+      }
       if (url === '/api/admin/clinic-info?customerCode=A000001') {
         return jsonResponse({ clinic: { show_periodontal_diagnosis: false } });
       }
