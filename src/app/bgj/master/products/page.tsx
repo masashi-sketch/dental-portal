@@ -17,6 +17,7 @@ import ProductVisual from "@/components/ProductVisual";
 
 type ProductForm = {
   name: string;
+  productCode: string;
   category: string;
   description: string;
   price: string;
@@ -40,6 +41,7 @@ type ProductForm = {
 
 const EMPTY_FORM: ProductForm = {
   name: "",
+  productCode: "",
   category: PRODUCT_CATEGORIES[0],
   description: "",
   price: "",
@@ -64,6 +66,7 @@ const EMPTY_FORM: ProductForm = {
 function toForm(p: Product): ProductForm {
   return {
     name: p.name,
+    productCode: p.product_code ?? "",
     category: p.category,
     description: p.description ?? "",
     price: String(p.price),
@@ -89,6 +92,7 @@ function toForm(p: Product): ProductForm {
 function toRequestBody(form: ProductForm) {
   return {
     name: form.name,
+    productCode: form.productCode || null,
     category: form.category,
     description: form.description,
     price: Number(form.price),
@@ -196,6 +200,7 @@ export default function ProductsMasterPage() {
       }
       const data = await res.json();
       setForm((f) => ({ ...f, imageUrl: data.url }));
+      showToast("画像をアップロードしました。反映するには下部の「更新する/追加」を押して保存してください");
     } catch (e) {
       showToast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -312,6 +317,11 @@ export default function ProductsMasterPage() {
                 <label className={labelClass}>商品名（必須）</label>
                 <input type="text" placeholder="例）オーラルプロバイオティクス 30日分" value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>商品コード（任意・重複不可）</label>
+                <input type="text" placeholder="例）BG-0001" value={form.productCode}
+                  onChange={(e) => setForm({ ...form, productCode: e.target.value })} className={inputClass} />
               </div>
               <div>
                 <label className={labelClass}>カテゴリ</label>

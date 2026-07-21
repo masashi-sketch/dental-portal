@@ -645,6 +645,7 @@ create trigger trg_clinic_announcements_updated_at
 create table public.products (
   id            uuid primary key default gen_random_uuid(),
   name          text not null,
+  product_code  text,                -- 社内管理用の商品コード（任意入力・一意）。Shopify連携時のSKU紐付け先候補
   -- カテゴリはバイオガイア公式サイト（jp.biogaia.com）の商品分類に合わせる
   category      text not null check (category in ('お口と喉のケア','赤ちゃん・キッズ','抵抗力サポート','胃腸のサポート','ペット向け')),
   description   text,                -- 一覧カードの説明文
@@ -675,6 +676,8 @@ create table public.products (
 create trigger trg_products_updated_at
   before update on public.products
   for each row execute function public.set_updated_at_generic();
+
+create unique index products_product_code_key on public.products (product_code) where product_code is not null;
 
 -- 医院ごとの患者ポータル表示設定。行が無い商品は「表示」扱い（新商品はデフォルト全医院表示、
 -- 医院が非表示にした時だけ行をupsertする）。

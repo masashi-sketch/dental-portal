@@ -48,6 +48,11 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
+    // productsのunique制約はproduct_codeのみ（nullは複数許容）のため、
+    // ここでの一意制約違反は商品コードの重複と判断できる。
+    if (error.code === '23505') {
+      return NextResponse.json({ error: 'この商品コードは既に使用されています。' }, { status: 409 });
+    }
     console.error('POST /api/bgj/products failed:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -13,6 +13,7 @@ function makeProduct(overrides: Partial<Product>): Product {
   return {
     id: 'product-1',
     name: 'テスト商品',
+    product_code: null,
     category: 'お口と喉のケア',
     description: 'テスト説明文',
     price: 1000,

@@ -21,6 +21,7 @@ function jsonResponse(data: unknown, ok = true) {
 const product: Product & { isVisible: boolean } = {
   id: 'product-1',
   name: 'オーラルプロバイオティクス 30日分',
+  product_code: null,
   category: 'お口と喉のケア',
   description: null,
   price: 3980,

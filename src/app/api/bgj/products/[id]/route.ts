@@ -29,6 +29,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .single();
 
   if (error) {
+    // productsのunique制約はproduct_codeのみ（nullは複数許容）のため、
+    // ここでの一意制約違反は商品コードの重複と判断できる。
+    if (error.code === '23505') {
+      return NextResponse.json({ error: 'この商品コードは既に使用されています。' }, { status: 409 });
+    }
     console.error('PATCH /api/bgj/products/[id] failed:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

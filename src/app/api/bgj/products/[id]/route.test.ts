@@ -12,10 +12,12 @@ const deleteSpy = vi.fn();
 const updatedRow = {
   id: 'product-1',
   name: 'オーラルプロバイオティクス 30日分',
+  product_code: null,
   category: 'お口と喉のケア',
   price: 3980,
   status: '公開',
 };
+let updateError: { code: string; message: string } | null = null;
 
 vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServerClient: () => ({
@@ -27,7 +29,7 @@ vi.mock('@/lib/supabase/server', () => ({
           return {
             eq: () => ({
               select: () => ({
-                single: async () => ({ data: updatedRow, error: null }),
+                single: async () => (updateError ? { data: null, error: updateError } : { data: updatedRow, error: null }),
               }),
             }),
           };
@@ -69,6 +71,7 @@ describe('PATCH /api/bgj/products/[id]', () => {
   beforeEach(() => {
     sessionValue = null;
     updateSpy.mockReset();
+    updateError = null;
   });
 
   it('未認証なら401', async () => {
@@ -98,6 +101,15 @@ describe('PATCH /api/bgj/products/[id]', () => {
     expect(updateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'テスト商品', status: '公開' }),
     );
+  });
+
+  it('商品コードが他商品と重複している場合は409', async () => {
+    sessionValue = makeSession();
+    updateError = { code: '23505', message: 'duplicate key value violates unique constraint "products_product_code_key"' };
+    const res = await PATCH(makePatchRequest({ ...validBody, productCode: 'BG-0001' }), makeParams('product-1'));
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe('この商品コードは既に使用されています。');
   });
 });
 

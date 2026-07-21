@@ -12,6 +12,7 @@ function jsonResponse(data: unknown, ok = true) {
 const product: Product = {
   id: 'product-1',
   name: 'オーラルプロバイオティクス 30日分',
+  product_code: 'BG-0001',
   category: 'お口と喉のケア',
   description: '口腔内の善玉菌を増やす乳酸菌サプリ。',
   price: 3980,
@@ -118,6 +119,7 @@ describe('ProductsMasterPage', () => {
       expect(fetchMock).toHaveBeenCalledWith('/api/bgj/products/upload-image', expect.objectContaining({ method: 'POST' }));
     });
     await screen.findByText('画像を削除');
+    expect(await screen.findByText('画像をアップロードしました。反映するには下部の「更新する/追加」を押して保存してください')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('追加'));
 
@@ -129,7 +131,7 @@ describe('ProductsMasterPage', () => {
     expect(body.imageUrl).toBe(uploadedUrl);
   });
 
-  it('編集を開くと既存値がフォームに入り、更新でPATCHが飛ぶ', async () => {
+  it('編集を開くと既存値がフォームに入り、更新でPATCHが飛ぶ（商品コードも含む）', async () => {
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       if (init?.method === 'PATCH') return jsonResponse({ product }, true);
       return jsonResponse({ products: [product] });
@@ -140,6 +142,7 @@ describe('ProductsMasterPage', () => {
     fireEvent.click(screen.getByText('編集'));
     expect(screen.getByDisplayValue('オーラルプロバイオティクス 30日分')).toBeInTheDocument();
     expect(screen.getByDisplayValue('まず最初にご案内しているサプリです。')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('BG-0001')).toBeInTheDocument();
     fireEvent.click(screen.getByText('更新する'));
 
     await waitFor(() => {
@@ -148,5 +151,27 @@ describe('ProductsMasterPage', () => {
         expect.objectContaining({ method: 'PATCH' }),
       );
     });
+    const patchCall = fetchMock.mock.calls.find(([, init]) => (init as RequestInit)?.method === 'PATCH');
+    const body = JSON.parse((patchCall![1] as RequestInit).body as string);
+    expect(body.productCode).toBe('BG-0001');
+  });
+
+  it('商品コードが重複していると保存に失敗し、409のエラーメッセージをトースト表示する', async () => {
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        return Promise.resolve({ ok: false, json: async () => ({ error: 'この商品コードは既に使用されています。' }) });
+      }
+      return jsonResponse({ products: [] });
+    });
+    render(<ProductsMasterPage />);
+    await screen.findByText('商品がまだ登録されていません');
+
+    fireEvent.click(screen.getByText('商品を追加'));
+    fireEvent.change(screen.getByPlaceholderText('例）オーラルプロバイオティクス 30日分'), { target: { value: '新しいサプリ' } });
+    fireEvent.change(screen.getByPlaceholderText('例）3980'), { target: { value: '2000' } });
+    fireEvent.change(screen.getByPlaceholderText('例）BG-0001'), { target: { value: 'BG-0001' } });
+    fireEvent.click(screen.getByText('追加'));
+
+    expect(await screen.findByText('この商品コードは既に使用されています。')).toBeInTheDocument();
   });
 });

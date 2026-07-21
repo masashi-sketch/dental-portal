@@ -13,12 +13,14 @@ const insertSpy = vi.fn();
 const productRow = {
   id: 'product-1',
   name: 'オーラルプロバイオティクス 30日分',
+  product_code: null,
   category: 'お口と喉のケア',
   price: 3980,
   status: '公開',
   sort_order: 10,
 };
 const listedRows = [productRow];
+let insertError: { code: string; message: string } | null = null;
 
 vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServerClient: () => ({
@@ -36,7 +38,7 @@ vi.mock('@/lib/supabase/server', () => ({
           insertSpy(row);
           return {
             select: () => ({
-              single: async () => ({ data: productRow, error: null }),
+              single: async () => (insertError ? { data: null, error: insertError } : { data: productRow, error: null }),
             }),
           };
         },
@@ -92,6 +94,7 @@ describe('POST /api/bgj/products', () => {
   beforeEach(() => {
     sessionValue = null;
     insertSpy.mockReset();
+    insertError = null;
   });
 
   it('未認証なら401', async () => {
@@ -133,6 +136,7 @@ describe('POST /api/bgj/products', () => {
     const res = await POST(
       makeRequest({
         ...validBody,
+        productCode: 'BG-0001',
         imageType: 'oral',
         imageUrl: 'https://example.supabase.co/storage/v1/object/public/product-images/test.png',
         badge: '新着',
@@ -148,6 +152,7 @@ describe('POST /api/bgj/products', () => {
     expect(insertSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'テスト商品',
+        product_code: 'BG-0001',
         category: 'お口と喉のケア',
         price: 1000,
         image_type: 'oral',
@@ -163,5 +168,14 @@ describe('POST /api/bgj/products', () => {
         doctor_comment: null,
       }),
     );
+  });
+
+  it('商品コードが重複している場合は409', async () => {
+    sessionValue = makeSession();
+    insertError = { code: '23505', message: 'duplicate key value violates unique constraint "products_product_code_key"' };
+    const res = await POST(makeRequest({ ...validBody, productCode: 'BG-0001' }));
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe('この商品コードは既に使用されています。');
   });
 });

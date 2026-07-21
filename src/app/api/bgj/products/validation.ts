@@ -46,6 +46,7 @@ export function validateProductBody(body: unknown): { row: ValidatedRow } | { er
   return {
     row: {
       name,
+      product_code: optionalText(b.productCode),
       category,
       description: optionalText(b.description),
       price,

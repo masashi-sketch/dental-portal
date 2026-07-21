@@ -423,6 +423,7 @@ export type ProductBadgeColor = 'indigo' | 'rose' | 'amber' | 'emerald' | 'sky' 
 export type Product = {
   id: string;
   name: string;
+  product_code: string | null;
   category: ProductCategory;
   description: string | null;
   price: number;
@@ -447,7 +448,7 @@ export type Product = {
 };
 
 export const PRODUCT_COLUMNS =
-  'id, name, category, description, price, unit, image_type, image_url, badge, badge_color, subscription_available, volume, ingredients, how_to_use, caution, working_point, daily_amount, recommendation_level, doctor_comment, status, sort_order, created_at, updated_at';
+  'id, name, product_code, category, description, price, unit, image_type, image_url, badge, badge_color, subscription_available, volume, ingredients, how_to_use, caution, working_point, daily_amount, recommendation_level, doctor_comment, status, sort_order, created_at, updated_at';
 
 // 医院ごとの患者ポータル表示設定。行が無い商品は「表示」扱い。
 export type ClinicProductSetting = {
