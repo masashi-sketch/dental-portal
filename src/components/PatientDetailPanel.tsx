@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/useToast';
 import type { PatientPublic, PeriodontalDiagnosisWithMaster, PeriodontalGrade, PeriodontalStage } from '@/lib/supabase/types';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import { requestClinicInfo } from '@/lib/client/clinicInfoRequest';
 
 type DiagnosisForm = {
   stageCode: string;
@@ -97,10 +98,9 @@ export default function PatientDetailPanel({
     // 患者情報から取得したcustomer_codeを使う（clinicロールでも常に自院のcustomer_codeと一致する。
     // isPatientInScopeで他院の患者IDへのアクセスは既に弾かれている）。
     if (!patient?.customer_code) return;
-    fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(patient.customer_code)}`)
-      .then((res) => (res.ok ? res.json() : { clinic: null }))
-      .then((data) => {
-        if (data.clinic) setPeriodontalEnabled(data.clinic.show_periodontal_diagnosis);
+    requestClinicInfo(patient.customer_code)
+      .then((clinic) => {
+        if (clinic) setPeriodontalEnabled(clinic.show_periodontal_diagnosis);
       })
       .catch(() => {});
   }, [patient?.customer_code]);

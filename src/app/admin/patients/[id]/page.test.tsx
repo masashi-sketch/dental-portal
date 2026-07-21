@@ -2,6 +2,7 @@ import { act, Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import AdminPatientDetailPage from './page';
+import { clearClinicInfoRequestCache } from '@/lib/client/clinicInfoRequest';
 
 // use(params)がSuspenseをトリガーするため、ルートツリーが自動で提供するSuspense境界を
 // テストでも明示的に用意する（src/app/bgj/inquiries/[id]/page.test.tsxと同じパターン）。
@@ -46,6 +47,7 @@ const PATIENT = {
 
 describe('AdminPatientDetailPage', () => {
   beforeEach(() => {
+    clearClinicInfoRequestCache();
     fetchMock.mockReset();
     useSessionMock.mockReturnValue({ data: { user: { role: 'bgj' } }, status: 'authenticated' });
     fetchMock.mockImplementation((url: string) => {

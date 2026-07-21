@@ -25,7 +25,7 @@ describe("AppReadyBoundary", () => {
     expect(screen.getByRole("status", { name: "画面を読み込んでいます" })).toBeInTheDocument();
     expect(screen.getByText("画面の内容").parentElement).toHaveStyle({ visibility: "hidden" });
 
-    await act(async () => vi.advanceTimersByTime(120));
+    await act(async () => vi.advanceTimersByTime(500));
 
     expect(screen.queryByRole("status", { name: "画面を読み込んでいます" })).not.toBeInTheDocument();
     expect(screen.getByText("画面の内容").parentElement).toHaveStyle({ visibility: "visible" });
@@ -51,7 +51,7 @@ describe("AppReadyBoundary", () => {
     expect(screen.getByRole("status", { name: "画面を読み込んでいます" })).toBeInTheDocument();
 
     await act(async () => resolveFetch());
-    await act(async () => vi.advanceTimersByTime(120));
+    await act(async () => vi.advanceTimersByTime(500));
     expect(screen.queryByRole("status", { name: "画面を読み込んでいます" })).not.toBeInTheDocument();
   });
 
@@ -61,7 +61,7 @@ describe("AppReadyBoundary", () => {
         <a href="/next">次へ</a>
       </AppReadyBoundary>,
     );
-    await act(async () => vi.advanceTimersByTime(120));
+    await act(async () => vi.advanceTimersByTime(500));
 
     fireEvent.click(screen.getByRole("link", { name: "次へ" }));
     expect(screen.getByRole("status", { name: "画面を読み込んでいます" })).toBeInTheDocument();

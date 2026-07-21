@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import FullScreenLoading from "@/components/ui/FullScreenLoading";
 
 const NETWORK_IDLE_MS = 120;
+const INITIAL_HYDRATION_IDLE_MS = 500;
 const MAX_LOADING_MS = 15_000;
 
 function isInternalNavigation(event: MouseEvent) {
@@ -44,6 +45,7 @@ export default function AppReadyBoundary({ children }: { children: React.ReactNo
   const contentRef = useRef<HTMLDivElement>(null);
   const pendingRequests = useRef(0);
   const cycleActive = useRef(true);
+  const hasRevealed = useRef(false);
   const cycleId = useRef(0);
   const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maximumTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -66,6 +68,7 @@ export default function AppReadyBoundary({ children }: { children: React.ReactNo
     cycleActive.current = false;
     clearRevealTimer();
     clearMaximumTimer();
+    hasRevealed.current = true;
     setReady(true);
   }, [clearMaximumTimer, clearRevealTimer]);
 
@@ -79,11 +82,12 @@ export default function AppReadyBoundary({ children }: { children: React.ReactNo
     if (!cycleActive.current || pendingRequests.current > 0) return;
 
     const currentCycle = cycleId.current;
+    const idleMs = hasRevealed.current ? NETWORK_IDLE_MS : INITIAL_HYDRATION_IDLE_MS;
     revealTimer.current = setTimeout(async () => {
       await waitForVisualAssets(contentRef.current);
       if (!cycleActive.current || currentCycle !== cycleId.current || pendingRequests.current > 0) return;
       reveal();
-    }, NETWORK_IDLE_MS);
+    }, idleMs);
   }, [clearRevealTimer, reveal]);
 
   const startCycle = useCallback(() => {
