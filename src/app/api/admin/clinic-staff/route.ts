@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   }
 
   const requestedCode = request.nextUrl.searchParams.get('customerCode');
-  const customerCode = resolveScopedCustomerCode(session, requestedCode);
+  const customerCode = await resolveScopedCustomerCode(session, requestedCode);
   if (!customerCode) return NextResponse.json({ staff: [] });
 
   const supabase = getSupabaseServerClient();
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const { roleLabel, name, credentials, description, photoUrl } = body ?? {};
-  const customerCode = resolveScopedCustomerCode(session, body?.customerCode ?? null);
+  const customerCode = await resolveScopedCustomerCode(session, body?.customerCode ?? null);
   if (!customerCode || !roleLabel || !name) {
     return NextResponse.json({ error: '必須項目が不足しています。' }, { status: 400 });
   }

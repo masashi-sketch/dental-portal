@@ -1,4 +1,5 @@
 import 'server-only';
+import { cookies } from 'next/headers';
 import type { Session } from 'next-auth';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -14,11 +15,17 @@ export function requireBgjSession(session: Session | null): session is Session {
 // クリニック（clinic-credentials）ログインは、クライアントが送ってきたcustomerCodeを
 // 一切信用せず、必ずセッションの得意先コードで上書きする。BGJ職員（Google）は
 // 従来通りクエリ／bodyのcustomerCode指定を信頼する。
-export function resolveScopedCustomerCode(
+// BGJ職員がcustomerCodeを指定しなかった場合（/admin/*ページの多くはクエリを付けずに
+// fetchする）、得意先詳細ページの「医院ポータルを開く（ビュー）」ボタンがセットする
+// bgj-viewing-customer-codeクッキーへフォールバックする（患者側のdemo-patient-idと同じ設計）。
+export async function resolveScopedCustomerCode(
   session: Session,
   requestedCode: string | null,
-): string | null {
-  return session.user.role === 'clinic' ? session.user.customerCode : requestedCode;
+): Promise<string | null> {
+  if (session.user.role === 'clinic') return session.user.customerCode;
+  if (requestedCode) return requestedCode;
+  const store = await cookies();
+  return store.get('bgj-viewing-customer-code')?.value ?? null;
 }
 
 // patient_id経由のAPI（詳細・診断など）で、クリニックログインが他院の患者IDに

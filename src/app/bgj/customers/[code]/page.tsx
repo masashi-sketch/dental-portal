@@ -229,24 +229,37 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                 )}
               </div>
             </div>
-            {activeTab === "接続情報" ? (
-              clinic.signup_pin && clinic.signup_slug ? (
-                <Button theme="violet" size="sm" className="shadow-sm" onClick={() => setConfirmingPinRegen(true)}>
-                  PIN・QRを再発行する
-                </Button>
-              ) : (
-                <Button theme="violet" size="sm" className="shadow-sm" onClick={handleRegenerateSignupPin} disabled={regeneratingPin}>
-                  {regeneratingPin ? "発行中..." : "PIN・QRを発行する"}
-                </Button>
-              )
-            ) : (
-              <Button theme="violet" size="sm" className="shadow-sm" onClick={() => setShowVisitModal(true)}>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                訪問記録を追加
+            <div className="flex items-center gap-2">
+              <Button
+                theme="violet"
+                size="sm"
+                className="shadow-sm"
+                onClick={() => {
+                  document.cookie = `bgj-viewing-customer-code=${code}; path=/; max-age=86400; SameSite=Lax`;
+                  window.open("/admin", "_blank");
+                }}
+              >
+                医院ポータルを開く（ビュー）
               </Button>
-            )}
+              {activeTab === "接続情報" ? (
+                clinic.signup_pin && clinic.signup_slug ? (
+                  <Button theme="violet" size="sm" className="shadow-sm" onClick={() => setConfirmingPinRegen(true)}>
+                    PIN・QRを再発行する
+                  </Button>
+                ) : (
+                  <Button theme="violet" size="sm" className="shadow-sm" onClick={handleRegenerateSignupPin} disabled={regeneratingPin}>
+                    {regeneratingPin ? "発行中..." : "PIN・QRを発行する"}
+                  </Button>
+                )
+              ) : (
+                <Button theme="violet" size="sm" className="shadow-sm" onClick={() => setShowVisitModal(true)}>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  訪問記録を追加
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* タブ */}

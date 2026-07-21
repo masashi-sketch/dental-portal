@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type { Clinic, ClinicIntroInfo, ClinicPatientSettings, SalesRepWithMaster } from '@/lib/supabase/types';
+import { effectiveAdminCustomerCode } from '@/lib/auth/effectiveAdminCustomerCode';
 
 // APIレスポンスはclinics・clinic_patient_settings・clinic_intro_infoを
 // フラットにマージした1つのオブジェクトを返すため、型もそれに合わせて合成する。
@@ -19,7 +20,11 @@ export type ClinicWithStaff = Clinic & ClinicPatientSettings & ClinicIntroInfo &
 export function useClinicInfo(onLoad?: (clinic: ClinicWithStaff | null) => void) {
   const { data: session, status: sessionStatus } = useSession();
   const isClinicRole = session?.user?.role === 'clinic';
-  const customerCode = isClinicRole ? session?.user.customerCode ?? '' : '';
+  // BGJ職員が得意先詳細の「医院ポータルを開く（ビュー）」経由でアクセスした場合、
+  // bgj-viewing-customer-code cookieにフォールバックする（effectiveAdminCustomerCode参照）。
+  // 読み取り（この取得処理）とPATCH等の書き込み可否（isClinicRole）は意図的に分離しており、
+  // ビューモードでは「見えるが自己編集はできない」状態になる。
+  const customerCode = effectiveAdminCustomerCode(session) ?? '';
 
   const [clinic, setClinic] = useState<ClinicWithStaff | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -29,7 +34,7 @@ export function useClinicInfo(onLoad?: (clinic: ClinicWithStaff | null) => void)
   });
 
   useEffect(() => {
-    if (sessionStatus === 'loading' || !isClinicRole || !customerCode) return;
+    if (sessionStatus === 'loading' || !customerCode) return;
     let cancelled = false;
     fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(customerCode)}`)
       .then((res) => (res.ok ? res.json() : { clinic: null }))
@@ -42,7 +47,7 @@ export function useClinicInfo(onLoad?: (clinic: ClinicWithStaff | null) => void)
       .catch(() => { if (!cancelled) setClinic(null); })
       .finally(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
-  }, [sessionStatus, isClinicRole, customerCode]);
+  }, [sessionStatus, customerCode]);
 
   return { sessionStatus, isClinicRole, customerCode, clinic, setClinic, loaded };
 }

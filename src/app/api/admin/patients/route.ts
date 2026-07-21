@@ -14,14 +14,17 @@ export async function GET(request: NextRequest) {
   }
 
   const requestedCode = request.nextUrl.searchParams.get('customerCode');
-  const customerCode = resolveScopedCustomerCode(session, requestedCode);
+  const customerCode = await resolveScopedCustomerCode(session, requestedCode);
+  if (!customerCode) {
+    return NextResponse.json({ error: 'customerCodeが必要です。' }, { status: 400 });
+  }
   const supabase = getSupabaseServerClient();
-  let query = supabase
+  const query = supabase
     .from('patients')
     .select(PATIENT_PUBLIC_COLUMNS)
+    .eq('customer_code', customerCode)
     .order('created_at', { ascending: false })
     .limit(500);
-  if (customerCode) query = query.eq('customer_code', customerCode);
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -36,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const { name, password, status } = body ?? {};
-  const customerCode = resolveScopedCustomerCode(session, body?.customerCode ?? null);
+  const customerCode = await resolveScopedCustomerCode(session, body?.customerCode ?? null);
   if (!customerCode || !name || !password) {
     return NextResponse.json({ error: '必須項目が不足しています。' }, { status: 400 });
   }

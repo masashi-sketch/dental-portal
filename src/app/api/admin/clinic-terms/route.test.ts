@@ -8,6 +8,12 @@ vi.mock('@/auth', () => ({
   auth: async () => sessionValue,
 }));
 
+// resolveScopedCustomerCodeがbgjロール・customerCode未指定時に読むcookie。
+// このテストではcookieも無い状態（=undefined）を再現する。
+vi.mock('next/headers', () => ({
+  cookies: async () => ({ get: () => undefined }),
+}));
+
 let termsRow: Record<string, unknown> | null = null;
 const eqSpy = vi.fn();
 

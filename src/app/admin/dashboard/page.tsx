@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useActiveClinic } from '@/hooks/useActiveClinic';
 import { useAdminOverview } from '@/hooks/useAdminOverview';
 import { ORDER_STATUS_LABEL } from '@/lib/orders';
 import type { PatientOrderStatus } from '@/lib/supabase/types';
+import { effectiveAdminCustomerCode } from '@/lib/auth/effectiveAdminCustomerCode';
 import Card from '@/components/ui/Card';
 
 function IconUsers() {
@@ -40,9 +42,21 @@ const tagColors = {
 } as const;
 
 export default function AdminDashboard() {
+  const { data: session } = useSession();
   const { clinicName } = useActiveClinic();
   const { overview, loading, error, reload } = useAdminOverview();
   const counts = overview?.counts;
+
+  // patient-last-clinicは患者ログイン画面のブランディング表示だけに使う非機密cookie。
+  // 実効customerCode（clinicロールの自院、またはBGJのビューモード対象）が分かれば
+  // セットしてから開き、無関係な医院のブランディングで表示されないようにする。
+  const openPatientPortal = () => {
+    const customerCode = effectiveAdminCustomerCode(session);
+    if (customerCode) {
+      document.cookie = `patient-last-clinic=${encodeURIComponent(customerCode)}; path=/; max-age=31536000; SameSite=Lax`;
+    }
+    window.open('/', '_blank');
+  };
   const stats = [
     { label: '有効患者数', value: counts?.patientCount, unit: '名', icon: <IconUsers />, color: 'text-blue-600', bg: 'bg-blue-50', href: '/admin/patients' },
     { label: '公開中のお知らせ', value: counts?.publishedAnnouncementCount, unit: '件', icon: <IconBell />, color: 'text-amber-500', bg: 'bg-amber-50', href: '/admin/news' },
@@ -64,9 +78,12 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-3">
             {generatedDate && <span className="text-slate-600 text-sm hidden sm:block">{generatedDate} 更新</span>}
-            <Link href="/" target="_blank" className="text-sm bg-sky-50 text-sky-700 border border-sky-200 px-4 py-2 rounded-lg hover:bg-sky-100 transition-colors font-medium">
+            <button
+              onClick={openPatientPortal}
+              className="text-sm bg-sky-50 text-sky-700 border border-sky-200 px-4 py-2 rounded-lg hover:bg-sky-100 transition-colors font-medium"
+            >
               患者ポータルを確認
-            </Link>
+            </button>
           </div>
         </header>
 

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import CustomerDetailPage from './page';
 import { makeClinicWithStaff } from '@/test/fixtures';
 
@@ -73,5 +73,25 @@ describe('CustomerDetailPage 初期データ取得', () => {
     await renderPage("A000001");
 
     expect(await screen.findByText('得意先情報の取得に失敗しました')).toBeInTheDocument();
+  });
+
+  it('「医院ポータルを開く（ビュー）」を押すとcookieをセットし別タブで/adminを開く', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url === '/api/bgj/clinics/A000001') return jsonResponse({ clinic });
+      if (url === '/api/bgj/sales-reps') return jsonResponse({ salesReps: [] });
+      if (url === '/api/bgj/clinic-statuses') return jsonResponse({ clinicStatuses: [] });
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    document.cookie = 'bgj-viewing-customer-code=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+
+    await renderPage("A000001");
+    fireEvent.click(await screen.findByText('医院ポータルを開く（ビュー）'));
+
+    expect(document.cookie).toContain('bgj-viewing-customer-code=A000001');
+    expect(openSpy).toHaveBeenCalledWith('/admin', '_blank');
+
+    openSpy.mockRestore();
+    document.cookie = 'bgj-viewing-customer-code=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
   });
 });

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   }
 
   const requestedCode = request.nextUrl.searchParams.get('customerCode');
-  const code = resolveScopedCustomerCode(session, requestedCode);
+  const code = await resolveScopedCustomerCode(session, requestedCode);
   if (!code) return NextResponse.json({ clinic: null });
 
   const supabase = getSupabaseServerClient();

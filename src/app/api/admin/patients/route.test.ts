@@ -8,6 +8,12 @@ vi.mock('@/auth', () => ({
   auth: async () => sessionValue,
 }));
 
+// resolveScopedCustomerCodeがbgjロール・customerCode未指定時に読むcookie。
+// このテストではcookieも無い状態（=undefined）を再現する。
+vi.mock('next/headers', () => ({
+  cookies: async () => ({ get: () => undefined }),
+}));
+
 let patientRows: unknown[] = [];
 let insertedRow: unknown = { id: 'patient-1' };
 const insertSpy = vi.fn();
@@ -83,10 +89,17 @@ describe('GET /api/admin/patients', () => {
     expect(eqSpy).toHaveBeenCalledWith('customer_code', 'A000001');
   });
 
-  it('bgjロールがcustomerCode未指定なら絞り込みをかけない', async () => {
+  it('bgjロールがcustomerCode未指定（cookieも無し）なら400（全件返却しない）', async () => {
     sessionValue = makeSession({ role: 'bgj' });
-    await GET(getRequest(null));
+    const res = await GET(getRequest(null));
+    expect(res.status).toBe(400);
     expect(eqSpy).not.toHaveBeenCalled();
+  });
+
+  it('bgjロールがcustomerCodeを指定した場合はそのコードで絞り込む', async () => {
+    sessionValue = makeSession({ role: 'bgj' });
+    await GET(getRequest('A000002'));
+    expect(eqSpy).toHaveBeenCalledWith('customer_code', 'A000002');
   });
 });
 

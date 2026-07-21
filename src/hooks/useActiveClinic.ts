@@ -4,18 +4,20 @@ import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSafeState } from './useSafeState';
 import type { SalesRepWithMaster } from '@/lib/supabase/types';
+import { effectiveAdminCustomerCode } from '@/lib/auth/effectiveAdminCustomerCode';
 
 // 医院用ポータルの「今どのクリニックとして見るか」の情報を取得する。
-// クリニックログイン（clinic-credentials）のみ、セッションのcustomerCodeを唯一の正として使う。
-// BGJ職員は得意先を選択する仕組みを廃止したため、常にnullを返す
-// （BGJ職員向けの得意先ごとの管理はBGJポータル側で行う）。
+// クリニックログイン（clinic-credentials）はセッションのcustomerCodeを使う。
+// BGJ職員は得意先を選択する仕組みを廃止したが、得意先詳細ページの
+// 「医院ポータルを開く（ビュー）」経由でアクセスした場合はbgj-viewing-customer-code
+// cookie（effectiveAdminCustomerCode参照）にフォールバックする。
 export function useActiveClinic() {
   const { data: session, status: sessionStatus } = useSession();
   const [clinicName, setClinicName] = useSafeState<string | null>(null);
   const [salesRep, setSalesRep] = useSafeState<SalesRepWithMaster | null>(null);
   const [fetchDone, setFetchDone] = useSafeState(false);
 
-  const code = session?.user?.role === 'clinic' ? session.user.customerCode ?? null : null;
+  const code = effectiveAdminCustomerCode(session);
 
   useEffect(() => {
     if (sessionStatus === 'loading' || !code) return;

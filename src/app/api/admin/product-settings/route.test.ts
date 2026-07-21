@@ -10,6 +10,12 @@ vi.mock('@/auth', () => ({
   auth: async () => sessionValue,
 }));
 
+// resolveScopedCustomerCodeがbgjロール・customerCode未指定時に読むcookie。
+// このテストではcookieも無い状態（=undefined）を再現する。
+vi.mock('next/headers', () => ({
+  cookies: async () => ({ get: () => undefined }),
+}));
+
 const productRows = [
   { id: 'product-1', name: '商品A', category: 'お口と喉のケア', price: 1000, status: '公開' },
   { id: 'product-2', name: '商品B', category: '赤ちゃん・キッズ', price: 2000, status: '公開' },

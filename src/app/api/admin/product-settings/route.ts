@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   }
 
   const requested = request.nextUrl.searchParams.get('customerCode');
-  const customerCode = resolveScopedCustomerCode(session, requested);
+  const customerCode = await resolveScopedCustomerCode(session, requested);
   if (!customerCode) {
     return NextResponse.json({ error: 'customerCodeが必要です。' }, { status: 400 });
   }

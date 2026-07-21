@@ -1,15 +1,27 @@
 // @vitest-environment node
 // clinicScope.tsは`import 'server-only'`を含み、windowが存在する環境(jsdom)では
 // importした時点でエラーになるため、このテストはnode環境で実行する。
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Session } from 'next-auth';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import {
+
+// next/headers の cookies() をテスト用にモックする。
+// bgj-viewing-customer-code cookieの値だけを差し替えられるようにする
+// （patientScope.test.tsのdemo-patient-idモックと同じパターン）。
+let mockCookieValue: string | null = null;
+vi.mock('next/headers', () => ({
+  cookies: async () => ({
+    get: (name: string) =>
+      name === 'bgj-viewing-customer-code' && mockCookieValue !== null ? { value: mockCookieValue } : undefined,
+  }),
+}));
+
+const {
   isClinicResourceInScope,
   isPatientInScope,
   requireBgjSession,
   resolveScopedCustomerCode,
-} from './clinicScope';
+} = await import('./clinicScope');
 
 function makeSession(overrides: Partial<Session['user']>): Session {
   return {
@@ -58,16 +70,29 @@ describe('requireBgjSession', () => {
 });
 
 describe('resolveScopedCustomerCode', () => {
-  it('clinicロールはrequestedCodeを無視し、常に自分のcustomerCodeを返す', () => {
+  it('clinicロールはrequestedCodeを無視し、常に自分のcustomerCodeを返す（cookieがあっても無視）', async () => {
+    mockCookieValue = 'A999998';
     const session = makeSession({ role: 'clinic', customerCode: 'A000001' });
-    expect(resolveScopedCustomerCode(session, 'A999999')).toBe('A000001');
-    expect(resolveScopedCustomerCode(session, null)).toBe('A000001');
+    await expect(resolveScopedCustomerCode(session, 'A999999')).resolves.toBe('A000001');
+    await expect(resolveScopedCustomerCode(session, null)).resolves.toBe('A000001');
+    mockCookieValue = null;
   });
 
-  it('bgjロールはrequestedCodeをそのまま信頼する', () => {
+  it('bgjロールはrequestedCodeをそのまま信頼する', async () => {
     const session = makeSession({ role: 'bgj' });
-    expect(resolveScopedCustomerCode(session, 'A000002')).toBe('A000002');
-    expect(resolveScopedCustomerCode(session, null)).toBeNull();
+    await expect(resolveScopedCustomerCode(session, 'A000002')).resolves.toBe('A000002');
+  });
+
+  it('bgjロールでrequestedCodeが無い場合、bgj-viewing-customer-code cookieへフォールバックする', async () => {
+    mockCookieValue = 'A000003';
+    const session = makeSession({ role: 'bgj' });
+    await expect(resolveScopedCustomerCode(session, null)).resolves.toBe('A000003');
+    mockCookieValue = null;
+  });
+
+  it('bgjロールでrequestedCodeもcookieも無い場合はnull', async () => {
+    const session = makeSession({ role: 'bgj' });
+    await expect(resolveScopedCustomerCode(session, null)).resolves.toBeNull();
   });
 });
 

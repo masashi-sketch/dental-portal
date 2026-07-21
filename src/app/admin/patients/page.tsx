@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
@@ -28,8 +27,6 @@ type FormState = {
 const EMPTY_FORM: FormState = { customerCode: '', name: '', password: '', status: '有効' };
 
 export default function AdminPatientsPage() {
-  const { data: session } = useSession();
-  const isClinicRole = session?.user?.role === 'clinic';
   const [patients, setPatients] = useState<PatientPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +37,11 @@ export default function AdminPatientsPage() {
   const { toast, showToast } = useToast();
   const [showQR, setShowQR] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
-  const { clinic, setClinic } = useClinicInfo();
+  const { clinic, setClinic, customerCode: effectiveCustomerCode } = useClinicInfo();
+  // BGJ職員が得意先詳細の「医院ポータルを開く（ビュー）」経由でアクセスした場合も、
+  // useClinicInfoがbgj-viewing-customer-code cookieにフォールバックして取得するため、
+  // isClinicRoleではなく実効customerCodeの有無でQR招待機能の表示を判定する。
+  const hasClinicScope = !!effectiveCustomerCode;
   const { regenerate: handleRegenerateSignupPin, regenerating: regeneratingPin } = useSignupPinRegenerate(setClinic, showToast);
   const { submitting: saving, guard: guardSave } = useSubmitGuard();
   const { submitting: deleting, guard: guardDelete } = useSubmitGuard();
@@ -48,7 +49,7 @@ export default function AdminPatientsPage() {
   // signup_slugを使う。originはSSR時に取得できないため、クライアントでの
   // レンダリング時にのみ算出する（set-state-in-effectを避ける）。
   const joinUrl =
-    isClinicRole && clinic?.signup_slug && typeof window !== 'undefined'
+    hasClinicScope && clinic?.signup_slug && typeof window !== 'undefined'
       ? `${window.location.origin}/join/${clinic.signup_slug}/mobile`
       : '';
   const signupPinIssuedAt = formatTimestampCompact(clinic?.signup_pin_issued_at);
@@ -73,7 +74,7 @@ export default function AdminPatientsPage() {
 
   const openNew = () => {
     setEditItem(null);
-    setForm({ ...EMPTY_FORM, customerCode: isClinicRole ? (session!.user.customerCode ?? '') : '' });
+    setForm({ ...EMPTY_FORM, customerCode: effectiveCustomerCode });
     setShowForm(true);
   };
 
@@ -180,7 +181,7 @@ export default function AdminPatientsPage() {
             <p className="text-slate-600 text-sm mt-0.5">患者のID・パスワードを発行・管理します</p>
           </div>
           <div className="flex gap-3">
-            {isClinicRole && (
+            {hasClinicScope && (
               <button onClick={() => setShowQR(true)}
                 className="bg-teal-500 hover:bg-teal-400 text-white text-base font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer flex items-center gap-2">
                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -357,7 +358,7 @@ export default function AdminPatientsPage() {
                   signupPin={clinic.signup_pin}
                   signupPinIssuedAt={signupPinIssuedAt}
                   qrValue={qrValue}
-                  pdfFilename={`患者登録QR_${session?.user.customerCode ?? ''}.pdf`}
+                  pdfFilename={`患者登録QR_${effectiveCustomerCode}.pdf`}
                   theme="sky"
                 />
                 <div className="flex gap-3 mt-4">

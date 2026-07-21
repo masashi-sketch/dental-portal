@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const customerCode = resolveScopedCustomerCode(session, request.nextUrl.searchParams.get('customerCode'));
+  const customerCode = await resolveScopedCustomerCode(session, request.nextUrl.searchParams.get('customerCode'));
   if (!customerCode) return NextResponse.json({ error: 'customerCodeが必要です。' }, { status: 400 });
 
   const { data, error } = await getSupabaseServerClient()
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const customerCode = resolveScopedCustomerCode(session, body?.customerCode ?? null);
+  const customerCode = await resolveScopedCustomerCode(session, body?.customerCode ?? null);
   const { patientId, productId, fulfillmentMethod, idempotencyKey } = body ?? {};
   const quantity = Number(body?.quantity ?? 1);
   if (!customerCode || typeof patientId !== 'string' || typeof productId !== 'string') {
