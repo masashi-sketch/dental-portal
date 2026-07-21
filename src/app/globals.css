@@ -3,3 +3,32 @@
 body {
   font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", sans-serif;
 }
+
+/*
+ * 医院管理ポータルは、従来ブラウザを67%へ縮小したときの情報密度を
+ * デスクトップの標準表示にする。ルートレイアウトで一度だけ適用し、
+ * 各ページへ縮小用クラスを重複させない。
+ *
+ * CSS zoomではviewport単位自体は縮小前の値を参照するため、画面高を使う
+ * 共通ユーティリティだけ逆数で補正し、サイドバーと背景を画面下端まで保つ。
+ * モバイル・タブレットは読みやすさとタップ領域を維持するため対象外。
+ */
+.admin-desktop-density {
+  min-height: 100vh;
+}
+
+@media (min-width: 1024px) {
+  .admin-desktop-density {
+    --admin-ui-scale: 0.67;
+    zoom: var(--admin-ui-scale);
+    min-height: calc(100vh / var(--admin-ui-scale));
+  }
+
+  .admin-desktop-density .min-h-screen {
+    min-height: calc(100vh / var(--admin-ui-scale));
+  }
+
+  .admin-desktop-density .h-screen {
+    height: calc(100vh / var(--admin-ui-scale));
+  }
+}
