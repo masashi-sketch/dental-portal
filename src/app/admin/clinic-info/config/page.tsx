@@ -29,6 +29,7 @@ export default function AdminClinicConfigPage() {
   const { toast, showToast } = useToast();
   const [brandingForm, setBrandingForm] = useState({ displayName: '', patientBackgroundUrl: '' });
   const [brandingSaving, setBrandingSaving] = useState(false);
+  const [backgroundUploading, setBackgroundUploading] = useState(false);
   const [navForm, setNavForm] = useState<Record<NavToggleKey, boolean>>({
     navShowClinicInfo: true,
     navShowMedicalRecord: true,
@@ -88,6 +89,29 @@ export default function AdminClinicConfigPage() {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
     } finally {
       setBrandingSaving(false);
+    }
+  };
+
+  const handleBackgroundUpload = async (file: File) => {
+    setBackgroundUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/admin/clinic-info/upload-background', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? '背景画像のアップロードに失敗しました');
+      }
+      const { url } = await res.json();
+      setBrandingForm((current) => ({ ...current, patientBackgroundUrl: url }));
+      showToast('背景画像をアップロードしました。「保存する」を押すと患者ポータルへ反映されます');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'エラーが発生しました');
+    } finally {
+      setBackgroundUploading(false);
     }
   };
 
@@ -190,18 +214,43 @@ export default function AdminClinicConfigPage() {
                       <p className="text-xs text-slate-400 mt-1">未入力の場合は「{clinic.name}」がそのまま表示されます。</p>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様ポータルの背景画像URL</label>
+                      <label className="text-xs font-semibold text-slate-500 mb-1 block">患者様ポータルの背景画像</label>
+                      {brandingForm.patientBackgroundUrl && (
+                        <div
+                          role="img"
+                          aria-label="現在選択されている患者様ポータルの背景画像"
+                          className="w-full h-36 mb-3 rounded-xl border border-sky-200 bg-cover bg-center"
+                          style={{ backgroundImage: `url(${JSON.stringify(brandingForm.patientBackgroundUrl)})` }}
+                        />
+                      )}
                       <input
-                        type="text"
-                        value={brandingForm.patientBackgroundUrl}
-                        onChange={(e) => setBrandingForm({ ...brandingForm, patientBackgroundUrl: e.target.value })}
-                        placeholder="https://..."
-                        className="w-full bg-sky-50 border border-sky-200 text-slate-800 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-500/40 placeholder-slate-400"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        disabled={backgroundUploading}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleBackgroundUpload(file);
+                          e.target.value = '';
+                        }}
+                        className="block w-full text-sm text-slate-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200 disabled:opacity-60"
                       />
-                      <p className="text-xs text-slate-400 mt-1">未入力の場合は標準の背景画像が使われます。</p>
+                      {backgroundUploading ? (
+                        <p className="text-xs text-slate-400 mt-1">アップロード中...</p>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-1">jpeg/png/webp/gif、5MBまで。アップロード後に「保存する」を押してください。</p>
+                      )}
+                      {brandingForm.patientBackgroundUrl && !backgroundUploading && (
+                        <button
+                          type="button"
+                          onClick={() => setBrandingForm((current) => ({ ...current, patientBackgroundUrl: '' }))}
+                          className="text-xs text-red-600 hover:text-red-800 mt-2"
+                        >
+                          背景画像を削除して標準画像に戻す
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <Button theme="sky" onClick={handleSaveBranding} disabled={brandingSaving} className="mt-4">
+                  <Button theme="sky" onClick={handleSaveBranding} disabled={brandingSaving || backgroundUploading} className="mt-4">
                     {brandingSaving ? '保存中...' : '保存する'}
                   </Button>
                 </Card>
