@@ -22,7 +22,7 @@ export default function PreviewModeBanner() {
 
   const endPreview = () => {
     document.cookie = 'demo-patient-id=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-    window.location.href = '/admin/patients';
+    window.close();
   };
 
   return (
@@ -34,7 +34,7 @@ export default function PreviewModeBanner() {
         onClick={endPreview}
         className="underline font-semibold hover:opacity-70 transition-opacity whitespace-nowrap"
       >
-        プレビューを終了
+        閉じる
       </button>
     </div>
   );

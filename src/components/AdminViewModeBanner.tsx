@@ -18,7 +18,7 @@ export default function AdminViewModeBanner() {
 
   const endViewing = () => {
     document.cookie = 'bgj-viewing-customer-code=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-    window.location.href = `/bgj/customers/${customerCode}`;
+    window.close();
   };
 
   return (
@@ -30,7 +30,7 @@ export default function AdminViewModeBanner() {
         onClick={endViewing}
         className="underline font-semibold hover:opacity-70 transition-opacity whitespace-nowrap"
       >
-        閲覧を終了
+        閉じる
       </button>
     </div>
   );
