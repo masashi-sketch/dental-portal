@@ -15,7 +15,7 @@ vi.mock('next-auth/react', () => ({
 }));
 
 describe('BgjSidebar', () => {
-  it('マスタ・受発注管理・在庫管理・システム管理・ヘルプの各グループラベルを表示する', () => {
+  it('マスタ・受発注管理・在庫管理・請求管理・システム管理・ヘルプの各グループラベルを表示する', () => {
     usePathnameMock.mockReturnValue('/bgj/dashboard');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
     render(<BgjSidebar />);
@@ -23,6 +23,7 @@ describe('BgjSidebar', () => {
     expect(labels.length).toBeGreaterThan(0);
     expect(screen.getAllByText('受発注管理').length).toBeGreaterThan(0);
     expect(screen.getAllByText('在庫管理').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('請求管理').length).toBeGreaterThan(0);
     expect(screen.getAllByText('システム管理').length).toBeGreaterThan(0);
     expect(screen.getAllByText('ヘルプ').length).toBeGreaterThan(0);
     expect(screen.queryByText('LINKマスタ')).not.toBeInTheDocument();
@@ -48,6 +49,18 @@ describe('BgjSidebar', () => {
     expect(screen.getAllByRole('link', { name: '発注一覧' })[0]).toHaveAttribute('href', '/bgj/orders?view=purchase');
     expect(screen.getAllByRole('link', { name: '在庫一覧' })[0]).toHaveAttribute('href', '/bgj/inventory?view=stock');
     expect(screen.getAllByRole('link', { name: '入出庫履歴' })[0]).toHaveAttribute('href', '/bgj/inventory?view=movements');
+  });
+
+  it('請求管理は普段は非表示で、トグルをクリックすると請求一覧を表示する', () => {
+    usePathnameMock.mockReturnValue('/bgj/dashboard');
+    useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    render(<BgjSidebar />);
+
+    expect(screen.queryByText('請求一覧')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByLabelText('請求管理を開く')[0]);
+
+    expect(screen.getAllByRole('link', { name: '請求一覧' })[0]).toHaveAttribute('href', '/bgj/billing');
   });
 
   it('システム管理グループの先頭にシステムダッシュボードへのリンクを表示する', () => {

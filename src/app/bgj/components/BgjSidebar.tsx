@@ -89,6 +89,12 @@ const navItems: NavItem[] = [
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-3-3m3 3l-3 3M16 17H4m0 0l3-3m-3 3l3 3" /></svg>,
   },
   {
+    label: "請求一覧",
+    href: "/bgj/billing",
+    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 14l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+    sectionLabel: "請求管理",
+  },
+  {
     label: "システムダッシュボード",
     href: "/bgj/system/dashboard",
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M8 17V9m4 8V5m4 12v-6" /></svg>,
@@ -167,6 +173,7 @@ function SidebarContent({
           const isCollapsibleGroup = groupLabel === "マスタ"
             || groupLabel === "受発注管理"
             || groupLabel === "在庫管理"
+            || groupLabel === "請求管理"
             || groupLabel === "システム管理"
             || groupLabel === "ヘルプ";
           const groupHasActiveItem = group.items.some(
