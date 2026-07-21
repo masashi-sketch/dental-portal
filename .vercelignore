@@ -1,0 +1,8 @@
+# Local reference assets and documents are not part of the web application.
+Input/
+screenshots/
+screenshots.zip
+RFP.txt
+*.docx
+~$*
+仕様書.txt
