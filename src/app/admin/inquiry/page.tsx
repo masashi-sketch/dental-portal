@@ -50,7 +50,7 @@ export default function AdminInquiryPage() {
     <div className="min-h-screen flex bg-sky-50">
       <AdminSidebar active="inquiry" />
 
-      <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0">
+      <div className="flex-1 flex flex-col min-w-0 pt-14 lg:pt-0">
         {toast && (
           <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-sky-600 text-white text-base px-5 py-3 rounded-2xl shadow-xl">{toast}</div>
         )}

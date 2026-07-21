@@ -70,8 +70,8 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen flex bg-sky-50">
       <AdminSidebar active="dashboard" />
-      <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0">
-        <header className="bg-white border-b border-sky-100 px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-y-3 shadow-sm">
+      <div className="flex-1 flex flex-col min-w-0 pt-14 lg:pt-0">
+        <header className="bg-white border-b border-sky-100 px-4 lg:px-5 xl:px-6 py-3 xl:py-4 flex flex-wrap items-center justify-between gap-y-3 shadow-sm">
           <div>
             <h1 className="text-slate-800 font-bold text-xl">ダッシュボード</h1>
             <p className="text-slate-600 text-sm mt-0.5">{clinicName ?? '医院'} / 管理ポータル</p>
@@ -87,7 +87,7 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <main className="flex-1 p-5 sm:p-6 flex flex-col gap-6 bg-sky-50">
+        <main data-testid="admin-dashboard-content" className="flex-1 w-full max-w-[1720px] mx-auto p-3 sm:p-4 lg:p-5 xl:p-6 flex flex-col gap-4 xl:gap-6 bg-sky-50">
           {error && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               <span>{error}</span>
@@ -95,10 +95,10 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div data-testid="admin-stat-grid" className="grid grid-cols-1 min-[480px]:grid-cols-2 xl:grid-cols-4 gap-3 xl:gap-4">
             {stats.map((stat) => (
-              <Link key={stat.label} href={stat.href} className="bg-white border border-sky-100 rounded-2xl p-5 hover:border-sky-200 hover:shadow-md transition-all group">
-                <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center ${stat.color} mb-3`}>{stat.icon}</div>
+              <Link key={stat.label} href={stat.href} className="bg-white border border-sky-100 rounded-2xl p-4 xl:p-5 hover:border-sky-200 hover:shadow-md transition-all group">
+                <div className={`w-10 h-10 xl:w-12 xl:h-12 rounded-xl ${stat.bg} flex items-center justify-center ${stat.color} mb-2 xl:mb-3`}>{stat.icon}</div>
                 <p className="text-slate-600 text-sm mb-1 font-medium">{stat.label}</p>
                 <p className="text-slate-800 text-3xl font-bold">
                   {loading || stat.value === undefined ? '—' : stat.value}
@@ -109,8 +109,8 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <Card theme="sky" className="p-5 shadow-sm">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-5">
+            <Card theme="sky" className="p-4 xl:p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-slate-800 font-bold text-base">最近の患者注文</h2>
                 <Link href="/admin/orders" className="text-sky-600 text-sm font-medium hover:underline">すべて見る →</Link>
@@ -130,7 +130,7 @@ export default function AdminDashboard() {
               </div>
             </Card>
 
-            <Card theme="sky" className="p-5 shadow-sm">
+            <Card theme="sky" className="p-4 xl:p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-slate-800 font-bold text-base">公開中のお知らせ</h2>
                 <Link href="/admin/news" className="text-sky-600 text-sm font-medium hover:underline">管理する →</Link>
@@ -151,7 +151,7 @@ export default function AdminDashboard() {
             </Card>
           </div>
 
-          <Card theme="sky" className="p-5 shadow-sm">
+          <Card theme="sky" className="p-4 xl:p-5 shadow-sm">
             <h2 className="text-slate-800 font-bold text-base mb-4">クイックアクション</h2>
             <div className="flex flex-wrap gap-3">
               {[
@@ -160,7 +160,7 @@ export default function AdminDashboard() {
                 { label: '商品の表示を管理', href: '/admin/products', color: 'border-violet-300 text-violet-700 hover:bg-violet-50' },
                 { label: '注文一覧を確認', href: '/admin/orders', color: 'border-teal-300 text-teal-700 hover:bg-teal-50' },
               ].map((action) => (
-                <Link key={action.label} href={action.href} className={`px-5 py-3 rounded-xl border text-base font-semibold transition-colors ${action.color}`}>{action.label}</Link>
+                <Link key={action.label} href={action.href} className={`px-4 xl:px-5 py-2.5 xl:py-3 rounded-xl border text-sm xl:text-base font-semibold transition-colors ${action.color}`}>{action.label}</Link>
               ))}
             </div>
           </Card>

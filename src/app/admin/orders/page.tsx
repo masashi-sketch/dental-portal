@@ -111,7 +111,7 @@ export default function AdminOrdersPage() {
   return (
     <div className="min-h-screen flex bg-sky-50">
       <AdminSidebar active="orders" />
-      <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0">
+      <div className="flex-1 flex flex-col min-w-0 pt-14 lg:pt-0">
         {toast && <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-sky-600 text-white text-base px-5 py-3 rounded-2xl shadow-xl">{toast}</div>}
         <header className="bg-white border-b border-sky-100 px-4 sm:px-6 py-4 shadow-sm">
           <h1 className="text-slate-800 font-bold text-xl">患者注文・受け取り管理</h1>

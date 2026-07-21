@@ -127,7 +127,7 @@ export default function CampaignPage() {
     <div className="min-h-screen flex bg-sky-50">
       <AdminSidebar active="campaign" />
 
-      <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0">
+      <div className="flex-1 flex flex-col min-w-0 pt-14 lg:pt-0">
         <header className="bg-white border-b border-sky-100 px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-y-3 shadow-sm">
           <div>
             <h1 className="text-slate-800 font-bold text-xl">キャンペーン情報</h1>

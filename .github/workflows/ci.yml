@@ -33,3 +33,9 @@ jobs:
           AUTH_SECRET: ci-only-loading-test-secret-ci-only-loading-test-secret
           AUTH_URL: http://127.0.0.1:3000
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+
+      - run: npm run test:e2e:responsive
+        env:
+          AUTH_SECRET: ci-only-responsive-test-secret-ci-only-responsive-test-secret
+          AUTH_URL: http://127.0.0.1:3000
+          RESPONSIVE_BASE_URL: http://127.0.0.1:3000

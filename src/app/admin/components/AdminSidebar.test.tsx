@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import AdminSidebar from './AdminSidebar';
 import { clearExternalLinksRequestCache } from '@/lib/client/externalLinksRequest';
 
@@ -94,6 +94,7 @@ describe('AdminSidebar 営業担当カードのお問い合わせボタン', () 
       loaded: true,
     });
     render(<AdminSidebar active="dashboard" />);
+    fireEvent.click(await screen.findByRole('button', { name: /営業担当 営業太郎/ }));
 
     // サイドバーナビにも「患者様用お問い合わせ」リンク（/admin/inquiry固定、名前に「お問い合わせ」を含む）が
     // 別途存在するため、mailto:リンクが含まれないことをhrefベースで確認する。
@@ -110,6 +111,7 @@ describe('AdminSidebar 営業担当カードのお問い合わせボタン', () 
       loaded: true,
     });
     render(<AdminSidebar active="dashboard" />);
+    fireEvent.click(await screen.findByRole('button', { name: /営業担当 営業太郎/ }));
 
     const links = await screen.findAllByRole('link', { name: /お問い合わせ/ });
     const hrefs = links.map((el) => el.getAttribute('href'));
@@ -124,6 +126,7 @@ describe('AdminSidebar 営業担当カードのお問い合わせボタン', () 
       loaded: true,
     });
     render(<AdminSidebar active="dashboard" />);
+    fireEvent.click(await screen.findByRole('button', { name: '営業担当' }));
 
     const links = await screen.findAllByRole('link', { name: /お問い合わせ/ });
     const hrefs = links.map((el) => el.getAttribute('href'));

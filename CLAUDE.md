@@ -208,6 +208,14 @@ vercel --prod
 
 **患者様QR自己登録の共通部品**：QRコード＋受付PIN＋発行日時＋PDF出力のカードUIは`src/components/SignupQrCard.tsx`に共通化済み（BGJ得意先詳細「接続情報」タブ・`/admin/patients`のQRモーダル・`/admin/clinic-info/qr`の3箇所で使用、3箇所目を追加した時点で共通化した実例）。クリニック側のPIN再発行処理（`/api/admin/clinic-info`へのPATCH）は`src/hooks/useSignupPinRegenerate.ts`に共通化済み（BGJ側は別エンドポイント`/api/bgj/clinics/[code]`のため対象外、page側で個別に実装する）。
 
+## 管理ポータルのレスポンシブ方針（2026-07-22確定）
+
+- ブラウザやCSSの`zoom`で画面全体を縮小しない。文字と操作領域を保ったまま、余白・列数・サイドバー幅をブレークポイントで調整する。
+- 1024px未満は固定トップバー＋ドロワーメニュー、1024px以上はデスクトップサイドバーを使う。サイドバー幅は1024px以上で`w-52`、1280px以上で`w-56`、1536px以上で`w-64`とする。管理画面本文の`pt-14`解除も同じ`lg`ブレークポイントに合わせる。
+- ダッシュボードKPIは480px未満で1列、480〜1279pxで2列、1280px以上で4列とする。大型画面でも本文を無制限に広げず`max-w-[1720px]`で中央配置する。
+- 営業担当情報のような固定UIは本文を常時覆わない。小さい固定トリガーから必要時だけカードを展開し、Escapeキーと閉じるボタンで閉じられるようにする。
+- `scripts/test-responsive-layout.mjs`をCIで実行し、375×667、390×844、768×1024、1024×768、1280×720、1366×768、1440×900、1920×1080の8解像度について、横はみ出し、メニュー切替、KPI列数、サイドバー高、固定トリガー位置、本文最大幅を実ブラウザで検証する。E2E用Next.jsサーバーの起動処理は`scripts/nextTestServer.mjs`を共有し、個別スクリプトへ複製しない。
+
 # コーディング禁止事項
 
 - `alert()`禁止 → 各ページの既存トースト実装を使う（共通`useToast()`ができるまでの暫定）
@@ -415,7 +423,7 @@ DB変更SQLを提示するときは、以下をセットにする。
 - **fetchするクライアントコンポーネントのテスト**は`vi.stubGlobal('fetch', fetchMock)`でURL・HTTPメソッド分岐のmockを組み、`afterEach`で`vi.unstubAllGlobals()`する（`src/components/ClinicTermsManager.test.tsx`・`ClinicLoginManager.test.tsx`が雛形）。rechartsなどjsdomで描画できない部品は`vi.mock`で差し替える（`ClinicSalesOrders.test.tsx`が雛形）。
 - フィールド数の多い`ClinicWithStaff`等の共通フィクスチャは`src/test/fixtures.ts`のファクトリ（`makeClinicWithStaff()`）を使う。テスト専用ファイルであり、アプリ本体からはimportしない。
 - 現状のカバレッジ：`src/lib/auth/`配下・`src/lib/patientNav.ts`・`src/lib/clinicForm.ts`のロジック、全APIルート（2026-07-20夜に24ファイル追加、認証必須の全ルートを網羅）、UIコンポーネント（`src/components/ui/`のButton/Card/LoadingState/ConfirmDialog、`PatientSidebarNav`、得意先詳細から抽出したClinicVisitList/ClinicBasicInfoTab/ClinicBusinessInfoTab/ClinicTermsManager/ClinicLoginManager/ClinicSalesOrders/ClinicStaffManager/ClinicQaManager/ClinicEmailTemplatesManager/SignupQrCard）、`useToast`、BGJマニュアルの`ManualNav`（2026-07-21のナビゲーション3カラム化で新設）。
-- **CI（GitHub Actions、`.github/workflows/ci.yml`）でpush/pull_request時にlint/tsc/testを自動実行する**。git pre-commitフックは未設定。
+- **CI（GitHub Actions、`.github/workflows/ci.yml`）でpush/pull_request時にlint/tsc/test、低速通信時の全画面ローディングE2E、管理画面8解像度のレスポンシブE2Eを自動実行する**。git pre-commitフックは未設定。
 - 新しいテストを追加する場合は既存の書き方（`vitest`のdescribe/it、上記のmockパターン）を踏襲する。
 
 ## CI失敗通知を受け取ったときの対応方針（2026-07-18にユーザーが明示）

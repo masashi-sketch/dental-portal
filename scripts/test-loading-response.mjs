@@ -1,43 +1,12 @@
 #!/usr/bin/env node
 import { chromium } from 'playwright';
-import { spawn } from 'node:child_process';
+import { ensureNextTestServer } from './nextTestServer.mjs';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
 const API_DELAY_MS = 1_500;
 
-async function isServerReady() {
-  try {
-    const response = await fetch(`${BASE_URL}/auth/signin`);
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function ensureServer() {
-  if (await isServerReady()) return null;
-
-  const url = new URL(BASE_URL);
-  if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
-    throw new Error(`${BASE_URL} に接続できません`);
-  }
-
-  const server = spawn(
-    process.execPath,
-    ['node_modules/next/dist/bin/next', 'dev', '--webpack', '--hostname', url.hostname, '--port', url.port || '3000'],
-    { stdio: 'inherit' },
-  );
-  for (let attempt = 0; attempt < 60; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 1_000));
-    if (await isServerReady()) return server;
-    if (server.exitCode !== null) throw new Error(`開発サーバーが終了しました (${server.exitCode})`);
-  }
-  server.kill('SIGTERM');
-  throw new Error('開発サーバーが60秒以内に起動しませんでした');
-}
-
 async function main() {
-  const server = await ensureServer();
+  const server = await ensureNextTestServer(BASE_URL);
   let browser;
 
   try {

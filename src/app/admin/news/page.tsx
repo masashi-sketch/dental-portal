@@ -16,7 +16,7 @@ export default function AdminNewsPage() {
     <div className="min-h-screen flex bg-sky-50">
       <AdminSidebar active="news" />
 
-      <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0">
+      <div className="flex-1 flex flex-col min-w-0 pt-14 lg:pt-0">
         <header className="bg-white border-b border-sky-100 px-4 sm:px-6 py-4 shadow-sm">
           <h1 className="text-slate-800 font-bold text-xl">お知らせ管理</h1>
           <p className="text-slate-600 text-sm mt-0.5">

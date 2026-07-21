@@ -120,7 +120,7 @@ function GroupNavRow({
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className={`flex items-center gap-3 w-full px-3 py-3 rounded-xl text-lg font-medium transition-colors ${
+        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm xl:text-base font-medium transition-colors ${
           groupActive ? 'text-sky-100' : 'text-sky-100/80 hover:bg-sky-800/50 hover:text-white'
         }`}
       >
@@ -137,7 +137,7 @@ function GroupNavRow({
               key={child.key}
               href={child.href}
               onClick={onNavClick}
-              className={`flex items-center gap-2 pl-6 pr-3 py-2.5 rounded-xl text-base font-medium transition-colors ${
+              className={`flex items-center gap-2 pl-6 pr-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                 active === child.key
                   ? 'bg-sky-400/20 text-sky-100'
                   : 'text-sky-100/70 hover:bg-sky-800/50 hover:text-white'
@@ -178,7 +178,7 @@ function NavItems({
             <Link
               href={item.href}
               onClick={onNavClick}
-              className={`flex items-center gap-3 px-3 py-3 rounded-xl text-lg font-medium transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm xl:text-base font-medium transition-colors ${
                 active === item.key
                   ? 'bg-sky-400/20 text-sky-100'
                   : 'text-sky-100/80 hover:bg-sky-800/50 hover:text-white'
@@ -206,7 +206,7 @@ function NavItems({
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-3 py-3 rounded-xl text-lg font-medium text-sky-100/80 hover:bg-sky-800/50 hover:text-white transition-colors"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm xl:text-base font-medium text-sky-100/80 hover:bg-sky-800/50 hover:text-white transition-colors"
             >
               <span className="text-sky-300/70 shrink-0"><IconLink /></span>
               {/* 折り返して全体表示（truncate なし） */}
@@ -299,6 +299,49 @@ function SalesRepCard({ salesRep, loaded }: { salesRep: SalesRepWithMaster | nul
   );
 }
 
+function SalesRepContact({ salesRep, loaded }: { salesRep: SalesRepWithMaster | null; loaded: boolean }) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [open]);
+
+  if (!loaded) return null;
+
+  return (
+    <>
+      {open && (
+        <div className="fixed bottom-20 right-3 sm:right-4 z-30 w-72 max-w-[calc(100vw-1.5rem)]">
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="absolute -top-3 -right-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-600 shadow-lg hover:bg-slate-100"
+            aria-label="営業担当カードを閉じる"
+          >
+            <IconClose />
+          </button>
+          <SalesRepCard salesRep={salesRep} loaded={loaded} />
+        </div>
+      )}
+      <button
+        type="button"
+        data-testid="sales-rep-contact-trigger"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-20 flex min-h-11 items-center gap-2 rounded-full bg-teal-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg transition-colors hover:bg-teal-400"
+      >
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20" aria-hidden="true">☎</span>
+        <span>営業担当{salesRep ? ` ${salesRep.name}` : ''}</span>
+      </button>
+    </>
+  );
+}
+
 export default function AdminSidebar({ active }: { active: AdminPage }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [externalLinks, setExternalLinks] = useState<ExternalLink[]>([]);
@@ -359,11 +402,11 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
   return (
     <>
       {/* ── デスクトップ用サイドバー ── */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sky-900 sticky top-0 h-screen overflow-hidden">
-        <div className="px-5 py-5 border-b border-sky-800/50">
+      <aside data-testid="admin-desktop-sidebar" className="hidden lg:flex w-52 xl:w-56 2xl:w-64 shrink-0 flex-col bg-sky-900 sticky top-0 h-screen overflow-hidden">
+        <div className="px-4 py-4 border-b border-sky-800/50">
           <LogoBlock clinicName={clinicName} loaded={clinicLoaded} />
         </div>
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+        <nav className="admin-sidebar-scroll flex-1 px-2.5 py-3 flex flex-col gap-0.5 overflow-y-auto">
           <NavItems active={active} externalLinks={externalLinks} />
         </nav>
         {portalSection()}
@@ -371,7 +414,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
       </aside>
 
       {/* ── モバイル用固定トップバー ── */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-sky-900 h-14 flex items-center px-4 gap-3 shadow-md">
+      <div data-testid="admin-compact-header" className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-sky-900 h-14 flex items-center px-4 gap-3 shadow-md">
         <button
           onClick={() => setMobileOpen(true)}
           className="text-white p-2 -ml-1 rounded-lg hover:bg-sky-800 transition-colors relative"
@@ -393,7 +436,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
 
       {/* ── モバイルドロワー：背景オーバーレイ ── */}
       <div
-        className={`md:hidden fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${
+        className={`lg:hidden fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${
           mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setMobileOpen(false)}
@@ -401,7 +444,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
 
       {/* ── モバイルドロワー：メニュー本体 ── */}
       <aside
-        className={`md:hidden fixed top-0 left-0 h-full w-72 max-w-[85vw] bg-sky-900 z-50 flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`lg:hidden fixed top-0 left-0 h-full w-72 max-w-[85vw] bg-sky-900 z-50 flex flex-col transition-transform duration-300 ease-in-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -415,17 +458,15 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
             <IconClose />
           </button>
         </div>
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+        <nav className="admin-sidebar-scroll flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
           <NavItems active={active} onNavClick={() => setMobileOpen(false)} externalLinks={externalLinks} />
         </nav>
         {portalSection(() => setMobileOpen(false))}
         {logoutSection(() => setMobileOpen(false))}
       </aside>
 
-      {/* ── 営業担当カード：画面右下に常時固定 ── */}
-      <div className="fixed bottom-4 right-4 z-50 w-56">
-        <SalesRepCard salesRep={salesRep} loaded={clinicLoaded} />
-      </div>
+      {/* 本文を隠さないよう、営業担当情報は必要なときだけ展開する。 */}
+      <SalesRepContact salesRep={salesRep} loaded={clinicLoaded} />
     </>
   );
 }
