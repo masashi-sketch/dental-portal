@@ -12,6 +12,7 @@ const order: PatientOrder = {
   ordered_at: '2026-07-22T00:00:00.000Z',
   next_fulfillment_date: null,
   source: 'internal',
+  created_via: 'clinic_portal',
   external_order_id: null,
   sync_status: 'local',
   sync_error: null,
@@ -40,5 +41,6 @@ describe('toOrderIntegrationRecord', () => {
     expect(record.lines[0]).toMatchObject({ unitPrice: 1200, quantity: 2, lineTotal: 2400 });
     expect(record.totalAmount).toBe(2400);
     expect(record.syncStatus).toBe('local');
+    expect(record.createdVia).toBe('clinic_portal');
   });
 });

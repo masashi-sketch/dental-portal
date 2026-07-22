@@ -9,6 +9,7 @@ const responseBody: BgjOrdersResponse = {
     orderId: 'order-12345678',
     externalOrderId: null,
     source: 'internal',
+    createdVia: 'clinic_portal',
     syncStatus: 'local',
     syncError: null,
     externalUpdatedAt: null,

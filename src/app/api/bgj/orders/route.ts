@@ -18,6 +18,8 @@ const PAGE_SIZE = 50;
 const ORDER_STATUSES: PatientOrderStatus[] = ['received', 'preparing', 'ready', 'shipped', 'completed', 'canceled'];
 const SOURCES: CommerceSource[] = ['internal', 'shopify'];
 const SYNC_STATUSES: CommerceSyncStatus[] = ['local', 'pending', 'synced', 'error'];
+const CUSTOMER_CODE_PATTERN = /^[A-Z]\d{6}$/;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function readEnum<T extends string>(value: string | null, allowed: readonly T[]): T | null | 'invalid' {
   if (!value) return null;
@@ -82,4 +84,77 @@ export async function GET(request: NextRequest) {
     pageSize: PAGE_SIZE,
   };
   return NextResponse.json(response, { headers: { 'Server-Timing': timing.header() } });
+}
+
+type CreateOrderLine = { productId: string; quantity: number };
+
+function readCreateOrderLines(value: unknown): CreateOrderLine[] | null {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 50) return null;
+  const lines: CreateOrderLine[] = [];
+  const productIds = new Set<string>();
+  for (const item of value) {
+    if (!item || typeof item !== 'object') return null;
+    const { productId, quantity } = item as Record<string, unknown>;
+    if (typeof productId !== 'string' || !UUID_PATTERN.test(productId)) return null;
+    if (!Number.isInteger(quantity) || Number(quantity) < 1 || Number(quantity) > 100) return null;
+    if (productIds.has(productId)) return null;
+    productIds.add(productId);
+    lines.push({ productId, quantity: Number(quantity) });
+  }
+  return lines;
+}
+
+export async function POST(request: NextRequest) {
+  const timing = new ServerTiming();
+  const session = await auth();
+  timing.mark('auth');
+  if (!requireBgjSession(session)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  const customerCode = typeof body?.customerCode === 'string' ? body.customerCode.trim().toUpperCase() : '';
+  const patientId = typeof body?.patientId === 'string' ? body.patientId : '';
+  const idempotencyKey = typeof body?.idempotencyKey === 'string' ? body.idempotencyKey : '';
+  const items = readCreateOrderLines(body?.items);
+  if (!CUSTOMER_CODE_PATTERN.test(customerCode) || !UUID_PATTERN.test(patientId) || !UUID_PATTERN.test(idempotencyKey) || !items) {
+    return NextResponse.json({ error: '受注内容が不正です。' }, { status: 400 });
+  }
+
+  const supabase = getSupabaseServerClient();
+  const { data: orderId, error: createError } = await supabase.rpc('create_bgj_patient_order', {
+    p_customer_code: customerCode,
+    p_patient_id: patientId,
+    p_items: items,
+    p_idempotency_key: idempotencyKey,
+    p_actor_identifier: session.user.email,
+  });
+  timing.mark('create_database');
+  if (createError || typeof orderId !== 'string') {
+    const knownError = createError?.message && [
+      '商品は1〜50種類で指定してください。',
+      '患者が見つかりません。',
+      '商品または数量が不正です。',
+      '選択できない商品が含まれています。',
+    ].find((message) => createError.message.includes(message));
+    return NextResponse.json(
+      { error: knownError ?? '受注を登録できませんでした。' },
+      { status: knownError ? 400 : 500 },
+    );
+  }
+
+  const [orderResult, clinicResult] = await Promise.all([
+    supabase.from('patient_orders').select(PATIENT_ORDER_WITH_DETAILS_COLUMNS).eq('id', orderId).single(),
+    supabase.from('clinics').select('name').eq('customer_code', customerCode).single(),
+  ]);
+  timing.mark('created_order_database');
+  const fetchError = orderResult.error ?? clinicResult.error;
+  if (fetchError || !orderResult.data) {
+    return NextResponse.json({ error: fetchError?.message ?? '登録した受注を取得できませんでした。' }, { status: 500 });
+  }
+
+  return NextResponse.json(
+    { order: toOrderIntegrationRecord(orderResult.data as unknown as PatientOrder, clinicResult.data?.name ?? null) },
+    { status: 201, headers: { 'Server-Timing': timing.header() } },
+  );
 }

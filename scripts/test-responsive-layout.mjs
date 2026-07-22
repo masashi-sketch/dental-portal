@@ -120,7 +120,23 @@ async function verifyBgjOrdersViewport(browser, sessionCookie, viewport) {
     assert(layout.scrollWidth <= layout.innerWidth + 1, `BGJ受注一覧 (${viewport.width}x${viewport.height}): 横スクロールが発生しています`);
     assert(layout.tableVisible === isDesktop, `BGJ受注一覧 (${viewport.width}x${viewport.height}): 表示形式が不正です`);
     assert(layout.cardsVisible !== isDesktop, `BGJ受注一覧 (${viewport.width}x${viewport.height}): カード表示の切替が不正です`);
-    console.log(`✓ BGJ受注一覧 (${viewport.width}x${viewport.height}): ${isDesktop ? '表' : 'カード'}表示、横はみ出しなし`);
+
+    await page.getByRole('button', { name: '＋ 新規受注' }).click();
+    const dialog = page.getByRole('dialog', { name: '新規受注' });
+    await dialog.waitFor({ state: 'visible' });
+    const sheet = await dialog.locator(':scope > section').evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, width: rect.width, innerWidth: window.innerWidth };
+    });
+    assert(sheet.left >= -1 && sheet.right <= sheet.innerWidth + 1, `新規受注シート (${viewport.width}x${viewport.height}): 横にはみ出しています`);
+    if (isDesktop) {
+      assert(sheet.width <= 681 && sheet.right >= sheet.innerWidth - 1, `新規受注シート (${viewport.width}x${viewport.height}): 右サイドシートになっていません`);
+    } else {
+      assert(sheet.left <= 1 && sheet.right >= sheet.innerWidth - 1, `新規受注シート (${viewport.width}x${viewport.height}): 全画面表示になっていません`);
+    }
+    await dialog.getByRole('button', { name: '× 閉じる' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    console.log(`✓ BGJ受注一覧 (${viewport.width}x${viewport.height}): ${isDesktop ? '表＋右シート' : 'カード＋全画面シート'}表示、横はみ出しなし`);
   } finally {
     await context.close();
   }

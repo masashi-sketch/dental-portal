@@ -9,10 +9,12 @@ import {
   COMMERCE_SYNC_STATUS_LABEL,
   FULFILLMENT_METHOD_LABEL,
   ORDER_STATUS_LABEL,
+  ORDER_CREATED_VIA_LABEL,
   ORDER_TYPE_LABEL,
 } from '@/lib/orders';
 import type { BgjOrdersResponse, OrderIntegrationRecord } from '@/lib/orderIntegration';
 import type { CommerceSource, CommerceSyncStatus, PatientOrderStatus } from '@/lib/supabase/types';
+import BgjCreateOrderSheet from './BgjCreateOrderSheet';
 
 const STATUS_CLASS: Record<PatientOrderStatus, string> = {
   received: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -57,7 +59,7 @@ function OrderReference({ order }: { order: OrderIntegrationRecord }) {
   return (
     <div className="whitespace-nowrap">
       <p className="font-mono text-xs font-semibold text-slate-700">{order.externalOrderId ?? order.orderId.slice(0, 8)}</p>
-      <p className="mt-0.5 text-[11px] text-slate-400">{COMMERCE_SOURCE_LABEL[order.source]}</p>
+      <p className="mt-0.5 text-[11px] text-slate-400">{ORDER_CREATED_VIA_LABEL[order.createdVia]}</p>
     </div>
   );
 }
@@ -76,6 +78,8 @@ export default function BgjReceivedOrders() {
   const [externalOrderId, setExternalOrderId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -120,10 +124,19 @@ export default function BgjReceivedOrders() {
     setExternalOrderId(externalOrderIdInput.trim());
   };
 
+  const handleCreated = async () => {
+    setCreateOpen(false);
+    setToast('受注を登録しました。');
+    window.setTimeout(() => setToast(null), 3000);
+    await loadOrders();
+  };
+
   return (
     <>
-      <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800">
-        患者注文の実データを全医院横断で表示しています。外部注文IDと同期状態は連携用の正規化項目で、Shopify等への送受信処理は接続仕様確定後に追加します。
+      {toast && <div role="status" className="fixed left-1/2 top-5 z-[60] -translate-x-1/2 rounded-xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>}
+      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800 sm:flex-row sm:items-center sm:justify-between">
+        <p>患者注文の実データを全医院横断で表示しています。外部注文IDと同期状態は連携用の正規化項目で、Shopify等への送受信処理は接続仕様確定後に追加します。</p>
+        <button type="button" onClick={() => setCreateOpen(true)} className="shrink-0 rounded-xl bg-violet-600 px-4 py-2.5 font-semibold text-white hover:bg-violet-500">＋ 新規受注</button>
       </div>
 
       {error && (
@@ -221,6 +234,7 @@ export default function BgjReceivedOrders() {
           </div>
         )}
       </Card>
+      <BgjCreateOrderSheet open={createOpen} onClose={() => setCreateOpen(false)} onCreated={handleCreated} />
     </>
   );
 }

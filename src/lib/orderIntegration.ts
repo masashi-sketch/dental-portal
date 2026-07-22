@@ -7,6 +7,7 @@ export type OrderIntegrationRecord = {
   orderId: string;
   externalOrderId: string | null;
   source: PatientOrder['source'];
+  createdVia: PatientOrder['created_via'];
   syncStatus: PatientOrder['sync_status'];
   syncError: string | null;
   externalUpdatedAt: string | null;
@@ -63,6 +64,7 @@ export function toOrderIntegrationRecord(
     orderId: order.id,
     externalOrderId: order.external_order_id,
     source: order.source,
+    createdVia: order.created_via,
     syncStatus: order.sync_status,
     syncError: order.sync_error,
     externalUpdatedAt: order.external_updated_at,

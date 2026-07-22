@@ -4,6 +4,7 @@ import type {
   FulfillmentMethod,
   PatientOrderStatus,
   PatientOrderType,
+  OrderCreatedVia,
 } from '@/lib/supabase/types';
 
 export const ORDER_STATUS_LABEL: Record<PatientOrderStatus, string> = {
@@ -29,6 +30,12 @@ export const FULFILLMENT_METHOD_LABEL: Record<FulfillmentMethod, string> = {
 
 export const COMMERCE_SOURCE_LABEL: Record<CommerceSource, string> = {
   internal: '医院登録',
+  shopify: 'Shopify',
+};
+
+export const ORDER_CREATED_VIA_LABEL: Record<OrderCreatedVia, string> = {
+  clinic_portal: '医院登録',
+  bgj_portal: 'BGJ代理登録',
   shopify: 'Shopify',
 };
 

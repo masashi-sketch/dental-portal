@@ -465,6 +465,21 @@ export type FulfillmentMethod = 'pickup' | 'delivery';
 export type PatientOrderStatus = 'received' | 'preparing' | 'ready' | 'shipped' | 'completed' | 'canceled';
 export type CommerceSource = 'internal' | 'shopify';
 export type CommerceSyncStatus = 'local' | 'pending' | 'synced' | 'error';
+export type OrderCreatedVia = 'clinic_portal' | 'bgj_portal' | 'shopify';
+
+export type PatientOrderEvent = {
+  id: string;
+  order_id: string;
+  event_type: 'created' | 'status_changed';
+  actor_type: 'bgj' | 'clinic' | 'system' | 'external';
+  actor_identifier: string;
+  from_status: PatientOrderStatus | null;
+  to_status: PatientOrderStatus | null;
+  created_at: string;
+};
+
+export const PATIENT_ORDER_EVENT_COLUMNS =
+  'id, order_id, event_type, actor_type, actor_identifier, from_status, to_status, created_at';
 
 export type PatientOrderItem = {
   id: string;
@@ -492,6 +507,7 @@ export type PatientOrder = {
   ordered_at: string;
   next_fulfillment_date: string | null;
   source: CommerceSource;
+  created_via: OrderCreatedVia;
   external_order_id: string | null;
   sync_status: CommerceSyncStatus;
   sync_error: string | null;
@@ -504,7 +520,7 @@ export type PatientOrder = {
 };
 
 export const PATIENT_ORDER_COLUMNS =
-  'id, customer_code, patient_id, order_type, fulfillment_method, status, ordered_at, next_fulfillment_date, source, external_order_id, sync_status, sync_error, idempotency_key, external_updated_at, created_at, updated_at';
+  'id, customer_code, patient_id, order_type, fulfillment_method, status, ordered_at, next_fulfillment_date, source, created_via, external_order_id, sync_status, sync_error, idempotency_key, external_updated_at, created_at, updated_at';
 export const PATIENT_ORDER_ITEM_COLUMNS =
   'id, order_id, product_id, product_name, unit_price, quantity, unit_snapshot, image_type_snapshot, daily_amount_snapshot, volume_snapshot, caution_snapshot, external_line_item_id, created_at';
 export const PATIENT_ORDER_WITH_DETAILS_COLUMNS =
