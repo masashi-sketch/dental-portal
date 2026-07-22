@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+import re
 from xml.sax.saxutils import escape, quoteattr
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -143,6 +144,7 @@ CURRENT_TABLES = [
             c("注文日時", "ordered_at", "timestamptz", default="now()"),
             c("次回提供予定日", "next_fulfillment_date", "date", nullable="YES"),
             c("作成元", "source", "text", "UK1構成", default="internal", constraint="internal / shopify"),
+            c("登録経路", "created_via", "text", default="clinic_portal", constraint="clinic_portal / bgj_portal / shopify"),
             c("外部注文ID", "external_order_id", "text", "UK1構成", nullable="YES"),
             c("同期状態", "sync_status", "text", default="local", constraint="local / pending / synced / error"),
             c("同期エラー", "sync_error", "text", nullable="YES"),
@@ -174,29 +176,45 @@ CURRENT_TABLES = [
             c("作成日時", "created_at", "timestamptz", default="now()"),
         ],
     ),
+    TableDefinition(
+        "現行",
+        "注文配送先",
+        "order_shipping_addresses",
+        "実装済み",
+        "自宅配送注文に対して、注文時点の配送先を1対1で保存する履歴スナップショット。",
+        [
+            c("内部注文ID", "order_id", "uuid", "PK / FK", constraint="patient_orders.id ON DELETE CASCADE"),
+            c("郵便番号", "postal_code", "text", constraint="^[0-9]{3}-[0-9]{4}$"),
+            c("都道府県", "prefecture", "text", constraint="2〜4文字"),
+            c("市区町村", "city", "text", constraint="1〜100文字"),
+            c("住所1", "address_line1", "text", constraint="1〜200文字"),
+            c("住所2", "address_line2", "text", nullable="YES", constraint="200文字以内"),
+            c("受取人名", "recipient_name", "text", constraint="1〜100文字"),
+            c("電話番号", "phone", "text", constraint="数字10〜15桁"),
+            c("作成日時", "created_at", "timestamptz", default="now()"),
+        ],
+    ),
+    TableDefinition(
+        "現行",
+        "注文操作履歴",
+        "patient_order_events",
+        "実装済み",
+        "注文登録と状態変更について、操作者と変更前後の状態を保存する監査イベント。",
+        [
+            c("イベントID", "id", "uuid", "PK", default="gen_random_uuid()"),
+            c("内部注文ID", "order_id", "uuid", "FK", constraint="patient_orders.id ON DELETE CASCADE"),
+            c("イベント種別", "event_type", "text"),
+            c("操作者種別", "actor_type", "text"),
+            c("操作者識別子", "actor_identifier", "text"),
+            c("変更前状態", "from_status", "text", nullable="YES"),
+            c("変更後状態", "to_status", "text", nullable="YES"),
+            c("発生日時", "created_at", "timestamptz", default="now()"),
+        ],
+    ),
 ]
 
 
 FUTURE_TABLES = [
-    TableDefinition(
-        "Phase 1",
-        "注文操作履歴",
-        "patient_order_events",
-        "将来案",
-        "状態変更、操作者、理由を追跡する監査イベント。",
-        [
-            c("イベントID", "id", "uuid", "PK", default="gen_random_uuid()"),
-            c("内部注文ID", "order_id", "uuid", "FK", constraint="patient_orders.id ON DELETE RESTRICT"),
-            c("イベント種別", "event_type", "text"),
-            c("変更前状態", "before_status", "text", nullable="YES"),
-            c("変更後状態", "after_status", "text", nullable="YES"),
-            c("操作者ロール", "actor_role", "text"),
-            c("操作者ID", "actor_id", "text", nullable="YES"),
-            c("変更理由", "reason", "text", nullable="YES"),
-            c("補足情報", "metadata", "jsonb", default="{}"),
-            c("発生日時", "created_at", "timestamptz", default="now()"),
-        ],
-    ),
     TableDefinition(
         "Shopify接続",
         "外部コマース接続",
@@ -371,16 +389,62 @@ FUTURE_TABLES = [
 ]
 
 
+EXACT_SCHEMA_TABLES = {
+    "patient_orders",
+    "patient_order_items",
+    "order_shipping_addresses",
+    "patient_order_events",
+}
+
+
+def validate_current_tables() -> None:
+    """Fail generation when the visual current DB definition drifts from schema.sql."""
+    schema = (ROOT / "supabase" / "schema.sql").read_text(encoding="utf-8")
+    current_by_name = {table.physical_name: table for table in CURRENT_TABLES}
+    errors: list[str] = []
+
+    for table_name, table in current_by_name.items():
+        match = re.search(
+            rf"create table(?: if not exists)? public\.{re.escape(table_name)}\s*\((.*?)\n\);",
+            schema,
+            flags=re.DOTALL | re.IGNORECASE,
+        )
+        if match is None:
+            errors.append(f"{table_name}: schema.sqlにCREATE TABLEがありません")
+            continue
+
+        schema_columns = {
+            column_match.group(1)
+            for line in match.group(1).splitlines()
+            if (column_match := re.match(r"^\s{2}([a-z][a-z0-9_]*)\s+", line))
+            and column_match.group(1) not in {"constraint", "primary", "unique", "check", "foreign"}
+        }
+        documented_columns = {column.physical_name for column in table.columns}
+
+        missing = documented_columns - schema_columns
+        if missing:
+            errors.append(f"{table_name}: DB定義書にのみ存在={sorted(missing)}")
+
+        if table_name in EXACT_SCHEMA_TABLES:
+            undocumented = schema_columns - documented_columns
+            if undocumented:
+                errors.append(f"{table_name}: DB定義書へ未反映={sorted(undocumented)}")
+
+    if errors:
+        raise RuntimeError("schema.sqlと画面用DB定義書が不一致です:\n- " + "\n- ".join(errors))
+
+
 RELATIONSHIPS_CURRENT = [
     ("医院", "clinics.customer_code", "1", "N", "patient_orders.customer_code", "患者注文", "FK"),
     ("患者", "patients.id", "1", "N", "patient_orders.patient_id", "患者注文", "FK・現状CASCADE"),
     ("患者注文", "patient_orders.id", "1", "N", "patient_order_items.order_id", "患者注文明細", "FK・CASCADE"),
+    ("患者注文", "patient_orders.id", "1", "0..1", "order_shipping_addresses.order_id", "注文配送先", "PK・FK・CASCADE"),
+    ("患者注文", "patient_orders.id", "1", "N", "patient_order_events.order_id", "注文操作履歴", "FK・CASCADE"),
     ("商品", "products.id", "0..1", "N", "patient_order_items.product_id", "患者注文明細", "FK・SET NULL"),
 ]
 
 
 RELATIONSHIPS_FUTURE = [
-    ("患者注文", "patient_orders.id", "1", "N", "patient_order_events.order_id", "注文操作履歴", "FK"),
     ("患者注文", "patient_orders.id", "1", "N", "order_transaction_projections.order_id", "決済返金投影", "FK"),
     ("患者注文", "patient_orders.id", "1", "N", "patient_fulfillments.order_id", "受取配送", "FK"),
     ("受取配送", "patient_fulfillments.id", "1", "N", "patient_fulfillment_items.fulfillment_id", "受取配送明細", "FK"),
@@ -412,9 +476,9 @@ CONSTRAINTS = [
 MIGRATION_PLAN = [
     ("Phase 0", "完了", "patient_orders / patient_order_items", "内部注文・明細・冪等性・商品スナップショットを運用。", "現行IDを維持する。"),
     ("Phase 1-1", "次に実施", "患者削除方式", "物理削除を無効化・匿名化へ変更し、注文FKのCASCADEを見直す。", "注文履歴を消さない。"),
-    ("Phase 1-2", "次に実施", "patient_order_events", "状態変更、操作者、理由を記録する。", "注文更新と同一トランザクション。"),
+    ("Phase 1-2", "一部完了", "patient_order_events", "状態変更、操作者、変更前後を記録済み。変更理由の記録は今後追加する。", "注文更新と同一トランザクション。"),
     ("Phase 1-3", "次に実施", "patient_orders.version", "楽観的排他を導入する。", "競合時は409。"),
-    ("Phase 1-4", "次に実施", "自宅配送", "住所・責任主体確定までdeliveryを無効化。", "住所なし配送を許可しない。"),
+    ("Phase 1-4", "完了", "order_shipping_addresses", "自宅配送を有効化し、注文時点の配送先を保存する。", "住所なし配送を許可しない。"),
     ("Phase 2-1", "仕様確定後", "commerce_accounts / Inbox / Outbox", "Shopify接続・Webhook受信・外部送信を分離する。", "外部仕様確定前に作り込まない。"),
     ("Phase 2-2", "仕様確定後", "決済・返金・配送投影", "Shopify状態を医院業務状態と別軸で保持する。", "確定額と参考額を混同しない。"),
     ("Phase 2-3", "仕様確定後", "patient_subscriptions", "定期購入契約を読み取り用投影として追加する。", "変更・解約はShopify正本。"),
@@ -456,16 +520,16 @@ def make_overview_sheet() -> Sheet:
     add_title(sheet, "医院向け患者注文管理 DB定義書・ER図", "現行の実DBとShopify連携後の目標論理DBを分けて記載。将来案は未実装であり、外部仕様確定後に物理設計を確定する。", 8)
     sheet.widths.update({1: 18, 2: 30, 3: 24, 4: 24, 5: 24, 6: 24, 7: 24, 8: 24})
     rows = [
-        ("文書バージョン", "0.1 Draft"),
-        ("作成日", "2026-07-21"),
+        ("文書バージョン", "0.2 Draft"),
+        ("更新日", "2026-07-22"),
         ("対象", "医院が患者向け商品を管理するpatient_orders系列"),
         ("対象外", "BGJから医院へのB2B仕入履歴clinic_orders。患者注文とは統合しない。"),
-        ("現行正本", "Supabaseのpatient_orders / patient_order_items"),
+        ("現行正本", "Supabaseのpatient_orders / patient_order_items / order_shipping_addresses / patient_order_events"),
         ("将来正本", "商品・注文・決済・返金・定期購入はShopify、医院・患者CRMはSalesforce"),
         ("KEY凡例", "PK=主キー、FK=外部キー、UK=一意キー、IDX=非一意インデックス"),
         ("重要課題1", "患者物理削除で注文が連鎖削除され得るため、本番前に無効化・匿名化とFK見直しが必要。"),
-        ("重要課題2", "配送先を保持せずdeliveryを選択できるため、配送設計確定まで自宅配送を無効化する。"),
-        ("重要課題3", "状態変更履歴・変更者・理由が未保存。patient_order_eventsをPhase 1で追加する。"),
+        ("実装済み2", "自宅配送時はorder_shipping_addressesへ注文時点の配送先を保存し、住所なし配送を拒否する。"),
+        ("重要課題2", "patient_order_eventsは実装済み。変更理由の保存は今後追加する。"),
     ]
     sheet.set(4, 1, "項目", 3)
     sheet.merged_value(4, 2, 4, 8, "内容", 3)
@@ -673,7 +737,25 @@ def make_current_er_sheet() -> Sheet:
         ("数量", "quantity", ""),
     ])
     sheet.merged_value(25, 12, 26, 17, "商品 0..1 ───< N 注文明細", 12)
-    add_relationship_table(sheet, 30, RELATIONSHIPS_CURRENT, 17)
+    write_entity_box(sheet, 29, 2, "注文配送先", "order_shipping_addresses", [
+        ("内部注文ID", "order_id", "PK/FK"),
+        ("郵便番号", "postal_code", ""),
+        ("都道府県", "prefecture", ""),
+        ("市区町村", "city", ""),
+        ("住所1", "address_line1", ""),
+        ("受取人名", "recipient_name", ""),
+        ("電話番号", "phone", ""),
+    ])
+    write_entity_box(sheet, 29, 11, "注文操作履歴", "patient_order_events", [
+        ("イベントID", "id", "PK"),
+        ("内部注文ID", "order_id", "FK"),
+        ("イベント種別", "event_type", ""),
+        ("操作者種別", "actor_type", ""),
+        ("変更前状態", "from_status", ""),
+        ("変更後状態", "to_status", ""),
+    ])
+    sheet.merged_value(26, 2, 27, 10, "患者注文 1 ─── 0..1 注文配送先", 12)
+    add_relationship_table(sheet, 46, RELATIONSHIPS_CURRENT, 17)
     return sheet
 
 
@@ -693,9 +775,10 @@ def make_future_er_sheet() -> Sheet:
 
     write_entity_box(sheet, 31, 1, "定期購入明細", "patient_subscription_items", [("契約明細ID", "id", "PK"), ("内部契約ID", "subscription_id", "FK"), ("商品ID", "product_id", "FK")], True)
     write_entity_box(sheet, 31, 7, "患者注文明細", "patient_order_items", [("注文明細ID", "id", "PK"), ("内部注文ID", "order_id", "FK"), ("商品ID", "product_id", "FK")], True)
-    write_entity_box(sheet, 31, 13, "注文操作履歴", "patient_order_events", [("イベントID", "id", "PK"), ("内部注文ID", "order_id", "FK"), ("変更前状態", "before_status", ""), ("変更後状態", "after_status", "")], True)
+    write_entity_box(sheet, 31, 13, "注文操作履歴", "patient_order_events", [("イベントID", "id", "PK"), ("内部注文ID", "order_id", "FK"), ("変更前状態", "from_status", ""), ("変更後状態", "to_status", "")])
     write_entity_box(sheet, 31, 19, "決済返金投影", "order_transaction_projections", [("取引投影ID", "id", "PK"), ("内部注文ID", "order_id", "FK"), ("外部取引ID", "external_transaction_id", "UK")], True)
 
+    write_entity_box(sheet, 46, 1, "注文配送先", "order_shipping_addresses", [("内部注文ID", "order_id", "PK/FK"), ("郵便番号", "postal_code", ""), ("住所1", "address_line1", ""), ("受取人名", "recipient_name", "")])
     write_entity_box(sheet, 46, 7, "受取配送", "patient_fulfillments", [("受取配送ID", "id", "PK"), ("内部注文ID", "order_id", "FK"), ("区分", "fulfillment_type", ""), ("状態", "status", "")], True)
     write_entity_box(sheet, 46, 14, "受取配送明細", "patient_fulfillment_items", [("受取配送明細ID", "id", "PK"), ("受取配送ID", "fulfillment_id", "FK/UK2"), ("注文明細ID", "order_item_id", "FK/UK2")], True)
 
@@ -881,6 +964,7 @@ def content_types_xml(sheets: list[Sheet]) -> str:
 
 
 def build_workbook() -> None:
+    validate_current_tables()
     sheets = [
         make_overview_sheet(),
         make_table_list_sheet(),

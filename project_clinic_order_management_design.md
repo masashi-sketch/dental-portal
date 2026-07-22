@@ -2,7 +2,7 @@
 
 文書バージョン: 0.2 Draft
 
-最終更新日: 2026-07-21
+最終更新日: 2026-07-22
 
 対象システム: Web-moc-B2B（患者ポータル・医院ポータル・BGJポータル）
 
@@ -69,11 +69,13 @@
 ### 4.1 実装済み
 
 - 医院が実患者、公開商品、数量、受け取り方法を指定して注文を登録できる。
-- 注文ヘッダーと明細を`create_internal_patient_order` RPCで1トランザクション作成する。
+- 注文ヘッダー、複数明細、自宅配送時の配送先、操作履歴を`create_portal_patient_order` RPCで1トランザクション作成する。
 - `customer_code + idempotency_key`の一意制約で二重登録を防止する。
 - 注文時点の商品名、価格、単位、画像種別、用量、内容量、注意事項を明細へ保存する。
 - 医院は受付済み、準備中、準備完了／配送中、完了、キャンセルへ進捗更新できる。
 - 受け取り方法に合わない状態遷移をAPIと共通ロジックで拒否する。
+- 自宅配送では注文時点の住所・受取人・電話番号を`order_shipping_addresses`へ保存し、住所なしの登録を拒否する。
+- 注文登録と状態変更を`patient_order_events`へ記録する。
 - 患者ポータルは本人または検証済みプレビュー患者の注文だけを表示する。
 - 医院ダッシュボードとコミッション画面は内部注文を「参考注文金額」として集計する。
 - `source`、`external_order_id`、`sync_status`、`sync_error`、`external_updated_at`を保持している。
@@ -86,10 +88,9 @@
 - Shopifyとの初回・差分同期
 - Salesforceの医院・患者・活動同期
 - 在庫引当、欠品、入荷予定
-- 配送先住所、配送会社、追跡番号
-- 注文状態の変更履歴、変更者、変更理由
+- 配送会社、追跡番号、部分配送
+- 注文状態の変更理由
 - 割引、税、送料、返金を含む確定金額
-- 複数商品を一度に登録する医院UI
 - 注文一覧のサーバーサイドページネーション
 
 ## 5. 目標アーキテクチャ
@@ -207,7 +208,7 @@ Shopify注文のキャンセル・返金を医院業務状態の`canceled`更新
 - 医院受け取り／自宅配送区分
 - 医院業務状態
 - 注文日時、次回予定日
-- 作成元、外部注文ID、同期状態
+- 作成元、登録経路、外部注文ID、同期状態
 - 冪等キー、外部更新日時
 
 #### `patient_order_items`
@@ -217,19 +218,31 @@ Shopify注文のキャンセル・返金を医院業務状態の`canceled`更新
 - 注文時点の商品名・価格・数量・説明スナップショット
 - 外部明細ID
 
+#### `order_shipping_addresses`
+
+- 注文IDとの1対1関連（PK兼FK）
+- 注文時点の郵便番号、都道府県、市区町村、住所
+- 注文時点の受取人名、電話番号
+
+#### `patient_order_events`
+
+- 注文との関連
+- イベント種別、操作者種別・識別子
+- 変更前後の状態、発生日時
+
 ### 9.2 追加候補
 
 外部サービスの仕様確定前に全テーブルを作り込まず、必要になった段階で増分マイグレーションとして追加する。
 
 | テーブル／項目 | 目的 | 導入時期 |
 |---|---|---|
-| `patient_order_events` | 状態変更、変更者、理由、時刻、変更前後の監査 | Shopify接続前に推奨 |
+| `patient_order_events`拡張 | 既存の監査履歴へ変更理由を追加 | Shopify接続前に推奨 |
 | `commerce_webhook_events` | Webhook本文、外部イベントID、処理結果、再試行回数 | Shopify接続時 |
 | `commerce_outbox` | 外部へ送信するコマンドの永続キュー | Shopify接続時 |
 | `commerce_accounts` | Shopifyストア等の接続先と医院の対応 | 複数接続先確定時 |
 | `patient_subscriptions` | 定期購入契約の読み取り用投影 | 定期購入接続時 |
 | 決済・金額列 | 通貨、商品小計、割引、税、送料、返金、確定総額 | Shopify接続時 |
-| 配送スナップショット | 宛名、住所、配送方法、追跡番号 | 自宅配送開始前 |
+| 配送進捗 | 配送会社、追跡番号、部分配送 | 配送業務接続時 |
 | `version`または更新条件 | 画面操作とWebhookの競合防止 | 外部連携前に推奨 |
 
 ### 9.3 データ保持上の重要課題
@@ -245,13 +258,15 @@ Shopify注文のキャンセル・返金を医院業務状態の`canceled`更新
 
 #### 現在の実DB
 
-以下は2026-07-21時点で実装済みの物理構造である。`patient_orders`と`patient_order_items`が注文ドメインの実体で、商品は削除後も注文スナップショットが残る。
+以下は2026-07-22時点で実装済みの物理構造である。商品は削除後も注文スナップショットが残り、自宅配送では注文時点の配送先を独立した1対1テーブルに保存する。
 
 ```mermaid
 erDiagram
   CLINICS ||--o{ PATIENT_ORDERS : "医院ごとに管理"
   PATIENTS ||--o{ PATIENT_ORDERS : "患者が注文"
   PATIENT_ORDERS ||--|{ PATIENT_ORDER_ITEMS : "明細を持つ"
+  PATIENT_ORDERS ||--o| ORDER_SHIPPING_ADDRESSES : "自宅配送時の配送先"
+  PATIENT_ORDERS ||--o{ PATIENT_ORDER_EVENTS : "操作履歴"
   PRODUCTS o|--o{ PATIENT_ORDER_ITEMS : "注文時スナップショット元"
 
   CLINICS["医院 clinics"] {
@@ -284,6 +299,7 @@ erDiagram
     datetime ordered_at "注文日時"
     date next_fulfillment_date "次回提供予定日"
     text source "作成元・UK1構成"
+    text created_via "登録経路"
     text external_order_id "外部注文ID・UK1構成"
     text sync_status "同期状態"
     text sync_error "同期エラー"
@@ -308,6 +324,29 @@ erDiagram
     text external_line_item_id "外部明細ID"
     datetime created_at "作成日時"
   }
+
+  ORDER_SHIPPING_ADDRESSES["注文配送先 order_shipping_addresses"] {
+    uuid order_id PK,FK "内部注文ID"
+    text postal_code "郵便番号"
+    text prefecture "都道府県"
+    text city "市区町村"
+    text address_line1 "住所1"
+    text address_line2 "住所2"
+    text recipient_name "受取人名"
+    text phone "電話番号"
+    datetime created_at "作成日時"
+  }
+
+  PATIENT_ORDER_EVENTS["注文操作履歴 patient_order_events"] {
+    uuid id PK "イベントID"
+    uuid order_id FK "内部注文ID"
+    text event_type "イベント種別"
+    text actor_type "操作者種別"
+    text actor_identifier "操作者識別子"
+    text from_status "変更前状態"
+    text to_status "変更後状態"
+    datetime created_at "発生日時"
+  }
 ```
 
 **KEY凡例：**`PK`＝主キー、`FK`＝外部キー、`UK`＝一意キー。現行DBの複合一意キーは、UK1＝`(source, external_order_id)`、UK2＝`(customer_code, idempotency_key)`（`idempotency_key is not null`の部分一意）である。
@@ -323,6 +362,7 @@ erDiagram
   CLINICS ||--o{ PATIENT_ORDERS : "自院の注文"
   PATIENTS ||--o{ PATIENT_ORDERS : "本人の注文"
   PATIENT_ORDERS ||--|{ PATIENT_ORDER_ITEMS : "明細"
+  PATIENT_ORDERS ||--o| ORDER_SHIPPING_ADDRESSES : "注文時配送先"
   PATIENT_ORDERS ||--o{ PATIENT_ORDER_EVENTS : "状態・操作履歴"
   PATIENT_ORDERS ||--o{ ORDER_TRANSACTION_PROJECTIONS : "決済・返金投影"
   PATIENT_ORDERS ||--o{ PATIENT_FULFILLMENTS : "受け取り・配送"
@@ -405,13 +445,24 @@ erDiagram
     uuid id PK "イベントID"
     uuid order_id FK "内部注文ID"
     text event_type "イベント種別"
-    text before_status "変更前状態"
-    text after_status "変更後状態"
-    text actor_role "操作者ロール"
-    text actor_id "操作者ID"
+    text from_status "変更前状態"
+    text to_status "変更後状態"
+    text actor_type "操作者種別"
+    text actor_identifier "操作者識別子"
     text reason "変更理由"
-    json metadata "補足情報"
     datetime created_at "発生日時"
+  }
+
+  ORDER_SHIPPING_ADDRESSES["注文配送先 order_shipping_addresses"] {
+    uuid order_id PK,FK "内部注文ID"
+    text postal_code "郵便番号"
+    text prefecture "都道府県"
+    text city "市区町村"
+    text address_line1 "住所1"
+    text address_line2 "住所2"
+    text recipient_name "受取人名"
+    text phone "電話番号"
+    datetime created_at "作成日時"
   }
 
   ORDER_TRANSACTION_PROJECTIONS["決済返金投影 order_transaction_projections"] {
@@ -503,11 +554,11 @@ erDiagram
 
 | 区分 | エンティティ | 導入方針 |
 |---|---|---|
-| 現在存在 | `patient_orders`、`patient_order_items` | 内部IDを維持して拡張する |
-| Phase 1 | `patient_order_events`、`version` | 外部連携前に監査・競合対策として追加 |
+| 現在存在 | `patient_orders`、`patient_order_items`、`order_shipping_addresses`、`patient_order_events` | 内部IDと注文時点スナップショットを維持して拡張する |
+| Phase 1 | `patient_order_events.reason`、`version` | 既存監査の理由追加と競合対策を行う |
 | Shopify接続 | `commerce_accounts`、`commerce_webhook_events`、`commerce_outbox` | 接続先、受信、送信を業務テーブルから分離 |
 | 決済接続 | `order_transaction_projections` | 決済・返金を注文状態から分離して投影 |
-| 配送開始 | `patient_fulfillments`、`patient_fulfillment_items` | 部分引き渡し・配送先・追跡を管理 |
+| 配送開始 | `patient_fulfillments`、`patient_fulfillment_items` | 既存配送先は維持し、部分引き渡し・配送進捗・追跡を管理 |
 | 定期購入接続 | `patient_subscriptions`、`patient_subscription_items` | Shopify契約の読み取り用投影として追加 |
 
 `order_transaction_projections`は会計台帳ではなく、Shopify上の決済・返金状態を表示するための投影である。`patient_fulfillments`もShopifyまたは配送アプリの代替システムにはせず、患者・医院画面に必要な状態を保持する。
@@ -550,8 +601,8 @@ erDiagram
 - 注文一覧は`cursor`または`ordered_at + id`によるページネーションへ移行する。
 - 状態、期間、患者、受け取り方法、同期状態でサーバー側検索できるようにする。
 - PATCHには期待する`updated_at`または`version`を渡し、競合時は409を返す。
-- 状態更新時にactor、理由、変更前後を同一トランザクションでイベントへ記録する。
-- 複数商品登録が必要になった場合は、明細配列を受け取る新しいRPCへ移行する。
+- 状態更新時のactorと変更前後は同一トランザクションでイベントへ記録済み。今後、変更理由を追加する。
+- 注文登録は明細配列を受け取る`create_portal_patient_order` RPCを使用する。
 - APIエラーは内部エラーをそのまま患者・医院画面へ露出せず、運用追跡IDを付ける。
 
 ### 11.3 Adapterインターフェース案
@@ -597,8 +648,8 @@ interface CommerceGateway {
 
 #### 注文登録
 
-- 現在は1商品・数量・受け取り方法を登録する。
-- 自宅配送は配送先・配送責任・追跡方法が確定するまで無効化することを推奨する。
+- 現在は複数商品・数量・受け取り方法を登録できる。
+- 自宅配送時は住所・受取人・電話番号を必須とし、注文時点のスナップショットとして保存する。
 - Shopify接続後は、正式な注文作成・決済が必要な場合、Shopifyの安全な導線へ遷移する。
 - 保存成功後だけ一覧へ追加し、通信失敗時は同じ冪等キーで再試行する。
 
@@ -626,15 +677,9 @@ interface CommerceGateway {
 
 ### 13.2 自宅配送
 
-現在の注文は`delivery`を選択できるが、配送先住所・配送会社・追跡番号を保持していない。この状態ではシステム単独で配送を完遂できない。
+現在は`delivery`を選択でき、`order_shipping_addresses`に郵便番号、住所、受取人名、電話番号を注文時点のスナップショットとして保存する。医院受け取り注文には配送先行を作成しない。
 
-本番運用では次のいずれかを決定するまで、医院画面の自宅配送登録を無効化する。
-
-1. Shopify Customer Accountの住所とフルフィルメントを正本にする。
-2. 採用する配送アプリの投影を利用する。
-3. 医院が配送を担う場合、住所スナップショット、利用目的、保持期間、追跡方法をポータルに実装する。
-
-患者マスタの現住所を注文時住所として参照し続けず、注文時点の配送先をスナップショットとして保持する。
+配送会社・追跡番号・部分配送は未実装であり、外部フルフィルメント連携時に`patient_fulfillments`系列で追加する。患者マスタの現住所を過去注文の配送先として参照し続けない。
 
 ## 14. 金額・決済
 
@@ -737,22 +782,21 @@ interface CommerceGateway {
 
 ### Phase 0：現行内部注文基盤（完了）
 
-- `patient_orders`・`patient_order_items`
-- 内部注文登録RPC
+- `patient_orders`・`patient_order_items`・`order_shipping_addresses`・`patient_order_events`
+- 複数明細と配送先を同一トランザクションで登録する`create_portal_patient_order` RPC
 - 医院一覧・進捗更新
 - 患者ポータル表示
-- 冪等性、商品スナップショット
+- 冪等性、商品・配送先スナップショット、操作履歴
 - 医院ダッシュボード参考集計
 
 ### Phase 1：外部連携前の堅牢化
 
 1. 患者物理削除と注文連鎖削除を見直す。
-2. 自宅配送を無効化するか、運用に必要な配送情報を設計する。
-3. `patient_order_events`と変更者・理由を追加する。
-4. 状態更新の楽観的排他を追加する。
-5. 注文一覧をページネーションする。
-6. 重要APIへ`Server-Timing`を追加する。
-7. `CommerceGateway`の内部DTOと契約テストを用意する。
+2. `patient_order_events`へ変更理由を追加する。
+3. 状態更新の楽観的排他を追加する。
+4. 注文一覧をページネーションする。
+5. 重要APIへ`Server-Timing`を追加する。
+6. `CommerceGateway`の内部DTOと契約テストを用意する。
 
 ### Phase 2：Shopify接続
 
@@ -816,8 +860,7 @@ interface CommerceGateway {
 
 | 未決事項 | 推奨初期案 |
 |---|---|
-| 自宅配送を誰が担うか | Shopify／採用アプリ確定まで医院画面では無効化 |
-| 患者注文の複数商品 | 業務要件確認後に明細配列RPCへ拡張 |
+| 配送会社・追跡を誰が担うか | Shopify／採用アプリ確定までは注文時配送先と医院業務状態のみを管理 |
 | 医院による注文取消 | 内部未決済注文のみ可。Shopify注文は正式な外部処理経由 |
 | 患者による変更・解約 | Shopifyの正式導線だけを表示 |
 | BGJ代理操作 | 初期は閲覧中心。更新時は理由必須の監査ログ |

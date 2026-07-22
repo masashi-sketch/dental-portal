@@ -270,7 +270,7 @@ const { data, error } = await supabase
    -- ポリシーは定義しない（service_roleキーのみアクセス可能な状態を維持する）
    ```
    **wbs-appのようにRLSを無効化するSQLは提示しない。**このプロジェクトの方針はRLS有効・ポリシーなしで統一する。
-3. `supabase/schema.sql`を単一のDB定義書として常に最新に保つ。テーブル・列・制約・外部キー・インデックス・VIEW・RPC／関数・トリガー・RLS・Storage定義を追加・変更・削除する場合は、増分migrationだけで完了扱いにせず、同じコミットで`supabase/schema.sql`へ最終状態を反映する。削除した定義や古いコメントは残さず、DB変更レビューではmigrationと`supabase/schema.sql`の整合を必須確認項目とする。このプロジェクトには`/manual`のようなDB定義書ページは無いため、`supabase/schema.sql`がそれを兼ねる。
+3. `supabase/schema.sql`を実DB構造の正本として常に最新に保つ。テーブル・列・制約・外部キー・インデックス・VIEW・RPC／関数・トリガー・RLS・Storage定義を追加・変更・削除する場合は、増分migrationだけで完了扱いにせず、同じコミットで`supabase/schema.sql`へ最終状態を反映する。さらにBGJポータルの画面用DB定義書も同じコミットで更新し、`scripts/generate_clinic_order_db_excel.py`、`scripts/generate_clinic_order_db_html.py`を実行して、`project_clinic_order_management_db_definition.xlsx`、`project_clinic_order_management_db_definition.html`、`public/manuals/clinic-order-db-definition.html`を再生成する。関連する`project_clinic_order_management_design.md`の現行／将来区分と説明も同期する。削除した定義や古いコメントは残さず、DB変更レビューではmigration、`supabase/schema.sql`、型、設計文書、画面用生成物の整合を必須確認項目とする。
 4. DBのテーブルまたは列を追加・変更・削除する場合は、同じコミットで`src/lib/supabase/types.ts`の型と列指定定数（`XXX_COLUMNS`）も最終状態へ合わせる。
 
 ## DB変更SQLに含める内容
