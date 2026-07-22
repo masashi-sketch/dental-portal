@@ -92,6 +92,40 @@ async function verifyViewport(browser, sessionCookie, viewport) {
   }
 }
 
+async function verifyBgjOrdersViewport(browser, sessionCookie, viewport) {
+  const context = await browser.newContext({ viewport });
+  await context.addCookies([
+    sessionCookie,
+    { name: 'portal-selected', value: 'true', url: BASE_URL, sameSite: 'Lax' },
+  ]);
+  const page = await context.newPage();
+
+  try {
+    await page.goto(`${BASE_URL}/bgj/orders?view=received`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.locator('[data-app-ready="true"]').waitFor({ state: 'visible', timeout: 20_000 });
+    await page.getByRole('heading', { name: '受注一覧' }).waitFor({ state: 'visible' });
+    const layout = await page.evaluate(() => {
+      const table = document.querySelector('[data-testid="bgj-orders-table"]');
+      const cards = document.querySelector('[data-testid="bgj-orders-cards"]');
+      if (!table || !cards) throw new Error('BGJ受注一覧のレスポンシブ要素が見つかりません');
+      return {
+        innerWidth: window.innerWidth,
+        scrollWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+        tableVisible: getComputedStyle(table).display !== 'none',
+        cardsVisible: getComputedStyle(cards).display !== 'none',
+      };
+    });
+
+    const isDesktop = viewport.width >= 1024;
+    assert(layout.scrollWidth <= layout.innerWidth + 1, `BGJ受注一覧 (${viewport.width}x${viewport.height}): 横スクロールが発生しています`);
+    assert(layout.tableVisible === isDesktop, `BGJ受注一覧 (${viewport.width}x${viewport.height}): 表示形式が不正です`);
+    assert(layout.cardsVisible !== isDesktop, `BGJ受注一覧 (${viewport.width}x${viewport.height}): カード表示の切替が不正です`);
+    console.log(`✓ BGJ受注一覧 (${viewport.width}x${viewport.height}): ${isDesktop ? '表' : 'カード'}表示、横はみ出しなし`);
+  } finally {
+    await context.close();
+  }
+}
+
 async function main() {
   const server = await ensureNextTestServer(BASE_URL);
   let browser;
@@ -108,6 +142,8 @@ async function main() {
     for (const viewport of VIEWPORTS) {
       await verifyViewport(browser, sessionCookie, viewport);
     }
+    await verifyBgjOrdersViewport(browser, sessionCookie, { width: 390, height: 844 });
+    await verifyBgjOrdersViewport(browser, sessionCookie, { width: 1280, height: 720 });
   } finally {
     await browser?.close();
     server?.kill('SIGTERM');

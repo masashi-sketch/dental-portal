@@ -499,7 +499,7 @@ export type PatientOrder = {
   external_updated_at: string | null;
   created_at: string;
   updated_at: string;
-  patient?: { id: string; name: string } | null;
+  patient?: { id: string; name: string; patient_no?: string } | null;
   items: PatientOrderItem[];
 };
 
@@ -508,4 +508,4 @@ export const PATIENT_ORDER_COLUMNS =
 export const PATIENT_ORDER_ITEM_COLUMNS =
   'id, order_id, product_id, product_name, unit_price, quantity, unit_snapshot, image_type_snapshot, daily_amount_snapshot, volume_snapshot, caution_snapshot, external_line_item_id, created_at';
 export const PATIENT_ORDER_WITH_DETAILS_COLUMNS =
-  `${PATIENT_ORDER_COLUMNS}, patient:patients!patient_id(id, name), items:patient_order_items(${PATIENT_ORDER_ITEM_COLUMNS})`;
+  `${PATIENT_ORDER_COLUMNS}, patient:patients!patient_id(id, name, patient_no), items:patient_order_items(${PATIENT_ORDER_ITEM_COLUMNS})`;

@@ -1,0 +1,44 @@
+import { describe, expect, it } from 'vitest';
+import { toOrderIntegrationRecord } from './orderIntegration';
+import type { PatientOrder } from '@/lib/supabase/types';
+
+const order: PatientOrder = {
+  id: 'order-1',
+  customer_code: 'A000001',
+  patient_id: 'patient-1',
+  order_type: 'one_time',
+  fulfillment_method: 'pickup',
+  status: 'received',
+  ordered_at: '2026-07-22T00:00:00.000Z',
+  next_fulfillment_date: null,
+  source: 'internal',
+  external_order_id: null,
+  sync_status: 'local',
+  sync_error: null,
+  idempotency_key: 'key-1',
+  external_updated_at: null,
+  created_at: '2026-07-22T00:00:00.000Z',
+  updated_at: '2026-07-22T00:00:00.000Z',
+  patient: { id: 'patient-1', patient_no: 'P000001', name: '患者 花子' },
+  items: [
+    {
+      id: 'line-1', order_id: 'order-1', product_id: 'product-1', product_name: '商品A',
+      unit_price: 1200, quantity: 2, unit_snapshot: null, image_type_snapshot: 'supplement',
+      daily_amount_snapshot: null, volume_snapshot: null, caution_snapshot: null,
+      external_line_item_id: null, created_at: '2026-07-22T00:00:00.000Z',
+    },
+  ],
+};
+
+describe('toOrderIntegrationRecord', () => {
+  it('DB行を外部連携から独立した正規化注文へ変換する', () => {
+    const record = toOrderIntegrationRecord(order, '広島中央歯科');
+
+    expect(record.schemaVersion).toBe(1);
+    expect(record.clinic).toEqual({ customerCode: 'A000001', name: '広島中央歯科' });
+    expect(record.patient).toEqual({ id: 'patient-1', patientNo: 'P000001', name: '患者 花子' });
+    expect(record.lines[0]).toMatchObject({ unitPrice: 1200, quantity: 2, lineTotal: 2400 });
+    expect(record.totalAmount).toBe(2400);
+    expect(record.syncStatus).toBe('local');
+  });
+});
