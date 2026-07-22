@@ -4,8 +4,9 @@
 // 撮影対象はmanifest配列で管理し、同じ画面を複数のマニュアル項目から参照する
 // 場合はファイル名を使い回す（撮影・保守の重複を避ける）。
 //
-// 実行: node --env-file=.env.local scripts/capture-manual-screenshots.mjs [バッチ名...]
+// 実行: node --env-file=.env.local scripts/capture-manual-screenshots.mjs [バッチ名[@role]...]
 // バッチ名省略時は全件撮影する。
+// roleを付けると対象だけ再撮影できる。例: productPricing@admin
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -232,14 +233,15 @@ async function run(batchNames) {
 
   const targets = batchNames.length > 0 ? batchNames : Object.keys(manifest);
 
-  for (const batchName of targets) {
+  for (const target of targets) {
+    const [batchName, roleFilter] = target.split('@');
     const groups = manifest[batchName];
     if (!groups) {
       console.warn(`未知のバッチ名: ${batchName}`);
       continue;
     }
     console.log(`=== ${batchName} ===`);
-    for (const group of groups) {
+    for (const group of groups.filter((candidate) => !roleFilter || candidate.role === roleFilter)) {
       console.log(` role=${group.role}`);
       const page =
         group.role === 'bgj'

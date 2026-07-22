@@ -98,6 +98,8 @@ describe('AdminProductsPage', () => {
     expect(screen.getByRole('spinbutton', { name: /6ヶ月価格/ })).toHaveValue(3580);
     expect(screen.getByText('現在 60%')).toBeInTheDocument();
     expect(screen.getByText('表示')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '変更を保存' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: '保存' })).not.toBeInTheDocument();
   });
 
   it('トグルをクリックするとPATCHが飛び、表示状態が切り替わる（楽観的更新）', async () => {
@@ -127,7 +129,7 @@ describe('AdminProductsPage', () => {
     fireEvent.change(input, { target: { value: '4200' } });
     fireEvent.change(screen.getByRole('spinbutton', { name: /3ヶ月価格/ }), { target: { value: '3900' } });
     fireEvent.change(screen.getByRole('spinbutton', { name: /6ヶ月価格/ }), { target: { value: '3600' } });
-    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+    fireEvent.click(screen.getByRole('button', { name: '変更を保存（1件）' }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/admin/product-settings', expect.objectContaining({ method: 'PATCH' })));
     const patchCall = fetchMock.mock.calls.find(([, init]) => (init as RequestInit)?.method === 'PATCH');
     expect(JSON.parse((patchCall![1] as RequestInit).body as string)).toMatchObject({ clinicPrice: 4200, threeMonthPrice: 3900, sixMonthPrice: 3600 });
