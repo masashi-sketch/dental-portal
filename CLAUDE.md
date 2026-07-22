@@ -270,8 +270,8 @@ const { data, error } = await supabase
    -- ポリシーは定義しない（service_roleキーのみアクセス可能な状態を維持する）
    ```
    **wbs-appのようにRLSを無効化するSQLは提示しない。**このプロジェクトの方針はRLS有効・ポリシーなしで統一する。
-3. `supabase/schema.sql`を単一のDB定義書として常に最新に保つ（テーブル追加・変更時は追記する）。このプロジェクトには`/manual`のようなDB定義書ページは無いため、schema.sqlがそれを兼ねる。
-4. 新規テーブルの列は`src/lib/supabase/types.ts`に型と列指定定数（`XXX_COLUMNS`）をセットで追加する。
+3. `supabase/schema.sql`を単一のDB定義書として常に最新に保つ。テーブル・列・制約・外部キー・インデックス・VIEW・RPC／関数・トリガー・RLS・Storage定義を追加・変更・削除する場合は、増分migrationだけで完了扱いにせず、同じコミットで`supabase/schema.sql`へ最終状態を反映する。削除した定義や古いコメントは残さず、DB変更レビューではmigrationと`supabase/schema.sql`の整合を必須確認項目とする。このプロジェクトには`/manual`のようなDB定義書ページは無いため、`supabase/schema.sql`がそれを兼ねる。
+4. DBのテーブルまたは列を追加・変更・削除する場合は、同じコミットで`src/lib/supabase/types.ts`の型と列指定定数（`XXX_COLUMNS`）も最終状態へ合わせる。
 
 ## DB変更SQLに含める内容
 
