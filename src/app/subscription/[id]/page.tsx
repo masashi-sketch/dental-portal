@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import BottomNav from '../../components/BottomNav';
 import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
 import ProductVisual from '@/components/ProductVisual';
-import ShippingAddressFields from '@/components/orders/ShippingAddressFields';
+import DeliveryDestinationPicker from '@/components/orders/DeliveryDestinationPicker';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import { usePatientProducts } from '@/hooks/usePatientProducts';
-import { EMPTY_SHIPPING_ADDRESS, formatShippingAddress, validateShippingAddress, type ShippingAddressInput } from '@/lib/shippingAddress';
+import { formatShippingAddress } from '@/lib/shippingAddress';
+import type { DeliveryDestination } from '@/lib/supabase/types';
 
 function IconBell() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>;
@@ -36,8 +37,15 @@ export default function SubscriptionOrderPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [period, setPeriod] = useState<Period | null>(null);
   const [delivery, setDelivery] = useState<Delivery | null>(null);
-  const [shippingAddress, setShippingAddress] = useState<ShippingAddressInput>({ ...EMPTY_SHIPPING_ADDRESS });
+  const [destinationId, setDestinationId] = useState('');
+  const [selectedDestination, setSelectedDestination] = useState<DeliveryDestination | null>(null);
+  const [destinationError, setDestinationError] = useState<string | null>(null);
   const { clinicName, navVisibility } = usePatientClinicBranding();
+  const handleDestinationSelect = useCallback((selectedId: string, destination?: DeliveryDestination) => {
+    setDestinationId(selectedId);
+    setSelectedDestination(destination ?? null);
+    setDestinationError(null);
+  }, []);
 
   if (!productsLoaded) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-sm text-gray-400">商品情報を読み込んでいます…</div>;
@@ -54,11 +62,19 @@ export default function SubscriptionOrderPage() {
     );
   }
 
-  const discountRate = period === '6ヶ月' ? 0.1 : period === '3ヶ月' ? 0.05 : 0;
   const months = period === '6ヶ月' ? 6 : 3;
-  const monthlyPrice = Math.floor(product.price * (1 - discountRate));
+  const monthlyPrice = period === '6ヶ月' ? product.sixMonthPrice : product.threeMonthPrice;
   const totalPrice = monthlyPrice * months;
-  const shippingError = delivery === '自宅' ? validateShippingAddress(shippingAddress) : null;
+  const deliveryIncomplete = delivery === '自宅' && !destinationId;
+  const formattedDestination = selectedDestination ? formatShippingAddress({
+    postalCode: selectedDestination.postal_code,
+    prefecture: selectedDestination.prefecture,
+    city: selectedDestination.city,
+    addressLine1: selectedDestination.address_line1,
+    addressLine2: selectedDestination.address_line2 ?? '',
+    recipientName: selectedDestination.recipient_name,
+    phone: selectedDestination.phone,
+  }) : '';
 
   const steps = [
     { num: 1, label: '期間選択' },
@@ -169,7 +185,7 @@ export default function SubscriptionOrderPage() {
           {step === 1 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-1">定期購入の料金シミュレーション</h2>
-              <p className="text-sm text-gray-400 mb-6">表示価格は参考です。正式な料金プランはShopify連携時に確定します。</p>
+              <p className="text-sm text-gray-400 mb-6">医院が設定した期間別の月額を表示しています。</p>
 
               <div className="flex flex-col gap-4">
                 {/* 6ヶ月コース */}
@@ -181,9 +197,6 @@ export default function SubscriptionOrderPage() {
                       : 'border-gray-100 hover:border-indigo-200 bg-white'
                   }`}
                 >
-                  <div className="absolute top-3 right-3 bg-gradient-to-r from-[#4f46e5] to-[#6366f1] text-white text-xs font-bold px-2.5 py-1 rounded-full">
-                    一番お得 10%OFF
-                  </div>
                   <div className="flex items-start gap-4">
                     <div className={`w-5 h-5 rounded-full border-2 shrink-0 mt-0.5 flex items-center justify-center ${
                       period === '6ヶ月' ? 'border-[#4f46e5] bg-[#4f46e5]' : 'border-gray-300'
@@ -194,17 +207,15 @@ export default function SubscriptionOrderPage() {
                       <p className="font-bold text-gray-900 text-base">6ヶ月コース</p>
                       <div className="flex items-baseline gap-2 mt-2">
                         <span className="text-2xl font-bold text-[#4f46e5]">
-                          ¥{Math.floor(product.price * 0.9).toLocaleString()}
+                          ¥{product.sixMonthPrice.toLocaleString()}
                         </span>
                         <span className="text-sm text-gray-400">/月</span>
-                        <span className="text-sm text-gray-300 line-through">¥{product.price.toLocaleString()}</span>
+                        {product.sixMonthPrice < product.price && <span className="text-sm text-gray-300 line-through">¥{product.price.toLocaleString()}</span>}
                       </div>
                       <p className="text-sm text-gray-600 mt-1">
-                        合計 <span className="font-semibold text-gray-900">¥{(Math.floor(product.price * 0.9) * 6).toLocaleString()}</span>（6ヶ月分・税込）
+                        合計 <span className="font-semibold text-gray-900">¥{(product.sixMonthPrice * 6).toLocaleString()}</span>（6ヶ月分・税込）
                       </p>
-                      <p className="text-xs text-indigo-600 mt-2 font-medium">
-                        ¥{(product.price * 6 - Math.floor(product.price * 0.9) * 6).toLocaleString()} お得！
-                      </p>
+                      {product.sixMonthPrice < product.price && <p className="text-xs text-indigo-600 mt-2 font-medium">通常価格より月額 ¥{(product.price - product.sixMonthPrice).toLocaleString()} お得</p>}
                     </div>
                   </div>
                 </button>
@@ -227,17 +238,16 @@ export default function SubscriptionOrderPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <p className="font-bold text-gray-900 text-base">3ヶ月コース</p>
-                        <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2 py-0.5 rounded-full">5%OFF</span>
                       </div>
                       <div className="flex items-baseline gap-2 mt-2">
                         <span className="text-2xl font-bold text-emerald-600">
-                          ¥{Math.floor(product.price * 0.95).toLocaleString()}
+                          ¥{product.threeMonthPrice.toLocaleString()}
                         </span>
                         <span className="text-sm text-gray-400">/月</span>
-                        <span className="text-sm text-gray-300 line-through">¥{product.price.toLocaleString()}</span>
+                        {product.threeMonthPrice < product.price && <span className="text-sm text-gray-300 line-through">¥{product.price.toLocaleString()}</span>}
                       </div>
                       <p className="text-sm text-gray-600 mt-1">
-                        合計 <span className="font-semibold text-gray-900">¥{(Math.floor(product.price * 0.95) * 3).toLocaleString()}</span>（3ヶ月分・税込）
+                        合計 <span className="font-semibold text-gray-900">¥{(product.threeMonthPrice * 3).toLocaleString()}</span>（3ヶ月分・税込）
                       </p>
                     </div>
                   </div>
@@ -293,9 +303,15 @@ export default function SubscriptionOrderPage() {
                 </button>
                 {delivery === '自宅' && (
                   <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
-                    <p className="mb-3 text-sm font-semibold text-gray-700">配送先住所</p>
-                    <ShippingAddressFields value={shippingAddress} onChange={setShippingAddress} color="indigo" />
-                    {shippingError && <p className="mt-3 text-xs text-amber-700">{shippingError}</p>}
+                    <DeliveryDestinationPicker
+                      apiBase="/api/patient-portal/delivery-destinations"
+                      ownerLabel="登録済みの自宅配送先"
+                      selectedId={destinationId}
+                      onSelect={handleDestinationSelect}
+                      color="indigo"
+                      onError={setDestinationError}
+                    />
+                    {destinationError && <p className="mt-3 text-xs text-red-600">{destinationError}</p>}
                   </div>
                 )}
 
@@ -344,10 +360,10 @@ export default function SubscriptionOrderPage() {
                   <IconArrowLeft />戻る
                 </button>
                 <button
-                  onClick={() => { if (delivery && !shippingError) setStep(3); }}
-                  disabled={!delivery || Boolean(shippingError)}
+                  onClick={() => { if (delivery && !deliveryIncomplete) setStep(3); }}
+                  disabled={!delivery || deliveryIncomplete}
                   className={`flex-1 py-3.5 rounded-xl font-bold text-base transition-all ${
-                    delivery && !shippingError
+                    delivery && !deliveryIncomplete
                       ? 'bg-gradient-to-r from-[#4f46e5] to-[#6366f1] text-white hover:opacity-90 shadow-sm active:scale-95'
                       : 'bg-gray-100 text-gray-300 cursor-not-allowed'
                   }`}
@@ -378,8 +394,7 @@ export default function SubscriptionOrderPage() {
                   {[
                     { label: 'コース',       value: `${period}コース` },
                     { label: 'お届け方法',   value: delivery === '自宅' ? 'ご自宅へお届け' : `医院で受け取り（${clinicName ?? 'デンタルポータル'}）` },
-                    ...(delivery === '自宅' ? [{ label: '配送先', value: formatShippingAddress(shippingAddress) }] : []),
-                    { label: '割引',         value: period === '6ヶ月' ? '10% OFF' : '5% OFF' },
+                    ...(delivery === '自宅' ? [{ label: '配送先', value: formattedDestination }] : []),
                     { label: '月額（税込）', value: `¥${monthlyPrice.toLocaleString()}` },
                     { label: '合計（税込）', value: `¥${totalPrice.toLocaleString()}（${months}ヶ月分）` },
                   ].map(({ label, value }) => (

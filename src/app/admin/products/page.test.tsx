@@ -18,7 +18,7 @@ function jsonResponse(data: unknown, ok = true) {
   return Promise.resolve({ ok, json: async () => data });
 }
 
-const product: Product & { isVisible: boolean; basePrice: number; wholesaleRate: number; wholesalePrice: number; clinicPrice: number } = {
+const product: Product & { isVisible: boolean; basePrice: number; wholesaleRate: number; wholesalePrice: number; clinicPrice: number; threeMonthPrice: number; sixMonthPrice: number } = {
   id: 'product-1',
   name: 'オーラルプロバイオティクス 30日分',
   product_code: null,
@@ -48,6 +48,8 @@ const product: Product & { isVisible: boolean; basePrice: number; wholesaleRate:
   wholesaleRate: 60,
   wholesalePrice: 2388,
   clinicPrice: 3980,
+  threeMonthPrice: 3780,
+  sixMonthPrice: 3580,
 };
 
 describe('AdminProductsPage', () => {
@@ -61,7 +63,11 @@ describe('AdminProductsPage', () => {
       if (url === '/api/admin/product-settings' && init?.method === 'PATCH') {
         const body = JSON.parse(init.body as string);
         return jsonResponse({
-          setting: { customer_code: 'A000001', product_id: body.productId, is_visible: body.isVisible, clinic_price: body.clinicPrice, updated_at: '' },
+          setting: {
+            customer_code: 'A000001', product_id: body.productId, is_visible: body.isVisible,
+            clinic_price: body.clinicPrice, subscription_3_month_price: body.threeMonthPrice,
+            subscription_6_month_price: body.sixMonthPrice, updated_at: '',
+          },
         });
       }
       throw new Error(`unexpected fetch: ${url}`);
@@ -87,7 +93,10 @@ describe('AdminProductsPage', () => {
     expect(await screen.findByText('オーラルプロバイオティクス 30日分')).toBeInTheDocument();
     expect(screen.getByTestId('product-visual')).toHaveAttribute('src', product.image_url);
     expect(screen.getByText('¥2,388')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('3980')).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: /医院通常価格/ })).toHaveValue(3980);
+    expect(screen.getByRole('spinbutton', { name: /3ヶ月価格/ })).toHaveValue(3780);
+    expect(screen.getByRole('spinbutton', { name: /6ヶ月価格/ })).toHaveValue(3580);
+    expect(screen.getByText('現在 60%')).toBeInTheDocument();
     expect(screen.getByText('表示')).toBeInTheDocument();
   });
 
@@ -106,17 +115,21 @@ describe('AdminProductsPage', () => {
       productId: 'product-1',
       isVisible: false,
       clinicPrice: 3980,
+      threeMonthPrice: 3780,
+      sixMonthPrice: 3580,
     });
   });
 
-  it('医院価格を変更して保存できる', async () => {
+  it('医院通常価格と期間別価格を変更して保存できる', async () => {
     useSessionMock.mockReturnValue({ data: { user: { role: 'clinic' } }, status: 'authenticated' });
     render(<AdminProductsPage />);
-    const input = await screen.findByRole('spinbutton', { name: /医院価格/ });
+    const input = await screen.findByRole('spinbutton', { name: /医院通常価格/ });
     fireEvent.change(input, { target: { value: '4200' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: /3ヶ月価格/ }), { target: { value: '3900' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: /6ヶ月価格/ }), { target: { value: '3600' } });
     fireEvent.click(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/admin/product-settings', expect.objectContaining({ method: 'PATCH' })));
     const patchCall = fetchMock.mock.calls.find(([, init]) => (init as RequestInit)?.method === 'PATCH');
-    expect(JSON.parse((patchCall![1] as RequestInit).body as string).clinicPrice).toBe(4200);
+    expect(JSON.parse((patchCall![1] as RequestInit).body as string)).toMatchObject({ clinicPrice: 4200, threeMonthPrice: 3900, sixMonthPrice: 3600 });
   });
 });

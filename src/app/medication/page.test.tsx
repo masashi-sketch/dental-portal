@@ -74,6 +74,14 @@ describe('MedicationPage 先生のおすすめへの導線', () => {
     expect(screen.getByText((_, element) => element?.textContent === '数量：2箱')).toBeInTheDocument();
     expect(screen.getByTestId('product-visual')).toHaveAttribute('src', 'https://example.com/product.png');
   });
+
+  it('医院受け取りと自宅配送の両方を利用可能な方法として表示する', async () => {
+    stub(null);
+    render(<MedicationPage />);
+    expect(await screen.findByText('利用可能な受け取り方法')).toBeInTheDocument();
+    expect(screen.getByText('医院で受け取り')).toBeInTheDocument();
+    expect(screen.getByText('ご自宅へお届け')).toBeInTheDocument();
+  });
 });
 
 describe('MedicationPage ご注文情報カード', () => {

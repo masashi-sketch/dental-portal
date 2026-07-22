@@ -119,7 +119,11 @@ const manifest = {
     },
     {
       role: 'patient',
-      shots: [{ path: '/shop', file: 'patient-shop.png', waitAfterNav: 9000 }],
+      shots: [
+        { path: '/shop', file: 'patient-shop.png', waitAfterNav: 9000 },
+        { path: '/subscription', file: 'patient-subscription.png', waitAfterNav: 5000, cardSelector: 'main .bg-white.rounded-2xl.border.border-gray-100.shadow-sm.overflow-hidden' },
+        { path: '/medication', file: 'patient-medication.png', waitAfterNav: 5000, cardSelector: '[data-testid="patient-receiving-methods"]' },
+      ],
     },
   ],
   shared: [

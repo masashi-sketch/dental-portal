@@ -649,7 +649,7 @@ create table public.products (
   -- カテゴリはバイオガイア公式サイト（jp.biogaia.com）の商品分類に合わせる
   category      text not null check (category in ('お口と喉のケア','赤ちゃん・キッズ','抵抗力サポート','胃腸のサポート','ペット向け')),
   description   text,                -- 一覧カードの説明文
-  price         int not null,        -- BGJが管理する基準価格（税込・円）。患者表示は医院価格を優先
+  price         int not null,        -- BGJ基準価格（税込・円）。通常表示は医院通常価格、定期表示は期間別価格を優先
   unit          text,                -- 例「本」「個」「セット」
   image_type    text not null default 'supplement'
     check (image_type in ('supplement','yogurt','toothbrush','oral')),
@@ -685,7 +685,9 @@ create table public.clinic_product_settings (
   customer_code text not null references public.clinics (customer_code) on delete cascade,
   product_id    uuid not null references public.products (id) on delete cascade,
   is_visible    boolean not null default true,
-  clinic_price  integer check (clinic_price is null or clinic_price >= 0), -- nullならproducts.price（基準価格）を患者表示価格にする
+  clinic_price  integer check (clinic_price is null or clinic_price >= 0), -- 医院通常価格。nullならproducts.price
+  subscription_3_month_price integer check (subscription_3_month_price is null or subscription_3_month_price >= 0), -- nullなら医院通常価格
+  subscription_6_month_price integer check (subscription_6_month_price is null or subscription_6_month_price >= 0), -- nullなら医院通常価格
   updated_at    timestamptz not null default now(),
   primary key (customer_code, product_id)
 );

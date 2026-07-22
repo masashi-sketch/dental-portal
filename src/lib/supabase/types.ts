@@ -456,10 +456,13 @@ export type ClinicProductSetting = {
   product_id: string;
   is_visible: boolean;
   clinic_price: number | null;
+  subscription_3_month_price: number | null;
+  subscription_6_month_price: number | null;
   updated_at: string;
 };
 
-export const CLINIC_PRODUCT_SETTING_COLUMNS = 'customer_code, product_id, is_visible, clinic_price, updated_at';
+export const CLINIC_PRODUCT_SETTING_COLUMNS =
+  'customer_code, product_id, is_visible, clinic_price, subscription_3_month_price, subscription_6_month_price, updated_at';
 
 export type PatientOrderType = 'one_time' | 'subscription';
 export type FulfillmentMethod = 'pickup' | 'delivery';

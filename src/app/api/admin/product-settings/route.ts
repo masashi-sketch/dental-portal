@@ -68,17 +68,26 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { productId, isVisible, clinicPrice } = body ?? {};
+  const { productId, isVisible, clinicPrice, threeMonthPrice, sixMonthPrice } = body ?? {};
   if (typeof productId !== 'string' || !productId || typeof isVisible !== 'boolean'
-    || !Number.isInteger(clinicPrice) || clinicPrice < 0 || clinicPrice > 10_000_000) {
-    return NextResponse.json({ error: '商品、医院価格、表示設定を正しく指定してください。' }, { status: 400 });
+    || ![clinicPrice, threeMonthPrice, sixMonthPrice].every(
+      (price) => Number.isInteger(price) && price >= 0 && price <= 10_000_000,
+    )) {
+    return NextResponse.json({ error: '商品、医院通常価格、期間別価格、表示設定を正しく指定してください。' }, { status: 400 });
   }
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from('clinic_product_settings')
     .upsert(
-      { customer_code: session.user.customerCode, product_id: productId, is_visible: isVisible, clinic_price: clinicPrice },
+      {
+        customer_code: session.user.customerCode,
+        product_id: productId,
+        is_visible: isVisible,
+        clinic_price: clinicPrice,
+        subscription_3_month_price: threeMonthPrice === clinicPrice ? null : threeMonthPrice,
+        subscription_6_month_price: sixMonthPrice === clinicPrice ? null : sixMonthPrice,
+      },
       { onConflict: 'customer_code,product_id' },
     )
     .select(CLINIC_PRODUCT_SETTING_COLUMNS)

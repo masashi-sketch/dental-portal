@@ -151,13 +151,15 @@ CURRENT_TABLES = [
         "現行",
         "医院商品設定",
         "clinic_product_settings",
-        "実装済み・患者表示価格",
-        "医院×商品の表示設定と医院価格。clinic_priceがNULLならproducts.priceを患者表示価格にする。",
+        "実装済み・患者表示／定期価格",
+        "医院×商品の表示設定、医院通常価格、3ヶ月／6ヶ月定期価格。期間別価格がNULLなら医院通常価格を使用する。",
         [
             c("得意先コード", "customer_code", "text", "PK / FK", constraint="clinics.customer_code ON DELETE CASCADE"),
             c("商品ID", "product_id", "uuid", "PK / FK", constraint="products.id ON DELETE CASCADE"),
             c("表示可否", "is_visible", "boolean", default="true"),
-            c("医院価格", "clinic_price", "integer", nullable="YES", constraint=">= 0。NULLは基準価格を使用"),
+            c("医院通常価格", "clinic_price", "integer", nullable="YES", constraint=">= 0。NULLは基準価格を使用"),
+            c("3ヶ月価格", "subscription_3_month_price", "integer", nullable="YES", constraint=">= 0。NULLは医院通常価格を使用"),
+            c("6ヶ月価格", "subscription_6_month_price", "integer", nullable="YES", constraint=">= 0。NULLは医院通常価格を使用"),
             c("更新日時", "updated_at", "timestamptz", default="now()"),
         ],
     ),
@@ -551,7 +553,7 @@ MIGRATION_PLAN = [
     ("Phase 1-2", "一部完了", "patient_order_events", "状態変更、操作者、変更前後を記録済み。変更理由の記録は今後追加する。", "注文更新と同一トランザクション。"),
     ("Phase 1-3", "次に実施", "patient_orders.version", "楽観的排他を導入する。", "競合時は409。"),
     ("Phase 1-4", "完了", "delivery_destinations / order_delivery_destinations", "医院・患者の複数送り先と注文時スナップショットを運用する。", "進行中注文の送り先は論理削除不可。"),
-    ("Phase 1-5", "完了", "clinic_product_settings / patient_order_items", "医院価格と注文時商品画像を運用する。", "仕切値は導出し、重複保存しない。"),
+    ("Phase 1-5", "完了", "clinic_product_settings / patient_order_items", "医院通常・期間別価格と注文時商品画像を運用する。", "仕切値と価格既定値は重複保存しない。"),
     ("Phase 2-1", "仕様確定後", "commerce_accounts / Inbox / Outbox", "Shopify接続・Webhook受信・外部送信を分離する。", "外部仕様確定前に作り込まない。"),
     ("Phase 2-2", "仕様確定後", "決済・返金・配送投影", "Shopify状態を医院業務状態と別軸で保持する。", "確定額と参考額を混同しない。"),
     ("Phase 2-3", "仕様確定後", "patient_subscriptions", "定期購入契約を読み取り用投影として追加する。", "変更・解約はShopify正本。"),
@@ -843,7 +845,9 @@ def make_current_er_sheet() -> Sheet:
         ("得意先コード", "customer_code", "PK/FK"),
         ("商品ID", "product_id", "PK/FK"),
         ("表示可否", "is_visible", ""),
-        ("医院価格", "clinic_price", ""),
+        ("医院通常価格", "clinic_price", ""),
+        ("3ヶ月価格", "subscription_3_month_price", ""),
+        ("6ヶ月価格", "subscription_6_month_price", ""),
     ])
     sheet.merged_value(26, 2, 27, 10, "患者注文 1 ─── 0..1 注文配送先", 12)
     add_relationship_table(sheet, 72, RELATIONSHIPS_CURRENT, 17)

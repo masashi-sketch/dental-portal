@@ -9,8 +9,8 @@ import { resolveClinicProductPricing } from '@/lib/productPricing';
 export const dynamic = 'force-dynamic';
 
 // 患者ポータル「おすすめ商品」（/shop・/shop/[id]）向け。BGJが公開した商品のうち、
-// 通院先医院が非表示にした商品を除外し、priceを医院価格（未設定なら基準価格）へ
-// 置き換えて返す。
+// 通院先医院が非表示にした商品を除外し、priceを医院通常価格へ置き換える。
+// 3ヶ月・6ヶ月価格は未設定なら医院通常価格へフォールバックして返す。
 // 意図的に一覧のみ（単品取得パラメータは設けない）：詳細ページも同じ一覧から
 // findするため、非表示・非公開の商品は直接URLアクセスでも自動的に見つからなくなる。
 export async function GET() {
@@ -45,7 +45,13 @@ export async function GET() {
   );
   const visible = ((products ?? []) as Product[]).flatMap((product) => {
     const pricing = resolveClinicProductPricing(product, settingByProductId.get(product.id), null);
-    return pricing.isVisible ? [{ ...product, price: pricing.clinicPrice }] : [];
+    return pricing.isVisible ? [{
+      ...product,
+      price: pricing.clinicPrice,
+      clinicPrice: pricing.clinicPrice,
+      threeMonthPrice: pricing.threeMonthPrice,
+      sixMonthPrice: pricing.sixMonthPrice,
+    }] : [];
   });
 
   return NextResponse.json({ products: visible });

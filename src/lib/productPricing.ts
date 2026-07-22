@@ -6,7 +6,11 @@ export type ClinicProductPricing = {
   wholesaleRate: number | null;
   wholesalePrice: number | null;
   clinicPrice: number;
+  threeMonthPrice: number;
+  sixMonthPrice: number;
 };
+
+export type PatientProductPricing = Pick<ClinicProductPricing, 'clinicPrice' | 'threeMonthPrice' | 'sixMonthPrice'>;
 
 export function calculateWholesalePrice(basePrice: number, wholesaleRate: number | null): number | null {
   if (wholesaleRate === null) return null;
@@ -15,14 +19,17 @@ export function calculateWholesalePrice(basePrice: number, wholesaleRate: number
 
 export function resolveClinicProductPricing(
   product: Pick<Product, 'price'>,
-  setting: Pick<ClinicProductSetting, 'is_visible' | 'clinic_price'> | undefined,
+  setting: Pick<ClinicProductSetting, 'is_visible' | 'clinic_price' | 'subscription_3_month_price' | 'subscription_6_month_price'> | undefined,
   wholesaleRate: number | null,
 ): ClinicProductPricing {
+  const clinicPrice = setting?.clinic_price ?? product.price;
   return {
     isVisible: setting?.is_visible ?? true,
     basePrice: product.price,
     wholesaleRate,
     wholesalePrice: calculateWholesalePrice(product.price, wholesaleRate),
-    clinicPrice: setting?.clinic_price ?? product.price,
+    clinicPrice,
+    threeMonthPrice: setting?.subscription_3_month_price ?? clinicPrice,
+    sixMonthPrice: setting?.subscription_6_month_price ?? clinicPrice,
   };
 }

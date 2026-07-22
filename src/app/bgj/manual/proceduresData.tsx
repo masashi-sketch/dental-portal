@@ -613,7 +613,7 @@ create table public.clinic_login_tokens (
                     </p>
                     <ul className="list-disc list-inside pl-2">
                       <li><strong>BGJポータル「マスタ &gt; 商品マスタ」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/master/products</code>）：商品の登録・編集・削除。基本情報（名称・カテゴリ・基準価格・画像・バッジ等）、詳細ページ項目、先生のおすすめを管理する。「公開」ステータスのみ患者ポータルに掲載される。</li>
-                      <li><strong>医院用ポータル「商品管理」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/products</code>）：商品写真、医院価格、契約仕切値、BGJ基準価格を確認し、患者表示のON/OFFと医院価格を編集する。医院価格が患者ポータルと新規注文の単価になる。</li>
+                      <li><strong>医院用ポータル「商品管理」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/products</code>）：商品写真、医院通常価格、3ヶ月価格、6ヶ月価格、契約仕切値、BGJ基準価格を確認し、患者表示と価格を編集する。通常購入は医院通常価格、定期購入は選択期間の価格を患者ポータルへ表示する。</li>
                     </ul>
                   </WithImage>
                   <Code>{`create table public.products (
@@ -641,6 +641,8 @@ create table public.clinic_product_settings (
   product_id    uuid not null references public.products (id) on delete cascade,
   is_visible    boolean not null default true,
   clinic_price  integer check (clinic_price is null or clinic_price >= 0),
+  subscription_3_month_price integer check (subscription_3_month_price is null or subscription_3_month_price >= 0),
+  subscription_6_month_price integer check (subscription_6_month_price is null or subscription_6_month_price >= 0),
   updated_at    timestamptz not null default now(),
   primary key (customer_code, product_id)
 );`}</Code>
@@ -650,9 +652,9 @@ create table public.clinic_product_settings (
             {
               label: "デフォルト表示の設計",
               content: (
-                <WithImage image={{ src: "/manual/admin-products.png", alt: "医院用ポータルの商品管理画面。患者ポータル表示トグル" }}>
+                <WithImage image={{ src: "/manual/patient-subscription.png", alt: "患者ポータルの定期購入画面。医院が設定した3ヶ月・6ヶ月価格を商品ごとに表示" }}>
                   <p>
-                    <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_product_settings</code>に行が無い商品は「表示」かつ医院価格＝基準価格として扱う。仕切値は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">products.price × clinic_terms.wholesale_rate ÷ 100</code>を1円単位で四捨五入して都度算出し、第3正規形を保つため保存しない。医院が変更した患者表示価格だけを<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_price</code>へ保存する。
+                    <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_product_settings</code>に行が無い商品は「表示」かつ医院通常価格＝基準価格として扱う。3ヶ月・6ヶ月価格がNULLなら医院通常価格を使用する。仕切値は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">products.price × clinic_terms.wholesale_rate ÷ 100</code>を1円単位で四捨五入して都度算出し、第3正規形を保つため保存しない。
                   </p>
                 </WithImage>
               ),
@@ -695,7 +697,7 @@ create table public.clinic_product_settings (
           </ul>
         </WithImage>
         <p>
-          注文明細は商品マスタへの参照に加えて、名称・医院価格・単位・画像種別・画像URL・用量・内容量・注意事項を注文時点のスナップショットとして保存する。商品マスタや医院価格を後日変更しても過去注文の表示・金額は変わらない。
+          注文明細は商品マスタへの参照に加えて、名称・医院通常価格・単位・画像種別・画像URL・用量・内容量・注意事項を注文時点のスナップショットとして保存する。商品マスタや医院通常価格を後日変更しても過去注文の表示・金額は変わらない。
         </p>
         <p>
           注文登録はDB関数<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">create_internal_patient_order</code>で注文ヘッダーと明細を1トランザクションとして作成する。画面が生成する<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">idempotency_key</code>は失敗・再試行中も維持し、同じ通信が再送されても既存注文IDを返すため二重登録されない。Shopify webhookの重複配信にも同じ設計を流用する。

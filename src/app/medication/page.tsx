@@ -206,7 +206,18 @@ export default function MedicationPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
+          <div data-testid="patient-receiving-methods" className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
+            <p className="text-sm font-bold text-gray-900 mb-4">利用可能な受け取り方法</p>
+            <div className="mb-5 grid gap-3 sm:grid-cols-2">
+              <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                <span className="text-indigo-600"><IconStore /></span>
+                <div><p className="text-sm font-semibold text-gray-800">医院で受け取り</p><p className="text-xs text-gray-500">通院先の医院で受け取ります</p></div>
+              </div>
+              <div className="flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
+                <span className="text-indigo-600"><IconTruck /></span>
+                <div><p className="text-sm font-semibold text-gray-800">ご自宅へお届け</p><p className="text-xs text-gray-500">登録済みの自宅配送先を使用します</p></div>
+              </div>
+            </div>
             <DeliveryDestinationPicker apiBase="/api/patient-portal/delivery-destinations" ownerLabel="登録済みの自宅配送先" selectedId={destinationId} onSelect={setDestinationId} color="indigo" onError={setDestinationError} />
             {destinationError && <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{destinationError}</p>}
           </div>

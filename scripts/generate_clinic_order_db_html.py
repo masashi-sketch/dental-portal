@@ -107,7 +107,7 @@ IMPORTANT_FIELDS = {
     "patients": ["id", "customer_code", "patient_no", "name"],
     "products": ["id", "name", "price", "image_url", "status"],
     "clinic_terms": ["customer_code", "wholesale_rate"],
-    "clinic_product_settings": ["customer_code", "product_id", "is_visible", "clinic_price"],
+    "clinic_product_settings": ["customer_code", "product_id", "is_visible", "clinic_price", "subscription_3_month_price", "subscription_6_month_price"],
     "patient_orders": ["id", "customer_code", "patient_id", "subscription_id", "commerce_account_id", "status", "financial_status", "external_order_id", "idempotency_key", "version"],
     "patient_order_items": ["id", "order_id", "product_id", "product_name", "unit_price", "image_url_snapshot", "quantity", "external_line_item_id"],
     "delivery_destinations": ["id", "clinic_customer_code", "patient_id", "label", "postal_code", "is_default", "deleted_at"],
@@ -220,7 +220,7 @@ def build_html(source) -> str:
     current_edges = [
         ("clinics", "clinic_terms", "医院契約条件"),
         ("clinics", "clinic_product_settings", "医院別商品設定"),
-        ("products", "clinic_product_settings", "医院価格・表示設定"),
+        ("products", "clinic_product_settings", "医院別価格・表示設定"),
         ("clinics", "patient_orders", "医院ごとの注文"),
         ("patients", "patient_orders", "患者の注文"),
         ("patient_orders", "patient_order_items", "注文の明細"),
@@ -307,7 +307,7 @@ main{max-width:1900px;margin:auto;padding:30px 24px 70px}.panel{display:none}.pa
 <section class="panel active" id="overview">
 <div class="hero"><div class="eyebrow">Database design / 2026-07-22</div><h1>患者注文を、外部連携後も<br>壊さず育てるDB設計</h1><p>現在のSupabase実装と、Shopify・Salesforce連携後の目標論理モデルを分離して記載しています。外部仕様が未確定の領域は「将来案」であり、現時点の実DBではありません。</p><div class="meta"><span>Version 0.2 Draft</span><span>対象：patient_orders 系列</span><span>内部注文IDを維持</span></div></div>
 <div class="summary-grid"><div class="summary-card"><strong>__CURRENT_TABLE_COUNT__</strong><span>現行関連テーブル</span></div><div class="summary-card"><strong>__CURRENT_COLUMN_COUNT__</strong><span>現行掲載カラム</span></div><div class="summary-card"><strong>__FUTURE_TABLE_COUNT__</strong><span>将来テーブル／拡張案</span></div><div class="summary-card"><strong>__FUTURE_CONSTRAINT_COUNT__</strong><span>将来一意制約案</span></div></div>
-<div class="section-title"><div><h2>現在の重点事項</h2><p>実装済みと残課題を区別します。</p></div></div><div class="notice-grid"><div class="notice"><b>3段階の商品価格</b><p>BGJ基準価格、契約仕切値、医院価格を分離し、医院価格を患者表示と注文時単価に使用します。</p></div><div class="notice"><b>導出値は保存しない</b><p>仕切値は基準価格×仕切値率を1円単位で四捨五入し、重複保存しません。</p></div><div class="notice"><b>商品画像を履歴保存</b><p>注文時の商品画像URLを明細へ保存し、商品マスタ変更後も受け取り画面を維持します。</p></div><div class="notice"><b>複数送り先を管理</b><p>医院・患者ごとに複数の送り先と既定値を持ち、所有者を実FKで保証します。</p></div><div class="notice"><b>使用中は削除不可</b><p>進行中注文が参照する送り先はDBトリガーで論理削除を拒否します。</p></div><div class="notice"><b>注文時点を保存</b><p>選択した送り先を注文スナップショットへコピーし、マスタ変更後も履歴を不変に保ちます。</p></div></div>
+<div class="section-title"><div><h2>現在の重点事項</h2><p>実装済みと残課題を区別します。</p></div></div><div class="notice-grid"><div class="notice"><b>医院別の商品価格</b><p>BGJ基準価格、契約仕切値、医院通常価格、3ヶ月・6ヶ月価格を分離し、患者表示へ反映します。</p></div><div class="notice"><b>導出値は保存しない</b><p>仕切値は基準価格×仕切値率を1円単位で四捨五入し、重複保存しません。</p></div><div class="notice"><b>商品画像を履歴保存</b><p>注文時の商品画像URLを明細へ保存し、商品マスタ変更後も受け取り画面を維持します。</p></div><div class="notice"><b>複数送り先を管理</b><p>医院・患者ごとに複数の送り先と既定値を持ち、所有者を実FKで保証します。</p></div><div class="notice"><b>使用中は削除不可</b><p>進行中注文が参照する送り先はDBトリガーで論理削除を拒否します。</p></div><div class="notice"><b>期間別価格の既定値</b><p>3ヶ月・6ヶ月価格が未設定なら医院通常価格を使用し、同額を重複保存しません。</p></div></div>
 <div class="section-title"><div><h2>設計原則</h2><p>正本とポータル投影を混在させません。</p></div></div><div class="principles"><ul><li>商品・注文・決済・返金・定期購入の将来正本はShopify</li><li>医院・患者・活動情報の将来CRM正本はSalesforce</li><li>医院内の受け取り準備状態はポータルが管理</li><li>外部受信はWebhook Inboxへ先に永続化</li><li>外部送信はOutboxで再試行可能にする</li><li>決済状態と医院業務状態を別軸で保持</li><li>架空データや保存されていない成功表示をしない</li><li>患者注文と医院仕入注文を統合しない</li></ul></div>
 <div class="domain-note"><strong>別ドメイン：</strong> <code>clinic_orders</code> はBGJから医院へのB2B仕入・売上履歴です。患者注文の <code>patient_orders</code> 系列には統合しません。</div>
 </section>

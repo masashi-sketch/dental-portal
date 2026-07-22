@@ -8,6 +8,7 @@ const subscriptionProduct = {
   id: 'product-1', name: 'マスタ登録サプリ', description: '商品マスタの説明', price: 3980,
   unit: '月', image_type: 'supplement', image_url: 'https://example.com/product.png', badge: null, badge_color: null,
   subscription_available: true, volume: '30粒', working_point: null, daily_amount: null,
+  clinicPrice: 3000, threeMonthPrice: 2800, sixMonthPrice: 2500,
   doctor_comment: null,
 };
 

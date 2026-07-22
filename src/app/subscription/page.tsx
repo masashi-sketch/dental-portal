@@ -36,7 +36,7 @@ function IconStar() {
 const benefits = [
   { icon: <IconTruck />, title: '毎月自動お届け', desc: '申込後は手続き不要。毎月定期的にお届けします。' },
   { icon: <IconShield />, title: '品質保証', desc: '歯科医師・歯科衛生士監修の安心商品のみをご提供。' },
-  { icon: <IconStar />, title: '継続サポート価格', desc: '続けやすいよう、3ヶ月コースで5%、6ヶ月コースで10%を割引いたします。' },
+  { icon: <IconStar />, title: '継続サポート価格', desc: '医院が設定した3ヶ月・6ヶ月コースの価格でご案内します。' },
   { icon: <IconCheck />, title: 'いつでも解約', desc: '次回お届け日の7日前までに解約申請でいつでも停止可。' },
 ];
 
@@ -199,7 +199,7 @@ export default function SubscriptionPage() {
                       {/* 内容量 */}
                       {product.volume && <p className="text-xs text-gray-400 mb-3">内容量：{product.volume}</p>}
 
-                      {/* 価格と割引 */}
+                      {/* 医院が設定した通常・期間別価格 */}
                       <div className="flex items-end gap-3 mb-4">
                         <div>
                           <p className="text-xs text-gray-400 mb-0.5">通常価格（月額）</p>
@@ -210,10 +210,10 @@ export default function SubscriptionPage() {
                         </div>
                         <div className="flex flex-col gap-1 pb-0.5">
                           <span className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full font-medium">
-                            3ヶ月: ¥{Math.floor(product.price * 0.95).toLocaleString()}/月
+                            3ヶ月: ¥{product.threeMonthPrice.toLocaleString()}/月
                           </span>
                           <span className="text-xs text-[#2563EB] bg-[#EFF6FF] border border-blue-100 px-2 py-0.5 rounded-full font-medium">
-                            6ヶ月: ¥{Math.floor(product.price * 0.9).toLocaleString()}/月
+                            6ヶ月: ¥{product.sixMonthPrice.toLocaleString()}/月
                           </span>
                         </div>
                       </div>
@@ -240,7 +240,7 @@ export default function SubscriptionPage() {
               <li>定期購入は最低1回のお届けからご利用いただけます。</li>
               <li>解約は次回お届け予定日の7日前までにお申し出ください。</li>
               <li>お届け日・お届け先は申込後もマイページから変更可能です。</li>
-              <li>割引価格は定期購入コース継続中のみ適用されます。</li>
+              <li>期間別価格は定期購入コース継続中のみ適用されます。</li>
             </ul>
           </div>
 

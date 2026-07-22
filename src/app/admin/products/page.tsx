@@ -21,6 +21,8 @@ type ProductWithVisibility = Product & {
   wholesaleRate: number | null;
   wholesalePrice: number | null;
   clinicPrice: number;
+  threeMonthPrice: number;
+  sixMonthPrice: number;
 };
 
 export default function AdminProductsPage() {
@@ -62,7 +64,13 @@ export default function AdminProductsPage() {
       const res = await fetch('/api/admin/product-settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: product.id, isVisible: !product.isVisible, clinicPrice: product.clinicPrice }),
+        body: JSON.stringify({
+          productId: product.id,
+          isVisible: !product.isVisible,
+          clinicPrice: product.clinicPrice,
+          threeMonthPrice: product.threeMonthPrice,
+          sixMonthPrice: product.sixMonthPrice,
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -71,7 +79,7 @@ export default function AdminProductsPage() {
       const { setting } = await res.json();
       // 全件再取得はせず、APIレスポンスの行をローカルstateにマージする（楽観的更新方式）
       setProducts((prev) =>
-        prev.map((p) => (p.id === setting.product_id ? { ...p, isVisible: setting.is_visible, clinicPrice: setting.clinic_price } : p)),
+        prev.map((p) => (p.id === setting.product_id ? { ...p, isVisible: setting.is_visible } : p)),
       );
       showToast(setting.is_visible ? '患者ポータルに表示します' : '患者ポータルで非表示にしました');
     } catch (e) {
@@ -82,17 +90,24 @@ export default function AdminProductsPage() {
   };
 
   const handlePriceSave = async (product: ProductWithVisibility) => {
-    if (savingId || !Number.isInteger(product.clinicPrice) || product.clinicPrice < 0) return;
+    if (savingId || ![product.clinicPrice, product.threeMonthPrice, product.sixMonthPrice]
+      .every((price) => Number.isInteger(price) && price >= 0)) return;
     setSavingId(product.id);
     try {
       const res = await fetch('/api/admin/product-settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: product.id, isVisible: product.isVisible, clinicPrice: product.clinicPrice }),
+        body: JSON.stringify({
+          productId: product.id,
+          isVisible: product.isVisible,
+          clinicPrice: product.clinicPrice,
+          threeMonthPrice: product.threeMonthPrice,
+          sixMonthPrice: product.sixMonthPrice,
+        }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) throw new Error(body?.error ?? '医院価格の更新に失敗しました');
-      showToast('医院価格を更新しました。患者ポータルへ反映されます');
+      showToast('医院通常価格と定期購入価格を更新しました');
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'エラーが発生しました');
       fetchProducts();
@@ -112,7 +127,7 @@ export default function AdminProductsPage() {
 
         <header className="bg-white border-b border-sky-100 px-4 sm:px-6 py-4 shadow-sm">
           <h1 className="text-slate-800 font-bold text-xl">商品管理</h1>
-          <p className="text-slate-600 text-sm mt-0.5">患者様ポータルへの表示と医院価格を管理します。仕切値は基準価格×医院契約の仕切値率を1円単位で四捨五入しています。</p>
+          <p className="text-slate-600 text-sm mt-0.5">患者様ポータルへの表示、医院通常価格、3ヶ月・6ヶ月の定期購入価格を管理します。</p>
         </header>
 
         <main className="flex-1 p-5 sm:p-6">
@@ -147,17 +162,19 @@ export default function AdminProductsPage() {
                         <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">画像</th>
                         <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">商品名</th>
                         <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 hidden sm:table-cell">カテゴリ</th>
-                        <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500">医院価格</th>
-                        <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500">仕切値</th>
+                        <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 whitespace-nowrap">医院通常価格</th>
+                        <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 whitespace-nowrap">3ヶ月価格</th>
+                        <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 whitespace-nowrap">6ヶ月価格</th>
+                        <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500">仕切値<span className="mt-0.5 block text-[10px] font-normal text-slate-400">現在 {products[0]?.wholesaleRate ?? '未設定'}{products[0]?.wholesaleRate === null || products.length === 0 ? '' : '%'}</span></th>
                         <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500">基準価格</th>
                         <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 hidden md:table-cell">定期購入</th>
                         <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">患者ポータル表示</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {loading && <LoadingState variant="table-row" colSpan={8} />}
+                      {loading && <LoadingState variant="table-row" colSpan={10} />}
                       {!loading && products.length === 0 && (
-                        <tr><td colSpan={8} className="px-5 py-8 text-center text-slate-400">公開中の商品がまだありません</td></tr>
+                        <tr><td colSpan={10} className="px-5 py-8 text-center text-slate-400">公開中の商品がまだありません</td></tr>
                       )}
                       {products.map((p) => (
                         <tr key={p.id} className="border-b border-sky-50 last:border-0 hover:bg-sky-50/40">
@@ -172,11 +189,13 @@ export default function AdminProductsPage() {
                           <td className="px-5 py-3 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <span className="text-slate-400">¥</span>
-                              <input type="number" min={0} max={10000000} value={p.clinicPrice} aria-label={`${p.name}の医院価格`} onChange={(event) => setProducts((current) => current.map((item) => item.id === p.id ? { ...item, clinicPrice: Number(event.target.value) } : item))} className="w-24 rounded-lg border border-sky-200 bg-white px-2 py-1.5 text-right text-slate-800" />
-                              <button type="button" disabled={savingId !== null} onClick={() => void handlePriceSave(p)} className="text-xs font-semibold text-sky-700 disabled:opacity-40">保存</button>
+                              <input type="number" min={0} max={10000000} value={p.clinicPrice} aria-label={`${p.name}の医院通常価格`} onChange={(event) => setProducts((current) => current.map((item) => item.id === p.id ? { ...item, clinicPrice: Number(event.target.value) } : item))} className="w-24 rounded-lg border border-sky-200 bg-white px-2 py-1.5 text-right text-slate-800" />
+                              <button type="button" disabled={savingId !== null} onClick={() => void handlePriceSave(p)} className="shrink-0 whitespace-nowrap text-xs font-semibold text-sky-700 disabled:opacity-40">保存</button>
                             </div>
                           </td>
-                          <td className="px-5 py-3 text-right text-slate-800 whitespace-nowrap">{p.wholesalePrice === null ? <span className="text-xs text-amber-600">契約未設定</span> : <>¥{p.wholesalePrice.toLocaleString()}<p className="text-[10px] text-slate-400">{p.wholesaleRate}%</p></>}</td>
+                          <td className="px-5 py-3 text-right"><div className="inline-flex items-center gap-1 whitespace-nowrap"><span className="text-slate-400">¥</span><input type="number" min={0} max={10000000} value={p.threeMonthPrice} aria-label={`${p.name}の3ヶ月価格`} onChange={(event) => setProducts((current) => current.map((item) => item.id === p.id ? { ...item, threeMonthPrice: Number(event.target.value) } : item))} className="w-24 rounded-lg border border-sky-200 bg-white px-2 py-1.5 text-right text-slate-800" /></div></td>
+                          <td className="px-5 py-3 text-right"><div className="inline-flex items-center gap-1 whitespace-nowrap"><span className="text-slate-400">¥</span><input type="number" min={0} max={10000000} value={p.sixMonthPrice} aria-label={`${p.name}の6ヶ月価格`} onChange={(event) => setProducts((current) => current.map((item) => item.id === p.id ? { ...item, sixMonthPrice: Number(event.target.value) } : item))} className="w-24 rounded-lg border border-sky-200 bg-white px-2 py-1.5 text-right text-slate-800" /></div></td>
+                          <td className="px-5 py-3 text-right text-slate-800 whitespace-nowrap">{p.wholesalePrice === null ? <span className="text-xs text-amber-600">契約未設定</span> : <>¥{p.wholesalePrice.toLocaleString()}</>}</td>
                           <td className="px-5 py-3 text-right text-slate-800 whitespace-nowrap">¥{p.basePrice.toLocaleString()}</td>
                           <td className="px-5 py-3 text-slate-600 text-xs hidden md:table-cell">{p.subscription_available ? '対応' : '—'}</td>
                           <td className="px-5 py-3">

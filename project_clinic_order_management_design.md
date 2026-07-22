@@ -31,7 +31,7 @@
 
 本書の「患者注文」は、医院が患者に商品を提供するための注文を指す。データは`patient_orders`・`patient_order_items`で管理し、医院ポータルの「患者注文・受け取り管理」と患者ポータルの「サプリメント受け取り」に反映する。
 
-商品価格は、`products.price`をBGJが管理する基準価格、`clinic_terms.wholesale_rate`を医院契約の仕切値率、`clinic_product_settings.clinic_price`を医院が変更できる患者表示価格として分離する。仕切値は基準価格×仕切値率を1円単位で四捨五入して都度算出し、導出値をDBへ重複保存しない。
+商品価格は、`products.price`をBGJが管理する基準価格、`clinic_terms.wholesale_rate`を医院契約の仕切値率、`clinic_product_settings.clinic_price`を医院通常価格として分離する。同じ医院×商品設定に3ヶ月・6ヶ月の定期購入価格を保持し、未設定なら医院通常価格を使用する。仕切値は基準価格×仕切値率を1円単位で四捨五入して都度算出し、導出値をDBへ重複保存しない。
 
 ### 2.2 別ドメインとして扱う医院仕入注文
 
@@ -217,7 +217,7 @@ Shopify注文のキャンセル・返金を医院業務状態の`canceled`更新
 
 - 注文との関連
 - 商品マスタとの任意関連
-- 注文時点の商品名・医院価格・数量・説明・画像URLスナップショット
+- 注文時点の商品名・医院通常価格・数量・説明・画像URLスナップショット
 - 外部明細ID
 
 #### `clinic_terms`
@@ -228,8 +228,9 @@ Shopify注文のキャンセル・返金を医院業務状態の`canceled`更新
 #### `clinic_product_settings`
 
 - 医院×商品の表示可否
-- 医院が変更できる医院価格（患者表示価格）
-- 医院価格がNULLの場合は基準価格を使用
+- 医院が変更できる医院通常価格（通常購入の患者表示価格）
+- 3ヶ月・6ヶ月の定期購入月額
+- 期間別価格がNULLの場合は医院通常価格、医院通常価格がNULLの場合は基準価格を使用
 - 仕切値は導出値のため保存しない
 
 #### `delivery_destinations`
@@ -294,7 +295,7 @@ erDiagram
   PRODUCTS o|--o{ PATIENT_ORDER_ITEMS : "注文時スナップショット元"
   CLINICS ||--o| CLINIC_TERMS : "契約仕切値率"
   CLINICS ||--o{ CLINIC_PRODUCT_SETTINGS : "医院別商品設定"
-  PRODUCTS ||--o{ CLINIC_PRODUCT_SETTINGS : "医院価格・表示設定"
+  PRODUCTS ||--o{ CLINIC_PRODUCT_SETTINGS : "医院別価格・表示設定"
 
   CLINICS["医院 clinics"] {
     text customer_code PK "得意先コード"
@@ -362,7 +363,9 @@ erDiagram
     text customer_code PK,FK "得意先コード"
     uuid product_id PK,FK "商品ID"
     boolean is_visible "表示可否"
-    int clinic_price "医院価格・NULLは基準価格"
+    int clinic_price "医院通常価格・NULLは基準価格"
+    int subscription_3_month_price "3ヶ月価格・NULLは通常価格"
+    int subscription_6_month_price "6ヶ月価格・NULLは通常価格"
   }
 
   DELIVERY_DESTINATIONS["送り先マスタ delivery_destinations"] {
@@ -422,7 +425,7 @@ erDiagram
   PATIENT_ORDER_ITEMS ||--o{ PATIENT_FULFILLMENT_ITEMS : "部分引き渡し"
   CLINICS ||--o| CLINIC_TERMS : "契約仕切値率"
   CLINICS ||--o{ CLINIC_PRODUCT_SETTINGS : "医院別商品設定"
-  PRODUCTS ||--o{ CLINIC_PRODUCT_SETTINGS : "医院価格・表示設定"
+  PRODUCTS ||--o{ CLINIC_PRODUCT_SETTINGS : "医院別価格・表示設定"
 
   COMMERCE_ACCOUNTS ||--o{ PATIENT_ORDERS : "外部注文接続先"
   COMMERCE_ACCOUNTS ||--o{ COMMERCE_WEBHOOK_EVENTS : "受信イベント"
@@ -461,7 +464,9 @@ erDiagram
     text customer_code PK,FK "得意先コード"
     uuid product_id PK,FK "商品ID"
     boolean is_visible "表示可否"
-    int clinic_price "医院価格・NULLは基準価格"
+    int clinic_price "医院通常価格・NULLは基準価格"
+    int subscription_3_month_price "3ヶ月価格・NULLは通常価格"
+    int subscription_6_month_price "6ヶ月価格・NULLは通常価格"
   }
 
   COMMERCE_ACCOUNTS["外部コマース接続 commerce_accounts"] {
