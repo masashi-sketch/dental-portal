@@ -43,4 +43,20 @@ describe('toOrderIntegrationRecord', () => {
     expect(record.syncStatus).toBe('local');
     expect(record.createdVia).toBe('clinic_portal');
   });
+
+  it('自宅配送先を外部連携モデルへ変換する', () => {
+    const record = toOrderIntegrationRecord({
+      ...order,
+      fulfillment_method: 'delivery',
+      shipping_address: {
+        order_id: 'order-1', postal_code: '100-0001', prefecture: '東京都', city: '千代田区',
+        address_line1: '千代田1-1', address_line2: null, recipient_name: '患者 花子',
+        phone: '090-1234-5678', created_at: '2026-07-22T00:00:00.000Z',
+      },
+    }, '広島中央歯科');
+
+    expect(record.shippingAddress).toMatchObject({
+      postalCode: '100-0001', prefecture: '東京都', recipientName: '患者 花子',
+    });
+  });
 });

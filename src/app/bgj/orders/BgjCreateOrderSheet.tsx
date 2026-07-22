@@ -2,6 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import LoadingState from '@/components/ui/LoadingState';
+import ShippingAddressFields from '@/components/orders/ShippingAddressFields';
+import {
+  EMPTY_SHIPPING_ADDRESS,
+  formatShippingAddress,
+  normalizeShippingAddress,
+  validateShippingAddress,
+  type ShippingAddressInput,
+} from '@/lib/shippingAddress';
+import type { FulfillmentMethod } from '@/lib/supabase/types';
 
 type ClinicOption = { customer_code: string; name: string };
 type PatientOption = { id: string; customer_code: string; patient_no: string; name: string };
@@ -32,6 +41,8 @@ function BgjCreateOrderSheetContent({ onClose, onCreated }: Omit<Props, 'open'>)
   const [patientId, setPatientId] = useState('');
   const [lines, setLines] = useState<OrderLineInput[]>([]);
   const [productToAdd, setProductToAdd] = useState('');
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod>('pickup');
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddressInput>({ ...EMPTY_SHIPPING_ADDRESS });
   const [loadingClinics, setLoadingClinics] = useState(false);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -61,7 +72,7 @@ function BgjCreateOrderSheetContent({ onClose, onCreated }: Omit<Props, 'open'>)
     return () => window.clearTimeout(timer);
   }, [loadClinics]);
 
-  const isDirty = Boolean(selectedClinic || patientId || lines.length);
+  const isDirty = Boolean(selectedClinic || patientId || lines.length || fulfillmentMethod === 'delivery');
   const requestClose = useCallback(() => {
     if (saving) return;
     if (isDirty && !window.confirm('入力中の受注内容を破棄して閉じますか？')) return;
@@ -86,6 +97,8 @@ function BgjCreateOrderSheetContent({ onClose, onCreated }: Omit<Props, 'open'>)
     setPatientId('');
     setLines([]);
     setProductToAdd('');
+    setFulfillmentMethod('pickup');
+    setShippingAddress({ ...EMPTY_SHIPPING_ADDRESS });
     setReviewing(false);
     setLoadingOptions(true);
     setError(null);
@@ -107,6 +120,7 @@ function BgjCreateOrderSheetContent({ onClose, onCreated }: Omit<Props, 'open'>)
   const selectedPatient = patients.find((patient) => patient.id === patientId) ?? null;
   const totalAmount = lines.reduce((sum, line) => sum + (productMap.get(line.productId)?.price ?? 0) * line.quantity, 0);
   const availableProducts = products.filter((product) => !lines.some((line) => line.productId === product.id));
+  const shippingError = fulfillmentMethod === 'delivery' ? validateShippingAddress(shippingAddress) : null;
 
   const addProduct = () => {
     if (!productToAdd || lines.length >= 50) return;
@@ -126,6 +140,8 @@ function BgjCreateOrderSheetContent({ onClose, onCreated }: Omit<Props, 'open'>)
           customerCode: selectedClinic.customer_code,
           patientId,
           items: lines,
+          fulfillmentMethod,
+          shippingAddress: fulfillmentMethod === 'delivery' ? normalizeShippingAddress(shippingAddress) : null,
           idempotencyKey,
         }),
       });
@@ -223,7 +239,20 @@ function BgjCreateOrderSheetContent({ onClose, onCreated }: Omit<Props, 'open'>)
 
               <section>
                 <h3 className="font-bold text-slate-800">4. 受け取り方法</h3>
-                <div className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">医院で受け取り</div>
+                <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <button type="button" onClick={() => setFulfillmentMethod('pickup')} className={`rounded-xl border-2 px-4 py-4 text-left ${fulfillmentMethod === 'pickup' ? 'border-violet-500 bg-violet-50' : 'border-slate-200 bg-white'}`}>
+                    <p className="font-semibold text-slate-800">医院で受け取り</p><p className="mt-1 text-xs text-slate-500">選択した医院でお渡しします</p>
+                  </button>
+                  <button type="button" onClick={() => setFulfillmentMethod('delivery')} className={`rounded-xl border-2 px-4 py-4 text-left ${fulfillmentMethod === 'delivery' ? 'border-violet-500 bg-violet-50' : 'border-slate-200 bg-white'}`}>
+                    <p className="font-semibold text-slate-800">ご自宅へお届け</p><p className="mt-1 text-xs text-slate-500">配送先住所への発送として登録します</p>
+                  </button>
+                </div>
+                {fulfillmentMethod === 'delivery' && (
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <ShippingAddressFields value={shippingAddress} onChange={setShippingAddress} color="violet" />
+                    {shippingError && <p className="mt-3 text-xs text-amber-700">{shippingError}</p>}
+                  </div>
+                )}
               </section>
             </div>
           )}
@@ -234,7 +263,8 @@ function BgjCreateOrderSheetContent({ onClose, onCreated }: Omit<Props, 'open'>)
               <dl className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200 px-4">
                 <div className="grid grid-cols-[90px_1fr] gap-3 py-3"><dt className="text-sm text-slate-500">医院</dt><dd className="text-sm font-semibold text-slate-800">{selectedClinic.name}（{selectedClinic.customer_code}）</dd></div>
                 <div className="grid grid-cols-[90px_1fr] gap-3 py-3"><dt className="text-sm text-slate-500">患者</dt><dd className="text-sm font-semibold text-slate-800">{selectedPatient?.name}（{selectedPatient?.patient_no}）</dd></div>
-                <div className="grid grid-cols-[90px_1fr] gap-3 py-3"><dt className="text-sm text-slate-500">受け取り</dt><dd className="text-sm font-semibold text-slate-800">医院で受け取り</dd></div>
+                <div className="grid grid-cols-[90px_1fr] gap-3 py-3"><dt className="text-sm text-slate-500">受け取り</dt><dd className="text-sm font-semibold text-slate-800">{fulfillmentMethod === 'pickup' ? '医院で受け取り' : 'ご自宅へお届け'}</dd></div>
+                {fulfillmentMethod === 'delivery' && <div className="grid grid-cols-[90px_1fr] gap-3 py-3"><dt className="text-sm text-slate-500">配送先</dt><dd className="text-sm text-slate-800"><p>{formatShippingAddress(shippingAddress)}</p><p className="mt-1">{shippingAddress.recipientName}／{shippingAddress.phone}</p></dd></div>}
                 <div className="grid grid-cols-[90px_1fr] gap-3 py-3"><dt className="text-sm text-slate-500">商品</dt><dd className="space-y-2">{lines.map((line) => <div key={line.productId} className="flex justify-between gap-3 text-sm"><span>{productMap.get(line.productId)?.name} × {line.quantity}</span><span className="font-mono">¥{((productMap.get(line.productId)?.price ?? 0) * line.quantity).toLocaleString()}</span></div>)}</dd></div>
               </dl>
               <div className="mt-4 flex items-center justify-between rounded-xl bg-violet-50 px-4 py-4"><span className="font-semibold text-violet-800">合計金額</span><strong className="font-mono text-2xl text-violet-800">¥{totalAmount.toLocaleString()}</strong></div>
@@ -249,7 +279,7 @@ function BgjCreateOrderSheetContent({ onClose, onCreated }: Omit<Props, 'open'>)
             {reviewing ? (
               <button type="button" onClick={() => void createOrder()} disabled={saving} className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? '登録中…' : '受注を確定'}</button>
             ) : (
-              <button type="button" onClick={() => setReviewing(true)} disabled={!patientId || lines.length === 0} className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40">確認へ</button>
+              <button type="button" onClick={() => setReviewing(true)} disabled={!patientId || lines.length === 0 || Boolean(shippingError)} className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40">確認へ</button>
             )}
           </footer>
         )}

@@ -32,4 +32,20 @@ describe('SubscriptionOrderPage', () => {
     expect(screen.getByText(/現時点では契約・決済・注文は作成されません/)).toBeInTheDocument();
     expect(screen.queryByText(/お申し込みが完了しました/)).not.toBeInTheDocument();
   });
+
+  it('自宅受け取りを選択して配送先を確認できる', async () => {
+    render(<SubscriptionOrderPage />);
+    fireEvent.click(await screen.findByRole('button', { name: /3ヶ月コース/ }));
+    fireEvent.click(screen.getByRole('button', { name: /次へ：お届け先/ }));
+    fireEvent.click(screen.getByRole('button', { name: /ご自宅へお届け/ }));
+    fireEvent.change(screen.getByLabelText('郵便番号'), { target: { value: '1000001' } });
+    fireEvent.change(screen.getByLabelText('都道府県'), { target: { value: '東京都' } });
+    fireEvent.change(screen.getByLabelText('市区町村'), { target: { value: '千代田区' } });
+    fireEvent.change(screen.getByLabelText('番地'), { target: { value: '千代田1-1' } });
+    fireEvent.change(screen.getByLabelText('受取人名'), { target: { value: '患者 花子' } });
+    fireEvent.change(screen.getByLabelText('電話番号'), { target: { value: '090-1234-5678' } });
+    fireEvent.click(screen.getByRole('button', { name: /次へ：内容を確認/ }));
+    expect(screen.getByText('ご自宅へお届け')).toBeInTheDocument();
+    expect(screen.getByText('〒100-0001 東京都千代田区千代田1-1')).toBeInTheDocument();
+  });
 });

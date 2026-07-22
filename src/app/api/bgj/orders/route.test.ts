@@ -123,6 +123,7 @@ describe('GET /api/bgj/orders', () => {
         customerCode: 'A000001',
         patientId: '11111111-1111-4111-8111-111111111111',
         idempotencyKey: '22222222-2222-4222-8222-222222222222',
+        fulfillmentMethod: 'pickup',
         items: [
           { productId: '33333333-3333-4333-8333-333333333333', quantity: 2 },
           { productId: '44444444-4444-4444-8444-444444444444', quantity: 1 },
@@ -131,14 +132,24 @@ describe('GET /api/bgj/orders', () => {
     }));
 
     expect(response.status).toBe(201);
-    expect(rpcSpy).toHaveBeenCalledWith('create_bgj_patient_order', {
+    expect(rpcSpy).toHaveBeenCalledWith('create_portal_patient_order', {
       p_customer_code: 'A000001',
       p_patient_id: '11111111-1111-4111-8111-111111111111',
       p_items: [
         { productId: '33333333-3333-4333-8333-333333333333', quantity: 2 },
         { productId: '44444444-4444-4444-8444-444444444444', quantity: 1 },
       ],
+      p_fulfillment_method: 'pickup',
+      p_shipping_postal_code: null,
+      p_shipping_prefecture: null,
+      p_shipping_city: null,
+      p_shipping_address_line1: null,
+      p_shipping_address_line2: null,
+      p_shipping_recipient_name: null,
+      p_shipping_phone: null,
       p_idempotency_key: '22222222-2222-4222-8222-222222222222',
+      p_created_via: 'bgj_portal',
+      p_actor_type: 'bgj',
       p_actor_identifier: 'operator@biogaia.jp',
     });
   });
@@ -152,6 +163,7 @@ describe('GET /api/bgj/orders', () => {
         customerCode: 'A000001',
         patientId: '11111111-1111-4111-8111-111111111111',
         idempotencyKey: '22222222-2222-4222-8222-222222222222',
+        fulfillmentMethod: 'pickup',
         items: [{ productId, quantity: 1 }, { productId, quantity: 2 }],
       }),
     }));

@@ -64,6 +64,34 @@ describe('BgjCreateOrderSheet', () => {
         { productId: '33333333-3333-4333-8333-333333333333', quantity: 2 },
         { productId: '44444444-4444-4444-8444-444444444444', quantity: 1 },
       ],
+      fulfillmentMethod: 'pickup',
+      shippingAddress: null,
+    });
+  });
+
+  it('自宅受け取りを選び、配送先付きで登録する', async () => {
+    const onCreated = vi.fn();
+    render(<BgjCreateOrderSheet open onClose={vi.fn()} onCreated={onCreated} />);
+    fireEvent.click(await screen.findByRole('button', { name: /広島中央歯科/ }));
+    await screen.findByRole('option', { name: '患者 花子（P000001）' });
+    fireEvent.change(screen.getByLabelText('患者'), { target: { value: '11111111-1111-4111-8111-111111111111' } });
+    fireEvent.change(screen.getByLabelText('追加する商品'), { target: { value: '33333333-3333-4333-8333-333333333333' } });
+    fireEvent.click(screen.getByRole('button', { name: '追加' }));
+    fireEvent.click(screen.getByRole('button', { name: /ご自宅へお届け/ }));
+    fireEvent.change(screen.getByLabelText('郵便番号'), { target: { value: '1000001' } });
+    fireEvent.change(screen.getByLabelText('都道府県'), { target: { value: '東京都' } });
+    fireEvent.change(screen.getByLabelText('市区町村'), { target: { value: '千代田区' } });
+    fireEvent.change(screen.getByLabelText('番地'), { target: { value: '千代田1-1' } });
+    fireEvent.change(screen.getByLabelText('受取人名'), { target: { value: '患者 花子' } });
+    fireEvent.change(screen.getByLabelText('電話番号'), { target: { value: '090-1234-5678' } });
+    fireEvent.click(screen.getByRole('button', { name: '確認へ' }));
+    expect(screen.getByText('〒100-0001 東京都千代田区千代田1-1')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '受注を確定' }));
+    await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
+    const createCall = fetchMock.mock.calls.find(([url, init]) => url === '/api/bgj/orders' && init?.method === 'POST');
+    expect(JSON.parse(String(createCall?.[1]?.body))).toMatchObject({
+      fulfillmentMethod: 'delivery',
+      shippingAddress: { postalCode: '100-0001', prefecture: '東京都', recipientName: '患者 花子' },
     });
   });
 

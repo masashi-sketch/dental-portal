@@ -64,6 +64,12 @@ function OrderReference({ order }: { order: OrderIntegrationRecord }) {
   );
 }
 
+function ShippingAddressSummary({ order }: { order: OrderIntegrationRecord }) {
+  if (order.fulfillmentMethod !== 'delivery' || !order.shippingAddress) return null;
+  const address = `〒${order.shippingAddress.postalCode} ${order.shippingAddress.prefecture}${order.shippingAddress.city}${order.shippingAddress.addressLine1}${order.shippingAddress.addressLine2 ? ` ${order.shippingAddress.addressLine2}` : ''}`;
+  return <p className="mt-1 max-w-56 truncate text-[11px] text-slate-400" title={`${address}／${order.shippingAddress.recipientName}／${order.shippingAddress.phone}`}>{address}</p>;
+}
+
 export default function BgjReceivedOrders() {
   const [orders, setOrders] = useState<OrderIntegrationRecord[]>([]);
   const [total, setTotal] = useState(0);
@@ -197,7 +203,7 @@ export default function BgjReceivedOrders() {
                   <td className="px-4 py-4 whitespace-nowrap"><Link href={`/bgj/customers/${order.clinic.customerCode}`} className="font-semibold text-violet-700 hover:underline">{order.clinic.name ?? '—'}</Link><p className="font-mono text-[11px] text-slate-400">{order.clinic.customerCode}</p></td>
                   <td className="px-4 py-4 whitespace-nowrap"><Link href={`/bgj/patients/${order.patient.id}`} className="font-semibold text-slate-800 hover:text-violet-700 hover:underline">{order.patient.name ?? '—'}</Link><p className="font-mono text-[11px] text-slate-400">{order.patient.patientNo ?? '—'}</p></td>
                   <td className="max-w-xs px-4 py-4 text-slate-700">{order.lines.map((line) => <p key={line.lineId}>{line.productName} × {line.quantity}</p>)}</td>
-                  <td className="px-4 py-4 text-xs text-slate-600 whitespace-nowrap"><p>{ORDER_TYPE_LABEL[order.orderType]}</p><p className="mt-1">{FULFILLMENT_METHOD_LABEL[order.fulfillmentMethod]}</p></td>
+                  <td className="px-4 py-4 text-xs text-slate-600 whitespace-nowrap"><p>{ORDER_TYPE_LABEL[order.orderType]}</p><p className="mt-1">{FULFILLMENT_METHOD_LABEL[order.fulfillmentMethod]}</p><ShippingAddressSummary order={order} /></td>
                   <td className="px-4 py-4 font-mono font-semibold whitespace-nowrap">¥{order.totalAmount.toLocaleString()}</td>
                   <td className="px-4 py-4"><OrderStatusBadge order={order} /></td>
                   <td className="px-4 py-4"><SyncStatusBadge order={order} />{order.syncError && <p className="mt-1 max-w-48 truncate text-[11px] text-red-600" title={order.syncError}>{order.syncError}</p>}</td>
@@ -218,6 +224,7 @@ export default function BgjReceivedOrders() {
               <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">{order.lines.map((line) => <p key={line.lineId}>{line.productName} × {line.quantity}</p>)}</div>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500"><span>{new Date(order.orderedAt).toLocaleString('ja-JP')}</span><strong className="font-mono text-base text-slate-800">¥{order.totalAmount.toLocaleString()}</strong></div>
               <div className="mt-3 flex flex-wrap items-center gap-2"><span className="text-xs text-slate-500">{ORDER_TYPE_LABEL[order.orderType]}／{FULFILLMENT_METHOD_LABEL[order.fulfillmentMethod]}</span><SyncStatusBadge order={order} /></div>
+              <ShippingAddressSummary order={order} />
               {order.syncError && <p className="mt-2 text-xs text-red-600">{order.syncError}</p>}
             </article>
           ))}

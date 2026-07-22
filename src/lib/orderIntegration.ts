@@ -15,6 +15,15 @@ export type OrderIntegrationRecord = {
   updatedAt: string;
   orderType: PatientOrder['order_type'];
   fulfillmentMethod: PatientOrder['fulfillment_method'];
+  shippingAddress: null | {
+    postalCode: string;
+    prefecture: string;
+    city: string;
+    addressLine1: string;
+    addressLine2: string | null;
+    recipientName: string;
+    phone: string;
+  };
   status: PatientOrder['status'];
   nextFulfillmentDate: string | null;
   clinic: {
@@ -72,6 +81,15 @@ export function toOrderIntegrationRecord(
     updatedAt: order.updated_at,
     orderType: order.order_type,
     fulfillmentMethod: order.fulfillment_method,
+    shippingAddress: order.shipping_address ? {
+      postalCode: order.shipping_address.postal_code,
+      prefecture: order.shipping_address.prefecture,
+      city: order.shipping_address.city,
+      addressLine1: order.shipping_address.address_line1,
+      addressLine2: order.shipping_address.address_line2,
+      recipientName: order.shipping_address.recipient_name,
+      phone: order.shipping_address.phone,
+    } : null,
     status: order.status,
     nextFulfillmentDate: order.next_fulfillment_date,
     clinic: { customerCode: order.customer_code, name: clinicName },

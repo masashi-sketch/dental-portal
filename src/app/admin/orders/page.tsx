@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import Card from '@/components/ui/Card';
 import LoadingState from '@/components/ui/LoadingState';
+import ShippingAddressFields from '@/components/orders/ShippingAddressFields';
 import { useSafeState } from '@/hooks/useSafeState';
 import { useToast } from '@/hooks/useToast';
 import { getSelectableOrderStatuses, ORDER_STATUS_LABEL, ORDER_STATUS_OPTIONS } from '@/lib/orders';
+import { EMPTY_SHIPPING_ADDRESS, normalizeShippingAddress, validateShippingAddress, type ShippingAddressInput } from '@/lib/shippingAddress';
 import type { FulfillmentMethod, PatientOrder, PatientOrderStatus, PatientPublic, Product } from '@/lib/supabase/types';
 
 type ProductWithVisibility = Product & { isVisible: boolean };
@@ -31,6 +33,7 @@ export default function AdminOrdersPage() {
   const [productId, setProductId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod>('pickup');
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddressInput>({ ...EMPTY_SHIPPING_ADDRESS });
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const [saving, setSaving] = useState(false);
   const { toast, showToast } = useToast();
@@ -57,18 +60,24 @@ export default function AdminOrdersPage() {
   const createOrder = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!patientId || !productId || saving) return;
+    const shippingError = fulfillmentMethod === 'delivery' ? validateShippingAddress(shippingAddress) : null;
+    if (shippingError) { showToast(shippingError); return; }
     setSaving(true);
     try {
       const response = await fetch('/api/admin/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientId, productId, quantity, fulfillmentMethod, idempotencyKey }),
+        body: JSON.stringify({
+          patientId, productId, quantity, fulfillmentMethod, idempotencyKey,
+          shippingAddress: fulfillmentMethod === 'delivery' ? normalizeShippingAddress(shippingAddress) : null,
+        }),
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.error ?? '注文を登録できませんでした');
       setOrders((current) => [body.order, ...current]);
       setProductId('');
       setQuantity(1);
+      setShippingAddress({ ...EMPTY_SHIPPING_ADDRESS });
       setIdempotencyKey(crypto.randomUUID());
       showToast('患者の受け取り注文を登録しました');
     } catch (createError) {
@@ -144,7 +153,13 @@ export default function AdminOrdersPage() {
                   <option value="pickup">医院で受け取り</option><option value="delivery">自宅へ配送</option>
                 </select>
               </label>
-              <button disabled={saving || !patientId || !productId} className="md:col-start-5 rounded-xl bg-sky-500 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{saving ? '登録中…' : '注文を登録'}</button>
+              {fulfillmentMethod === 'delivery' && (
+                <div className="rounded-xl border border-sky-100 bg-sky-50 p-4 md:col-span-5">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">自宅配送先</p>
+                  <ShippingAddressFields value={shippingAddress} onChange={setShippingAddress} color="sky" />
+                </div>
+              )}
+              <button disabled={saving || !patientId || !productId || (fulfillmentMethod === 'delivery' && Boolean(validateShippingAddress(shippingAddress)))} className="md:col-start-5 rounded-xl bg-sky-500 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{saving ? '登録中…' : '注文を登録'}</button>
             </form>
           </Card>
 
@@ -171,7 +186,7 @@ export default function AdminOrdersPage() {
                       <td className="px-4 py-4 text-slate-500 whitespace-nowrap">{new Date(order.ordered_at).toLocaleString('ja-JP')}</td>
                       <td className="px-4 py-4 font-semibold text-slate-800 whitespace-nowrap">{order.patient?.name ?? '—'}</td>
                       <td className="px-4 py-4 text-slate-700">{order.items.map((item) => `${item.product_name} × ${item.quantity}`).join('、')}</td>
-                      <td className="px-4 py-4 text-slate-600 whitespace-nowrap">{order.fulfillment_method === 'pickup' ? '医院' : '自宅配送'}</td>
+                      <td className="px-4 py-4 text-slate-600 whitespace-nowrap">{order.fulfillment_method === 'pickup' ? '医院' : '自宅配送'}{order.shipping_address && <p className="mt-1 max-w-48 truncate text-xs text-slate-400" title={`〒${order.shipping_address.postal_code} ${order.shipping_address.prefecture}${order.shipping_address.city}${order.shipping_address.address_line1}`}>〒{order.shipping_address.postal_code} {order.shipping_address.prefecture}{order.shipping_address.city}{order.shipping_address.address_line1}</p>}</td>
                       <td className="px-4 py-4 font-mono font-semibold whitespace-nowrap">¥{amount.toLocaleString()}</td>
                       <td className="px-4 py-4 text-slate-500">{order.source === 'internal' ? '医院登録' : 'Shopify'}</td>
                       <td className="px-4 py-4"><span className={`rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap ${statusColors[order.status]}`}>{ORDER_STATUS_LABEL[order.status]}</span></td>

@@ -17,6 +17,7 @@ const responseBody: BgjOrdersResponse = {
     updatedAt: '2026-07-22T00:00:00.000Z',
     orderType: 'one_time',
     fulfillmentMethod: 'pickup',
+    shippingAddress: null,
     status: 'received',
     nextFulfillmentDate: null,
     clinic: { customerCode: 'A000001', name: '広島中央歯科' },

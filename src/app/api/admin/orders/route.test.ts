@@ -85,8 +85,23 @@ describe('POST /api/admin/orders', () => {
       idempotencyKey,
     }));
     expect(response.status).toBe(201);
-    expect(rpcSpy).toHaveBeenCalledWith('create_internal_patient_order', expect.objectContaining({
-      p_customer_code: 'A000001', p_quantity: 2, p_idempotency_key: idempotencyKey,
+    expect(rpcSpy).toHaveBeenCalledWith('create_portal_patient_order', expect.objectContaining({
+      p_customer_code: 'A000001', p_items: [{ productId: '44444444-4444-4444-8444-444444444444', quantity: 2 }],
+      p_fulfillment_method: 'pickup', p_idempotency_key: idempotencyKey,
+    }));
+  });
+
+  it('自宅配送では正規化した配送先をDBトランザクションへ渡す', async () => {
+    const response = await POST(postRequest({
+      patientId: '33333333-3333-4333-8333-333333333333',
+      productId: '44444444-4444-4444-8444-444444444444', quantity: 1,
+      fulfillmentMethod: 'delivery', idempotencyKey: '22222222-2222-4222-8222-222222222222',
+      shippingAddress: { postalCode: '1000001', prefecture: '東京都', city: '千代田区', addressLine1: '千代田1-1', addressLine2: '', recipientName: '患者 花子', phone: '090-1234-5678' },
+    }));
+    expect(response.status).toBe(201);
+    expect(rpcSpy).toHaveBeenCalledWith('create_portal_patient_order', expect.objectContaining({
+      p_fulfillment_method: 'delivery', p_shipping_postal_code: '100-0001',
+      p_shipping_prefecture: '東京都', p_shipping_recipient_name: '患者 花子',
     }));
   });
 

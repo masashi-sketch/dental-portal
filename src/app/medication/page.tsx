@@ -242,6 +242,7 @@ export default function MedicationPage() {
                 <div>
                   <p className="text-sm font-semibold">{activeOrder.fulfillment_method === 'pickup' ? '医院で受け取る' : 'ご自宅へ配送'}</p>
                   <p className="mt-0.5 text-xs text-gray-500">現在の状態：{ORDER_STATUS_LABEL[activeOrder.status]}</p>
+                  {activeOrder.shipping_address && <p className="mt-1 text-xs text-gray-500">〒{activeOrder.shipping_address.postal_code} {activeOrder.shipping_address.prefecture}{activeOrder.shipping_address.city}{activeOrder.shipping_address.address_line1}{activeOrder.shipping_address.address_line2 ? ` ${activeOrder.shipping_address.address_line2}` : ''}</p>}
                 </div>
               </div>
             </div>

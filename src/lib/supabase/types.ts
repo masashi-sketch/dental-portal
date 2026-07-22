@@ -478,6 +478,21 @@ export type PatientOrderEvent = {
   created_at: string;
 };
 
+export type OrderShippingAddress = {
+  order_id: string;
+  postal_code: string;
+  prefecture: string;
+  city: string;
+  address_line1: string;
+  address_line2: string | null;
+  recipient_name: string;
+  phone: string;
+  created_at: string;
+};
+
+export const ORDER_SHIPPING_ADDRESS_COLUMNS =
+  'order_id, postal_code, prefecture, city, address_line1, address_line2, recipient_name, phone, created_at';
+
 export const PATIENT_ORDER_EVENT_COLUMNS =
   'id, order_id, event_type, actor_type, actor_identifier, from_status, to_status, created_at';
 
@@ -517,6 +532,7 @@ export type PatientOrder = {
   updated_at: string;
   patient?: { id: string; name: string; patient_no?: string } | null;
   items: PatientOrderItem[];
+  shipping_address?: OrderShippingAddress | null;
 };
 
 export const PATIENT_ORDER_COLUMNS =
@@ -524,4 +540,4 @@ export const PATIENT_ORDER_COLUMNS =
 export const PATIENT_ORDER_ITEM_COLUMNS =
   'id, order_id, product_id, product_name, unit_price, quantity, unit_snapshot, image_type_snapshot, daily_amount_snapshot, volume_snapshot, caution_snapshot, external_line_item_id, created_at';
 export const PATIENT_ORDER_WITH_DETAILS_COLUMNS =
-  `${PATIENT_ORDER_COLUMNS}, patient:patients!patient_id(id, name, patient_no), items:patient_order_items(${PATIENT_ORDER_ITEM_COLUMNS})`;
+  `${PATIENT_ORDER_COLUMNS}, patient:patients!patient_id(id, name, patient_no), items:patient_order_items(${PATIENT_ORDER_ITEM_COLUMNS}), shipping_address:order_shipping_addresses!order_id(${ORDER_SHIPPING_ADDRESS_COLUMNS})`;

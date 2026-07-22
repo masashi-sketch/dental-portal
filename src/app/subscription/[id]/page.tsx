@@ -6,8 +6,10 @@ import { useState } from 'react';
 import BottomNav from '../../components/BottomNav';
 import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
 import ProductVisual from '@/components/ProductVisual';
+import ShippingAddressFields from '@/components/orders/ShippingAddressFields';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import { usePatientProducts } from '@/hooks/usePatientProducts';
+import { EMPTY_SHIPPING_ADDRESS, formatShippingAddress, validateShippingAddress, type ShippingAddressInput } from '@/lib/shippingAddress';
 
 function IconBell() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>;
@@ -34,6 +36,7 @@ export default function SubscriptionOrderPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [period, setPeriod] = useState<Period | null>(null);
   const [delivery, setDelivery] = useState<Delivery | null>(null);
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddressInput>({ ...EMPTY_SHIPPING_ADDRESS });
   const { clinicName, navVisibility } = usePatientClinicBranding();
 
   if (!productsLoaded) {
@@ -55,6 +58,7 @@ export default function SubscriptionOrderPage() {
   const months = period === '6ヶ月' ? 6 : 3;
   const monthlyPrice = Math.floor(product.price * (1 - discountRate));
   const totalPrice = monthlyPrice * months;
+  const shippingError = delivery === '自宅' ? validateShippingAddress(shippingAddress) : null;
 
   const steps = [
     { num: 1, label: '期間選択' },
@@ -263,8 +267,10 @@ export default function SubscriptionOrderPage() {
               <div className="flex flex-col gap-4">
                 {/* 自宅 */}
                 <button
-                  disabled
-                  className="w-full text-left border-2 rounded-2xl p-5 border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
+                  onClick={() => setDelivery('自宅')}
+                  className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
+                    delivery === '自宅' ? 'border-[#4f46e5] bg-indigo-50' : 'border-gray-100 hover:border-indigo-200 bg-white'
+                  }`}
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${
@@ -281,10 +287,17 @@ export default function SubscriptionOrderPage() {
                         </div>
                         <p className="font-bold text-gray-900 text-base">ご自宅へお届け</p>
                       </div>
-                      <p className="text-sm text-gray-500 ml-[52px]">Shopify Customer Accountの住所連携後に利用できます。</p>
+                      <p className="text-sm text-gray-500 ml-[52px]">指定した住所へお届けします。</p>
                     </div>
                   </div>
                 </button>
+                {delivery === '自宅' && (
+                  <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
+                    <p className="mb-3 text-sm font-semibold text-gray-700">配送先住所</p>
+                    <ShippingAddressFields value={shippingAddress} onChange={setShippingAddress} color="indigo" />
+                    {shippingError && <p className="mt-3 text-xs text-amber-700">{shippingError}</p>}
+                  </div>
+                )}
 
                 {/* 医院 */}
                 <button
@@ -331,10 +344,10 @@ export default function SubscriptionOrderPage() {
                   <IconArrowLeft />戻る
                 </button>
                 <button
-                  onClick={() => { if (delivery) setStep(3); }}
-                  disabled={!delivery}
+                  onClick={() => { if (delivery && !shippingError) setStep(3); }}
+                  disabled={!delivery || Boolean(shippingError)}
                   className={`flex-1 py-3.5 rounded-xl font-bold text-base transition-all ${
-                    delivery
+                    delivery && !shippingError
                       ? 'bg-gradient-to-r from-[#4f46e5] to-[#6366f1] text-white hover:opacity-90 shadow-sm active:scale-95'
                       : 'bg-gray-100 text-gray-300 cursor-not-allowed'
                   }`}
@@ -364,7 +377,8 @@ export default function SubscriptionOrderPage() {
                 <div className="divide-y divide-gray-50 mt-1">
                   {[
                     { label: 'コース',       value: `${period}コース` },
-                    { label: 'お届け先',     value: delivery === '自宅' ? 'ご自宅（登録住所）' : `医院（${clinicName ?? 'デンタルポータル'}）` },
+                    { label: 'お届け方法',   value: delivery === '自宅' ? 'ご自宅へお届け' : `医院で受け取り（${clinicName ?? 'デンタルポータル'}）` },
+                    ...(delivery === '自宅' ? [{ label: '配送先', value: formatShippingAddress(shippingAddress) }] : []),
                     { label: '割引',         value: period === '6ヶ月' ? '10% OFF' : '5% OFF' },
                     { label: '月額（税込）', value: `¥${monthlyPrice.toLocaleString()}` },
                     { label: '合計（税込）', value: `¥${totalPrice.toLocaleString()}（${months}ヶ月分）` },
