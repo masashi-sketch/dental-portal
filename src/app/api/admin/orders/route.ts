@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { resolveScopedCustomerCode } from '@/lib/auth/clinicScope';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { readShippingAddress } from '@/lib/shippingAddress';
 import {
   PATIENT_ORDER_WITH_DETAILS_COLUMNS,
 } from '@/lib/supabase/types';
@@ -37,7 +36,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const customerCode = await resolveScopedCustomerCode(session, body?.customerCode ?? null);
-  const { patientId, productId, fulfillmentMethod, idempotencyKey } = body ?? {};
+  const { patientId, productId, fulfillmentMethod, idempotencyKey, deliveryDestinationId } = body ?? {};
   const quantity = Number(body?.quantity ?? 1);
   if (!customerCode || typeof patientId !== 'string' || typeof productId !== 'string') {
     return NextResponse.json({ error: '患者・商品・医院は必須です。' }, { status: 400 });
@@ -48,13 +47,9 @@ export async function POST(request: NextRequest) {
   if (fulfillmentMethod !== 'pickup' && fulfillmentMethod !== 'delivery') {
     return NextResponse.json({ error: '受け取り方法が不正です。' }, { status: 400 });
   }
-  const shippingAddress = fulfillmentMethod === 'delivery' ? readShippingAddress(body?.shippingAddress) : null;
-  if (fulfillmentMethod === 'delivery' && !shippingAddress) {
-    return NextResponse.json({ error: '自宅配送では配送先をすべて入力してください。' }, { status: 400 });
-  }
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (typeof idempotencyKey !== 'string' || !uuidPattern.test(idempotencyKey)) {
-    return NextResponse.json({ error: '冪等キーが不正です。' }, { status: 400 });
+  if (typeof idempotencyKey !== 'string' || !uuidPattern.test(idempotencyKey) || typeof deliveryDestinationId !== 'string' || !uuidPattern.test(deliveryDestinationId)) {
+    return NextResponse.json({ error: '送り先または冪等キーが不正です。' }, { status: 400 });
   }
 
   const supabase = getSupabaseServerClient();
@@ -64,13 +59,7 @@ export async function POST(request: NextRequest) {
     p_patient_id: patientId,
     p_items: [{ productId, quantity }],
     p_fulfillment_method: fulfillmentMethod,
-    p_shipping_postal_code: shippingAddress?.postalCode ?? null,
-    p_shipping_prefecture: shippingAddress?.prefecture ?? null,
-    p_shipping_city: shippingAddress?.city ?? null,
-    p_shipping_address_line1: shippingAddress?.addressLine1 ?? null,
-    p_shipping_address_line2: shippingAddress?.addressLine2 ?? null,
-    p_shipping_recipient_name: shippingAddress?.recipientName ?? null,
-    p_shipping_phone: shippingAddress?.phone ?? null,
+    p_delivery_destination_id: deliveryDestinationId,
     p_idempotency_key: idempotencyKey,
     p_created_via: isBgj ? 'bgj_portal' : 'clinic_portal',
     p_actor_type: isBgj ? 'bgj' : 'clinic',

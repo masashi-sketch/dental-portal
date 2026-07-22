@@ -478,8 +478,31 @@ export type PatientOrderEvent = {
   created_at: string;
 };
 
-export type OrderShippingAddress = {
+export type DeliveryDestination = {
+  id: string;
+  clinic_customer_code: string | null;
+  patient_id: string | null;
+  label: string;
+  postal_code: string;
+  prefecture: string;
+  city: string;
+  address_line1: string;
+  address_line2: string | null;
+  recipient_name: string;
+  phone: string;
+  is_default: boolean;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export const DELIVERY_DESTINATION_COLUMNS =
+  'id, clinic_customer_code, patient_id, label, postal_code, prefecture, city, address_line1, address_line2, recipient_name, phone, is_default, deleted_at, created_at, updated_at';
+
+export type OrderDeliveryDestination = {
   order_id: string;
+  delivery_destination_id: string;
+  label: string;
   postal_code: string;
   prefecture: string;
   city: string;
@@ -490,8 +513,8 @@ export type OrderShippingAddress = {
   created_at: string;
 };
 
-export const ORDER_SHIPPING_ADDRESS_COLUMNS =
-  'order_id, postal_code, prefecture, city, address_line1, address_line2, recipient_name, phone, created_at';
+export const ORDER_DELIVERY_DESTINATION_COLUMNS =
+  'order_id, delivery_destination_id, label, postal_code, prefecture, city, address_line1, address_line2, recipient_name, phone, created_at';
 
 export const PATIENT_ORDER_EVENT_COLUMNS =
   'id, order_id, event_type, actor_type, actor_identifier, from_status, to_status, created_at';
@@ -532,7 +555,7 @@ export type PatientOrder = {
   updated_at: string;
   patient?: { id: string; name: string; patient_no?: string } | null;
   items: PatientOrderItem[];
-  shipping_address?: OrderShippingAddress | null;
+  delivery_destination?: OrderDeliveryDestination | null;
 };
 
 export const PATIENT_ORDER_COLUMNS =
@@ -540,4 +563,4 @@ export const PATIENT_ORDER_COLUMNS =
 export const PATIENT_ORDER_ITEM_COLUMNS =
   'id, order_id, product_id, product_name, unit_price, quantity, unit_snapshot, image_type_snapshot, daily_amount_snapshot, volume_snapshot, caution_snapshot, external_line_item_id, created_at';
 export const PATIENT_ORDER_WITH_DETAILS_COLUMNS =
-  `${PATIENT_ORDER_COLUMNS}, patient:patients!patient_id(id, name, patient_no), items:patient_order_items(${PATIENT_ORDER_ITEM_COLUMNS}), shipping_address:order_shipping_addresses!order_id(${ORDER_SHIPPING_ADDRESS_COLUMNS})`;
+  `${PATIENT_ORDER_COLUMNS}, patient:patients!patient_id(id, name, patient_no), items:patient_order_items(${PATIENT_ORDER_ITEM_COLUMNS}), delivery_destination:order_delivery_destinations!order_id(${ORDER_DELIVERY_DESTINATION_COLUMNS})`;

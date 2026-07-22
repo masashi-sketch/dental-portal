@@ -4,7 +4,6 @@ import { requireBgjSession } from '@/lib/auth/clinicScope';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { toOrderIntegrationRecord, type BgjOrdersResponse } from '@/lib/orderIntegration';
 import { ServerTiming } from '@/lib/serverTiming';
-import { readShippingAddress } from '@/lib/shippingAddress';
 import {
   PATIENT_ORDER_WITH_DETAILS_COLUMNS,
   type CommerceSource,
@@ -117,14 +116,11 @@ export async function POST(request: NextRequest) {
   const customerCode = typeof body?.customerCode === 'string' ? body.customerCode.trim().toUpperCase() : '';
   const patientId = typeof body?.patientId === 'string' ? body.patientId : '';
   const idempotencyKey = typeof body?.idempotencyKey === 'string' ? body.idempotencyKey : '';
+  const deliveryDestinationId = typeof body?.deliveryDestinationId === 'string' ? body.deliveryDestinationId : '';
   const items = readCreateOrderLines(body?.items);
   const fulfillmentMethod = body?.fulfillmentMethod;
-  const shippingAddress = fulfillmentMethod === 'delivery' ? readShippingAddress(body?.shippingAddress) : null;
-  if (!CUSTOMER_CODE_PATTERN.test(customerCode) || !UUID_PATTERN.test(patientId) || !UUID_PATTERN.test(idempotencyKey) || !items || !['pickup', 'delivery'].includes(String(fulfillmentMethod))) {
+  if (!CUSTOMER_CODE_PATTERN.test(customerCode) || !UUID_PATTERN.test(patientId) || !UUID_PATTERN.test(idempotencyKey) || !UUID_PATTERN.test(deliveryDestinationId) || !items || !['pickup', 'delivery'].includes(String(fulfillmentMethod))) {
     return NextResponse.json({ error: '受注内容が不正です。' }, { status: 400 });
-  }
-  if (fulfillmentMethod === 'delivery' && !shippingAddress) {
-    return NextResponse.json({ error: '自宅配送では配送先をすべて入力してください。' }, { status: 400 });
   }
 
   const supabase = getSupabaseServerClient();
@@ -133,13 +129,7 @@ export async function POST(request: NextRequest) {
     p_patient_id: patientId,
     p_items: items,
     p_fulfillment_method: fulfillmentMethod,
-    p_shipping_postal_code: shippingAddress?.postalCode ?? null,
-    p_shipping_prefecture: shippingAddress?.prefecture ?? null,
-    p_shipping_city: shippingAddress?.city ?? null,
-    p_shipping_address_line1: shippingAddress?.addressLine1 ?? null,
-    p_shipping_address_line2: shippingAddress?.addressLine2 ?? null,
-    p_shipping_recipient_name: shippingAddress?.recipientName ?? null,
-    p_shipping_phone: shippingAddress?.phone ?? null,
+    p_delivery_destination_id: deliveryDestinationId,
     p_idempotency_key: idempotencyKey,
     p_created_via: 'bgj_portal',
     p_actor_type: 'bgj',
@@ -152,7 +142,9 @@ export async function POST(request: NextRequest) {
       '患者が見つかりません。',
       '商品または数量が不正です。',
       '選択できない商品が含まれています。',
-      '配送先が不正です。',
+      '送り先が見つかりません。',
+      '医院受け取りでは注文医院の送り先を選択してください。',
+      '自宅配送では注文患者の送り先を選択してください。',
     ].find((message) => createError.message.includes(message));
     return NextResponse.json(
       { error: knownError ?? '受注を登録できませんでした。' },

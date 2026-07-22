@@ -108,7 +108,8 @@ IMPORTANT_FIELDS = {
     "products": ["id", "name", "price", "status"],
     "patient_orders": ["id", "customer_code", "patient_id", "subscription_id", "commerce_account_id", "status", "financial_status", "external_order_id", "idempotency_key", "version"],
     "patient_order_items": ["id", "order_id", "product_id", "product_name", "quantity", "external_line_item_id"],
-    "order_shipping_addresses": ["order_id", "postal_code", "prefecture", "city", "address_line1", "recipient_name", "phone"],
+    "delivery_destinations": ["id", "clinic_customer_code", "patient_id", "label", "postal_code", "is_default", "deleted_at"],
+    "order_delivery_destinations": ["order_id", "delivery_destination_id", "label", "postal_code", "address_line1", "recipient_name"],
     "patient_order_events": ["id", "order_id", "event_type", "actor_type", "created_at"],
     "commerce_accounts": ["id", "provider", "external_account_id", "status"],
     "order_transaction_projections": ["id", "order_id", "external_transaction_id", "transaction_type", "status", "amount"],
@@ -207,7 +208,7 @@ def build_html(source) -> str:
         "clinics": (40, 60), "patients": (40, 430), "products": (40, 800),
         "patient_subscriptions": (500, 170), "patient_subscription_items": (500, 650),
         "patient_orders": (960, 100), "patient_order_items": (960, 720),
-        "order_shipping_addresses": (960, 1250),
+        "delivery_destinations": (500, 1150), "order_delivery_destinations": (960, 1250),
         "patient_order_events": (1420, 40), "order_transaction_projections": (1420, 430),
         "patient_fulfillments": (1420, 850), "patient_fulfillment_items": (1420, 1300),
         "commerce_accounts": (1880, 80), "commerce_webhook_events": (1880, 530),
@@ -217,7 +218,10 @@ def build_html(source) -> str:
         ("clinics", "patient_orders", "医院ごとの注文"),
         ("patients", "patient_orders", "患者の注文"),
         ("patient_orders", "patient_order_items", "注文の明細"),
-        ("patient_orders", "order_shipping_addresses", "自宅配送時の配送先"),
+        ("clinics", "delivery_destinations", "医院の複数送り先"),
+        ("patients", "delivery_destinations", "患者の複数送り先"),
+        ("delivery_destinations", "order_delivery_destinations", "選択元"),
+        ("patient_orders", "order_delivery_destinations", "注文時スナップショット"),
         ("patient_orders", "patient_order_events", "操作履歴"),
         ("products", "patient_order_items", "商品スナップショット元"),
     ]
@@ -254,7 +258,7 @@ def build_html(source) -> str:
   <div class="flow-arrow">→</div>
   <div class="flow-stage current-stage primary"><span class="step-number">3</span><small>何を注文したか</small><strong>患者注文・明細</strong><code>patient_orders / items</code><p>商品・数量・医院業務状態</p><b class="implementation-tag">現行</b></div>
   <div class="flow-arrow branch">↗<small>注文後に分岐</small>↘</div>
-  <div class="flow-results"><div class="flow-stage future-stage"><span class="step-number">4A</span><small>お金</small><strong>決済・返金</strong><code>order_transaction_projections</code><b class="implementation-tag">将来</b></div><div class="flow-stage current-stage"><span class="step-number">4B</span><small>届け先</small><strong>受け取り方法・配送先</strong><code>patient_orders / order_shipping_addresses</code><b class="implementation-tag">現行</b></div><div class="flow-stage future-stage"><span class="step-number">4C</span><small>配送進捗</small><strong>分割配送・追跡</strong><code>patient_fulfillments</code><b class="implementation-tag">将来</b></div></div>
+  <div class="flow-results"><div class="flow-stage future-stage"><span class="step-number">4A</span><small>お金</small><strong>決済・返金</strong><code>order_transaction_projections</code><b class="implementation-tag">将来</b></div><div class="flow-stage current-stage"><span class="step-number">4B</span><small>届け先</small><strong>複数送り先・注文時保存</strong><code>delivery_destinations / order_delivery_destinations</code><b class="implementation-tag">現行</b></div><div class="flow-stage future-stage"><span class="step-number">4C</span><small>配送進捗</small><strong>分割配送・追跡</strong><code>patient_fulfillments</code><b class="implementation-tag">将来</b></div></div>
 </div>
 <div class="integration-flow"><strong>将来追加：Shopifyとの連携部分</strong><span>Shopify</span><b>⇄</b><span>受信イベント／送信キュー</span><b>⇄</b><span class="current-chip">現行の患者注文</span><p>Webhook受信と外部送信を一度保存するため、通信障害や二重通知があっても再処理できます。</p></div>
 <div class="key-legend"><span>{key_badges("PK")} レコードを識別する主キー</span><span>{key_badges("FK")} 別テーブルを参照する外部キー</span><span>{key_badges("UK")} 重複を防ぐ一意キー</span></div>
@@ -297,7 +301,7 @@ main{max-width:1900px;margin:auto;padding:30px 24px 70px}.panel{display:none}.pa
 <section class="panel active" id="overview">
 <div class="hero"><div class="eyebrow">Database design / 2026-07-22</div><h1>患者注文を、外部連携後も<br>壊さず育てるDB設計</h1><p>現在のSupabase実装と、Shopify・Salesforce連携後の目標論理モデルを分離して記載しています。外部仕様が未確定の領域は「将来案」であり、現時点の実DBではありません。</p><div class="meta"><span>Version 0.2 Draft</span><span>対象：patient_orders 系列</span><span>内部注文IDを維持</span></div></div>
 <div class="summary-grid"><div class="summary-card"><strong>__CURRENT_TABLE_COUNT__</strong><span>現行関連テーブル</span></div><div class="summary-card"><strong>__CURRENT_COLUMN_COUNT__</strong><span>現行掲載カラム</span></div><div class="summary-card"><strong>__FUTURE_TABLE_COUNT__</strong><span>将来テーブル／拡張案</span></div><div class="summary-card"><strong>__FUTURE_CONSTRAINT_COUNT__</strong><span>将来一意制約案</span></div></div>
-<div class="section-title"><div><h2>現在の重点事項</h2><p>実装済みと残課題を区別します。</p></div></div><div class="notice-grid"><div class="notice"><b>注文履歴を消さない</b><p>患者の物理削除で注文が連鎖削除される現状を、無効化・匿名化とFK見直しへ変更します。</p></div><div class="notice"><b>操作履歴は実装済み</b><p>状態変更、操作者、変更前後を patient_order_events に保存します。変更理由は今後の拡張対象です。</p></div><div class="notice"><b>注文時の配送先を保存</b><p>自宅配送では order_shipping_addresses に住所・受取人・電話番号を保存し、住所なしの登録を拒否します。</p></div></div>
+<div class="section-title"><div><h2>現在の重点事項</h2><p>実装済みと残課題を区別します。</p></div></div><div class="notice-grid"><div class="notice"><b>複数送り先を管理</b><p>医院・患者ごとに複数の送り先と既定値を持ち、所有者を実FKで保証します。</p></div><div class="notice"><b>使用中は削除不可</b><p>進行中注文が参照する送り先はDBトリガーで論理削除を拒否します。</p></div><div class="notice"><b>注文時点を保存</b><p>選択した送り先を注文スナップショットへコピーし、マスタ変更後も履歴を不変に保ちます。</p></div></div>
 <div class="section-title"><div><h2>設計原則</h2><p>正本とポータル投影を混在させません。</p></div></div><div class="principles"><ul><li>商品・注文・決済・返金・定期購入の将来正本はShopify</li><li>医院・患者・活動情報の将来CRM正本はSalesforce</li><li>医院内の受け取り準備状態はポータルが管理</li><li>外部受信はWebhook Inboxへ先に永続化</li><li>外部送信はOutboxで再試行可能にする</li><li>決済状態と医院業務状態を別軸で保持</li><li>架空データや保存されていない成功表示をしない</li><li>患者注文と医院仕入注文を統合しない</li></ul></div>
 <div class="domain-note"><strong>別ドメイン：</strong> <code>clinic_orders</code> はBGJから医院へのB2B仕入・売上履歴です。患者注文の <code>patient_orders</code> 系列には統合しません。</div>
 </section>

@@ -48,8 +48,8 @@ describe('toOrderIntegrationRecord', () => {
     const record = toOrderIntegrationRecord({
       ...order,
       fulfillment_method: 'delivery',
-      shipping_address: {
-        order_id: 'order-1', postal_code: '100-0001', prefecture: '東京都', city: '千代田区',
+      delivery_destination: {
+        order_id: 'order-1', delivery_destination_id: 'destination-1', label: '自宅', postal_code: '100-0001', prefecture: '東京都', city: '千代田区',
         address_line1: '千代田1-1', address_line2: null, recipient_name: '患者 花子',
         phone: '090-1234-5678', created_at: '2026-07-22T00:00:00.000Z',
       },

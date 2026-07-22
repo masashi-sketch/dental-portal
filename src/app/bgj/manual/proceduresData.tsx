@@ -687,8 +687,8 @@ create table public.clinic_product_settings (
             Shopify・Salesforceの接続仕様確定を待たずに完成できる部分として、医院が患者の受け取り注文を登録し、患者ポータルへ進捗を反映する内部基盤を実装した。医院用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/orders</code>の固定患者・固定商品は廃止済み。
           </p>
           <ul className="list-disc list-inside pl-2">
-            <li><strong>医院：</strong>実患者・自院で表示中の公開商品・数量・受け取り方法を指定して注文登録し、受付済み→準備中→準備完了/配送中→完了へ更新する。</li>
-            <li><strong>患者：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/medication</code>で本人（スタッフの場合は検証済みプレビュー患者）の注文商品・受け取り方法・進捗だけを表示する。</li>
+            <li><strong>医院：</strong>実患者・自院で表示中の公開商品・数量・受け取り方法を指定し、医院受け取りなら医院、配送なら患者の登録済み送り先を選んで注文登録する。注文は受付済み→準備中→準備完了/配送中→完了へ更新する。</li>
+            <li><strong>患者：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/medication</code>で本人（スタッフの場合は検証済みプレビュー患者）の複数送り先を管理し、注文商品・受け取り方法・進捗を表示する。</li>
             <li><strong>BGJ：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/orders?view=received</code>で全医院の患者注文を横断表示し、業務状態・連携元・同期状態・得意先コード・外部注文IDで絞り込む。「＋ 新規受注」から医院・既存患者・複数商品を選択し、医院受け取りまたは配送先付き自宅配送を代理登録できる。</li>
             <li><strong>将来連携：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">source</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">external_order_id</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">sync_status</code>を正規化注文モデルへ変換し、内部登録とShopify注文を同じ画面に統合する。</li>
           </ul>
@@ -700,7 +700,7 @@ create table public.clinic_product_settings (
           注文登録はDB関数<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">create_internal_patient_order</code>で注文ヘッダーと明細を1トランザクションとして作成する。画面が生成する<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">idempotency_key</code>は失敗・再試行中も維持し、同じ通信が再送されても既存注文IDを返すため二重登録されない。Shopify webhookの重複配信にも同じ設計を流用する。
         </p>
         <p>
-          医院・BGJの登録は共通DB関数<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">create_portal_patient_order</code>を使用する。JSONは複数明細の入力境界だけで、保存先は第3正規形の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient_orders</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient_order_items</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">order_shipping_addresses</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient_order_events</code>に分離する。自宅配送では注文時点の配送先を1注文1行の履歴事実として保存する。患者の医院所属・有効状態、商品の公開状態・医院表示設定、数量、重複商品、配送先をDBでも再検証し、登録経路と操作者を監査履歴へ残す。
+          医院・BGJの登録は共通DB関数<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">create_portal_patient_order</code>を使用する。JSONは複数明細の入力境界だけで、保存先は第3正規形の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient_orders</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient_order_items</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">delivery_destinations</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">order_delivery_destinations</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">patient_order_events</code>に分離する。医院・患者は複数送り先を持てる。注文には選択したマスタIDと注文時点の住所を1注文1行の履歴事実として保存するため、後日の変更や論理削除でも過去表示は変わらない。進行中の注文が参照する送り先の論理削除はDBで拒否する。患者の医院所属・有効状態、商品の公開状態・医院表示設定、数量、重複商品、送り先の所有者をDBでも再検証し、登録経路と操作者を監査履歴へ残す。
         </p>
         <p>
           BGJ受注一覧API<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/orders</code>はBGJ権限限定・50件ページングで、DB行を<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">OrderIntegrationRecord</code>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">schemaVersion: 1</code>）へ変換して返す。画面や将来の外部アダプターがSupabaseの行構造へ直接依存しない境界として維持する。

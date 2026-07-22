@@ -178,12 +178,15 @@ CURRENT_TABLES = [
     ),
     TableDefinition(
         "現行",
-        "注文配送先",
-        "order_shipping_addresses",
+        "送り先マスタ",
+        "delivery_destinations",
         "実装済み",
-        "自宅配送注文に対して、注文時点の配送先を1対1で保存する履歴スナップショット。",
+        "医院または患者が複数所有できる送り先。論理削除と既定送り先を管理する。",
         [
-            c("内部注文ID", "order_id", "uuid", "PK / FK", constraint="patient_orders.id ON DELETE CASCADE"),
+            c("送り先ID", "id", "uuid", "PK", default="gen_random_uuid()"),
+            c("医院得意先コード", "clinic_customer_code", "text", "FK", nullable="YES", constraint="clinics.customer_code ON DELETE RESTRICT"),
+            c("患者ID", "patient_id", "uuid", "FK", nullable="YES", constraint="patients.id ON DELETE RESTRICT"),
+            c("送り先名", "label", "text", constraint="1〜50文字"),
             c("郵便番号", "postal_code", "text", constraint="^[0-9]{3}-[0-9]{4}$"),
             c("都道府県", "prefecture", "text", constraint="2〜4文字"),
             c("市区町村", "city", "text", constraint="1〜100文字"),
@@ -191,6 +194,29 @@ CURRENT_TABLES = [
             c("住所2", "address_line2", "text", nullable="YES", constraint="200文字以内"),
             c("受取人名", "recipient_name", "text", constraint="1〜100文字"),
             c("電話番号", "phone", "text", constraint="数字10〜15桁"),
+            c("既定", "is_default", "boolean", default="false"),
+            c("削除日時", "deleted_at", "timestamptz", nullable="YES"),
+            c("作成日時", "created_at", "timestamptz", default="now()"),
+            c("更新日時", "updated_at", "timestamptz", default="now()"),
+        ],
+    ),
+    TableDefinition(
+        "現行",
+        "注文配送先",
+        "order_delivery_destinations",
+        "実装済み",
+        "選択した送り先を注文時点の不変スナップショットとして1対1で保存する。",
+        [
+            c("内部注文ID", "order_id", "uuid", "PK / FK", constraint="patient_orders.id ON DELETE CASCADE"),
+            c("送り先ID", "delivery_destination_id", "uuid", "FK", constraint="delivery_destinations.id ON DELETE RESTRICT"),
+            c("送り先名", "label", "text"),
+            c("郵便番号", "postal_code", "text"),
+            c("都道府県", "prefecture", "text"),
+            c("市区町村", "city", "text"),
+            c("住所1", "address_line1", "text"),
+            c("住所2", "address_line2", "text", nullable="YES"),
+            c("受取人名", "recipient_name", "text"),
+            c("電話番号", "phone", "text"),
             c("作成日時", "created_at", "timestamptz", default="now()"),
         ],
     ),
@@ -392,7 +418,8 @@ FUTURE_TABLES = [
 EXACT_SCHEMA_TABLES = {
     "patient_orders",
     "patient_order_items",
-    "order_shipping_addresses",
+    "delivery_destinations",
+    "order_delivery_destinations",
     "patient_order_events",
 }
 
@@ -438,7 +465,10 @@ RELATIONSHIPS_CURRENT = [
     ("医院", "clinics.customer_code", "1", "N", "patient_orders.customer_code", "患者注文", "FK"),
     ("患者", "patients.id", "1", "N", "patient_orders.patient_id", "患者注文", "FK・現状CASCADE"),
     ("患者注文", "patient_orders.id", "1", "N", "patient_order_items.order_id", "患者注文明細", "FK・CASCADE"),
-    ("患者注文", "patient_orders.id", "1", "0..1", "order_shipping_addresses.order_id", "注文配送先", "PK・FK・CASCADE"),
+    ("医院", "clinics.customer_code", "1", "N", "delivery_destinations.clinic_customer_code", "送り先マスタ", "FK・RESTRICT"),
+    ("患者", "patients.id", "1", "N", "delivery_destinations.patient_id", "送り先マスタ", "FK・RESTRICT"),
+    ("送り先マスタ", "delivery_destinations.id", "1", "N", "order_delivery_destinations.delivery_destination_id", "注文配送先", "FK・RESTRICT"),
+    ("患者注文", "patient_orders.id", "1", "0..1", "order_delivery_destinations.order_id", "注文配送先", "PK・FK・CASCADE"),
     ("患者注文", "patient_orders.id", "1", "N", "patient_order_events.order_id", "注文操作履歴", "FK・CASCADE"),
     ("商品", "products.id", "0..1", "N", "patient_order_items.product_id", "患者注文明細", "FK・SET NULL"),
 ]
@@ -464,6 +494,9 @@ CONSTRAINTS = [
     ("現行", "IDX1", "patient_orders", "patient_id, ordered_at DESC", "INDEX", "患者ポータルの履歴取得。"),
     ("現行", "IDX2", "patient_orders", "customer_code, ordered_at DESC", "INDEX", "医院注文一覧。"),
     ("現行", "IDX3", "patient_order_items", "order_id", "INDEX", "注文明細結合。"),
+    ("現行", "UK3", "delivery_destinations", "clinic_customer_code WHERE is_default AND deleted_at IS NULL", "PARTIAL UNIQUE", "医院ごとの有効な既定送り先を1件に限定。"),
+    ("現行", "UK4", "delivery_destinations", "patient_id WHERE is_default AND deleted_at IS NULL", "PARTIAL UNIQUE", "患者ごとの有効な既定送り先を1件に限定。"),
+    ("現行", "IDX4", "order_delivery_destinations", "delivery_destination_id", "INDEX", "使用中送り先の削除可否判定。"),
     ("将来案", "UK1", "commerce_accounts", "provider, external_account_id", "UNIQUE", "外部接続先の重複防止。"),
     ("将来案", "UK2", "patient_fulfillment_items", "fulfillment_id, order_item_id", "UNIQUE", "同一配送への明細重複防止。"),
     ("将来案", "UK3", "patient_subscriptions", "commerce_account_id, external_subscription_id", "UNIQUE", "外部契約の重複防止。"),
@@ -478,7 +511,7 @@ MIGRATION_PLAN = [
     ("Phase 1-1", "次に実施", "患者削除方式", "物理削除を無効化・匿名化へ変更し、注文FKのCASCADEを見直す。", "注文履歴を消さない。"),
     ("Phase 1-2", "一部完了", "patient_order_events", "状態変更、操作者、変更前後を記録済み。変更理由の記録は今後追加する。", "注文更新と同一トランザクション。"),
     ("Phase 1-3", "次に実施", "patient_orders.version", "楽観的排他を導入する。", "競合時は409。"),
-    ("Phase 1-4", "完了", "order_shipping_addresses", "自宅配送を有効化し、注文時点の配送先を保存する。", "住所なし配送を許可しない。"),
+    ("Phase 1-4", "完了", "delivery_destinations / order_delivery_destinations", "医院・患者の複数送り先と注文時スナップショットを運用する。", "進行中注文の送り先は論理削除不可。"),
     ("Phase 2-1", "仕様確定後", "commerce_accounts / Inbox / Outbox", "Shopify接続・Webhook受信・外部送信を分離する。", "外部仕様確定前に作り込まない。"),
     ("Phase 2-2", "仕様確定後", "決済・返金・配送投影", "Shopify状態を医院業務状態と別軸で保持する。", "確定額と参考額を混同しない。"),
     ("Phase 2-3", "仕様確定後", "patient_subscriptions", "定期購入契約を読み取り用投影として追加する。", "変更・解約はShopify正本。"),
@@ -524,11 +557,11 @@ def make_overview_sheet() -> Sheet:
         ("更新日", "2026-07-22"),
         ("対象", "医院が患者向け商品を管理するpatient_orders系列"),
         ("対象外", "BGJから医院へのB2B仕入履歴clinic_orders。患者注文とは統合しない。"),
-        ("現行正本", "Supabaseのpatient_orders / patient_order_items / order_shipping_addresses / patient_order_events"),
+        ("現行正本", "Supabaseのpatient_orders / patient_order_items / delivery_destinations / order_delivery_destinations / patient_order_events"),
         ("将来正本", "商品・注文・決済・返金・定期購入はShopify、医院・患者CRMはSalesforce"),
         ("KEY凡例", "PK=主キー、FK=外部キー、UK=一意キー、IDX=非一意インデックス"),
         ("重要課題1", "患者物理削除で注文が連鎖削除され得るため、本番前に無効化・匿名化とFK見直しが必要。"),
-        ("実装済み2", "自宅配送時はorder_shipping_addressesへ注文時点の配送先を保存し、住所なし配送を拒否する。"),
+        ("実装済み2", "医院・患者は複数送り先を持ち、order_delivery_destinationsへ注文時点の送り先を保存する。"),
         ("重要課題2", "patient_order_eventsは実装済み。変更理由の保存は今後追加する。"),
     ]
     sheet.set(4, 1, "項目", 3)
@@ -737,16 +770,23 @@ def make_current_er_sheet() -> Sheet:
         ("数量", "quantity", ""),
     ])
     sheet.merged_value(25, 12, 26, 17, "商品 0..1 ───< N 注文明細", 12)
-    write_entity_box(sheet, 29, 2, "注文配送先", "order_shipping_addresses", [
+    write_entity_box(sheet, 29, 1, "送り先マスタ", "delivery_destinations", [
+        ("送り先ID", "id", "PK"),
+        ("医院得意先コード", "clinic_customer_code", "FK"),
+        ("患者ID", "patient_id", "FK"),
+        ("送り先名", "label", ""),
+        ("既定", "is_default", ""),
+        ("削除日時", "deleted_at", ""),
+    ])
+    write_entity_box(sheet, 29, 10, "注文配送先", "order_delivery_destinations", [
         ("内部注文ID", "order_id", "PK/FK"),
+        ("送り先ID", "delivery_destination_id", "FK"),
+        ("送り先名", "label", ""),
         ("郵便番号", "postal_code", ""),
-        ("都道府県", "prefecture", ""),
-        ("市区町村", "city", ""),
         ("住所1", "address_line1", ""),
         ("受取人名", "recipient_name", ""),
-        ("電話番号", "phone", ""),
     ])
-    write_entity_box(sheet, 29, 11, "注文操作履歴", "patient_order_events", [
+    write_entity_box(sheet, 44, 6, "注文操作履歴", "patient_order_events", [
         ("イベントID", "id", "PK"),
         ("内部注文ID", "order_id", "FK"),
         ("イベント種別", "event_type", ""),
@@ -755,7 +795,7 @@ def make_current_er_sheet() -> Sheet:
         ("変更後状態", "to_status", ""),
     ])
     sheet.merged_value(26, 2, 27, 10, "患者注文 1 ─── 0..1 注文配送先", 12)
-    add_relationship_table(sheet, 46, RELATIONSHIPS_CURRENT, 17)
+    add_relationship_table(sheet, 58, RELATIONSHIPS_CURRENT, 17)
     return sheet
 
 
@@ -778,7 +818,7 @@ def make_future_er_sheet() -> Sheet:
     write_entity_box(sheet, 31, 13, "注文操作履歴", "patient_order_events", [("イベントID", "id", "PK"), ("内部注文ID", "order_id", "FK"), ("変更前状態", "from_status", ""), ("変更後状態", "to_status", "")])
     write_entity_box(sheet, 31, 19, "決済返金投影", "order_transaction_projections", [("取引投影ID", "id", "PK"), ("内部注文ID", "order_id", "FK"), ("外部取引ID", "external_transaction_id", "UK")], True)
 
-    write_entity_box(sheet, 46, 1, "注文配送先", "order_shipping_addresses", [("内部注文ID", "order_id", "PK/FK"), ("郵便番号", "postal_code", ""), ("住所1", "address_line1", ""), ("受取人名", "recipient_name", "")])
+    write_entity_box(sheet, 46, 1, "注文配送先", "order_delivery_destinations", [("内部注文ID", "order_id", "PK/FK"), ("送り先ID", "delivery_destination_id", "FK"), ("郵便番号", "postal_code", ""), ("住所1", "address_line1", "")])
     write_entity_box(sheet, 46, 7, "受取配送", "patient_fulfillments", [("受取配送ID", "id", "PK"), ("内部注文ID", "order_id", "FK"), ("区分", "fulfillment_type", ""), ("状態", "status", "")], True)
     write_entity_box(sheet, 46, 14, "受取配送明細", "patient_fulfillment_items", [("受取配送明細ID", "id", "PK"), ("受取配送ID", "fulfillment_id", "FK/UK2"), ("注文明細ID", "order_item_id", "FK/UK2")], True)
 

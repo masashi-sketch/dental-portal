@@ -74,7 +74,7 @@
 - 注文時点の商品名、価格、単位、画像種別、用量、内容量、注意事項を明細へ保存する。
 - 医院は受付済み、準備中、準備完了／配送中、完了、キャンセルへ進捗更新できる。
 - 受け取り方法に合わない状態遷移をAPIと共通ロジックで拒否する。
-- 自宅配送では注文時点の住所・受取人・電話番号を`order_shipping_addresses`へ保存し、住所なしの登録を拒否する。
+- 医院・患者は`delivery_destinations`に複数送り先を持ち、選択内容を`order_delivery_destinations`へ注文時点のスナップショットとして保存する。
 - 注文登録と状態変更を`patient_order_events`へ記録する。
 - 患者ポータルは本人または検証済みプレビュー患者の注文だけを表示する。
 - 医院ダッシュボードとコミッション画面は内部注文を「参考注文金額」として集計する。
@@ -218,7 +218,14 @@ Shopify注文のキャンセル・返金を医院業務状態の`canceled`更新
 - 注文時点の商品名・価格・数量・説明スナップショット
 - 外部明細ID
 
-#### `order_shipping_addresses`
+#### `delivery_destinations`
+
+- 医院または患者への排他的な所有者FK
+- 所有者ごとに複数の送り先と既定送り先1件
+- `deleted_at`による論理削除
+- 進行中注文で使用中の場合は論理削除不可
+
+#### `order_delivery_destinations`
 
 - 注文IDとの1対1関連（PK兼FK）
 - 注文時点の郵便番号、都道府県、市区町村、住所
@@ -265,7 +272,10 @@ erDiagram
   CLINICS ||--o{ PATIENT_ORDERS : "医院ごとに管理"
   PATIENTS ||--o{ PATIENT_ORDERS : "患者が注文"
   PATIENT_ORDERS ||--|{ PATIENT_ORDER_ITEMS : "明細を持つ"
-  PATIENT_ORDERS ||--o| ORDER_SHIPPING_ADDRESSES : "自宅配送時の配送先"
+  CLINICS ||--o{ DELIVERY_DESTINATIONS : "医院の送り先"
+  PATIENTS ||--o{ DELIVERY_DESTINATIONS : "患者の送り先"
+  DELIVERY_DESTINATIONS ||--o{ ORDER_DELIVERY_DESTINATIONS : "選択元"
+  PATIENT_ORDERS ||--o| ORDER_DELIVERY_DESTINATIONS : "注文時配送先"
   PATIENT_ORDERS ||--o{ PATIENT_ORDER_EVENTS : "操作履歴"
   PRODUCTS o|--o{ PATIENT_ORDER_ITEMS : "注文時スナップショット元"
 
@@ -325,8 +335,19 @@ erDiagram
     datetime created_at "作成日時"
   }
 
-  ORDER_SHIPPING_ADDRESSES["注文配送先 order_shipping_addresses"] {
+  DELIVERY_DESTINATIONS["送り先マスタ delivery_destinations"] {
+    uuid id PK "送り先ID"
+    text clinic_customer_code FK "医院・任意"
+    uuid patient_id FK "患者・任意"
+    text label "送り先名"
+    boolean is_default "既定"
+    datetime deleted_at "論理削除日時"
+  }
+
+  ORDER_DELIVERY_DESTINATIONS["注文配送先 order_delivery_destinations"] {
     uuid order_id PK,FK "内部注文ID"
+    uuid delivery_destination_id FK "選択元送り先ID"
+    text label "送り先名"
     text postal_code "郵便番号"
     text prefecture "都道府県"
     text city "市区町村"
@@ -362,7 +383,8 @@ erDiagram
   CLINICS ||--o{ PATIENT_ORDERS : "自院の注文"
   PATIENTS ||--o{ PATIENT_ORDERS : "本人の注文"
   PATIENT_ORDERS ||--|{ PATIENT_ORDER_ITEMS : "明細"
-  PATIENT_ORDERS ||--o| ORDER_SHIPPING_ADDRESSES : "注文時配送先"
+  DELIVERY_DESTINATIONS ||--o{ ORDER_DELIVERY_DESTINATIONS : "選択元"
+  PATIENT_ORDERS ||--o| ORDER_DELIVERY_DESTINATIONS : "注文時配送先"
   PATIENT_ORDERS ||--o{ PATIENT_ORDER_EVENTS : "状態・操作履歴"
   PATIENT_ORDERS ||--o{ ORDER_TRANSACTION_PROJECTIONS : "決済・返金投影"
   PATIENT_ORDERS ||--o{ PATIENT_FULFILLMENTS : "受け取り・配送"
@@ -453,8 +475,18 @@ erDiagram
     datetime created_at "発生日時"
   }
 
-  ORDER_SHIPPING_ADDRESSES["注文配送先 order_shipping_addresses"] {
+  DELIVERY_DESTINATIONS["送り先マスタ delivery_destinations"] {
+    uuid id PK "送り先ID"
+    text clinic_customer_code FK "医院・任意"
+    uuid patient_id FK "患者・任意"
+    text label "送り先名"
+    boolean is_default "既定"
+    datetime deleted_at "論理削除日時"
+  }
+
+  ORDER_DELIVERY_DESTINATIONS["注文配送先 order_delivery_destinations"] {
     uuid order_id PK,FK "内部注文ID"
+    uuid delivery_destination_id FK "選択元送り先ID"
     text postal_code "郵便番号"
     text prefecture "都道府県"
     text city "市区町村"
@@ -554,7 +586,7 @@ erDiagram
 
 | 区分 | エンティティ | 導入方針 |
 |---|---|---|
-| 現在存在 | `patient_orders`、`patient_order_items`、`order_shipping_addresses`、`patient_order_events` | 内部IDと注文時点スナップショットを維持して拡張する |
+| 現在存在 | `patient_orders`、`patient_order_items`、`delivery_destinations`、`order_delivery_destinations`、`patient_order_events` | 複数送り先と注文時点スナップショットを維持して拡張する |
 | Phase 1 | `patient_order_events.reason`、`version` | 既存監査の理由追加と競合対策を行う |
 | Shopify接続 | `commerce_accounts`、`commerce_webhook_events`、`commerce_outbox` | 接続先、受信、送信を業務テーブルから分離 |
 | 決済接続 | `order_transaction_projections` | 決済・返金を注文状態から分離して投影 |
@@ -677,7 +709,7 @@ interface CommerceGateway {
 
 ### 13.2 自宅配送
 
-現在は`delivery`を選択でき、`order_shipping_addresses`に郵便番号、住所、受取人名、電話番号を注文時点のスナップショットとして保存する。医院受け取り注文には配送先行を作成しない。
+現在は医院・患者ごとに複数の送り先を登録できる。医院受け取りでは医院送り先、自宅配送では患者送り先から選び、どちらも`order_delivery_destinations`へ注文時点のスナップショットを保存する。進行中注文で使用中の送り先は論理削除できない。
 
 配送会社・追跡番号・部分配送は未実装であり、外部フルフィルメント連携時に`patient_fulfillments`系列で追加する。患者マスタの現住所を過去注文の配送先として参照し続けない。
 
@@ -782,7 +814,7 @@ interface CommerceGateway {
 
 ### Phase 0：現行内部注文基盤（完了）
 
-- `patient_orders`・`patient_order_items`・`order_shipping_addresses`・`patient_order_events`
+- `patient_orders`・`patient_order_items`・`delivery_destinations`・`order_delivery_destinations`・`patient_order_events`
 - 複数明細と配送先を同一トランザクションで登録する`create_portal_patient_order` RPC
 - 医院一覧・進捗更新
 - 患者ポータル表示

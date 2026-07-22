@@ -6,6 +6,7 @@ import BottomNav from '../components/BottomNav';
 import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
 import PreviewModeBanner from '@/components/PreviewModeBanner';
 import ProductVisual from '@/components/ProductVisual';
+import DeliveryDestinationPicker from '@/components/orders/DeliveryDestinationPicker';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import { usePatientOrders } from '@/hooks/usePatientOrders';
 import { ORDER_STATUS_LABEL } from '@/lib/orders';
@@ -51,6 +52,8 @@ export default function MedicationPage() {
   const { clinicName, navVisibility, showPeriodontalDiagnosis } = usePatientClinicBranding();
   const [diagnosis, setDiagnosis] = useState<PeriodontalDiagnosisView>(null);
   const [diagnosisLoaded, setDiagnosisLoaded] = useState(false);
+  const [destinationId, setDestinationId] = useState('');
+  const [destinationError, setDestinationError] = useState<string | null>(null);
   const { orders, loaded: ordersLoaded, error: ordersError } = usePatientOrders();
   const activeOrder = orders.find((order) => order.status !== 'completed' && order.status !== 'canceled') ?? orders[0] ?? null;
   const statusSteps = activeOrder?.fulfillment_method === 'delivery' ? deliverySteps : pickupSteps;
@@ -203,6 +206,11 @@ export default function MedicationPage() {
             )}
           </div>
 
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
+            <DeliveryDestinationPicker apiBase="/api/patient-portal/delivery-destinations" ownerLabel="登録済みの自宅配送先" selectedId={destinationId} onSelect={setDestinationId} color="indigo" onError={setDestinationError} />
+            {destinationError && <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{destinationError}</p>}
+          </div>
+
           {/* ご注文内容一覧 */}
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -242,7 +250,7 @@ export default function MedicationPage() {
                 <div>
                   <p className="text-sm font-semibold">{activeOrder.fulfillment_method === 'pickup' ? '医院で受け取る' : 'ご自宅へ配送'}</p>
                   <p className="mt-0.5 text-xs text-gray-500">現在の状態：{ORDER_STATUS_LABEL[activeOrder.status]}</p>
-                  {activeOrder.shipping_address && <p className="mt-1 text-xs text-gray-500">〒{activeOrder.shipping_address.postal_code} {activeOrder.shipping_address.prefecture}{activeOrder.shipping_address.city}{activeOrder.shipping_address.address_line1}{activeOrder.shipping_address.address_line2 ? ` ${activeOrder.shipping_address.address_line2}` : ''}</p>}
+                  {activeOrder.delivery_destination && <p className="mt-1 text-xs text-gray-500">〒{activeOrder.delivery_destination.postal_code} {activeOrder.delivery_destination.prefecture}{activeOrder.delivery_destination.city}{activeOrder.delivery_destination.address_line1}{activeOrder.delivery_destination.address_line2 ? ` ${activeOrder.delivery_destination.address_line2}` : ''}</p>}
                 </div>
               </div>
             </div>
