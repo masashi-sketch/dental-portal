@@ -160,7 +160,7 @@ export default function BgjReceivedOrders() {
           </select>
         </label>
         <label className="text-xs font-semibold text-slate-500">得意先コード
-          <input value={customerCodeInput} onChange={(event) => setCustomerCodeInput(event.target.value)} maxLength={50} placeholder="例: A000001" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700" />
+          <input value={customerCodeInput} onChange={(event) => setCustomerCodeInput(event.target.value)} maxLength={50} placeholder="得意先コードを入力" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700" />
         </label>
         <label className="text-xs font-semibold text-slate-500 xl:col-span-2">外部注文ID
           <input value={externalOrderIdInput} onChange={(event) => setExternalOrderIdInput(event.target.value)} maxLength={100} placeholder="Shopify等の注文ID" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700" />
