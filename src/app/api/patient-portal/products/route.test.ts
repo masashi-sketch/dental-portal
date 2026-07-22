@@ -17,7 +17,7 @@ const productRows = [
   { id: 'product-1', name: '商品A', category: 'お口と喉のケア', price: 1000, status: '公開' },
   { id: 'product-2', name: '商品B', category: '赤ちゃん・キッズ', price: 2000, status: '公開' },
 ];
-let hiddenSettingRows: { product_id: string }[] = [];
+let settingRows: { product_id: string; is_visible: boolean; clinic_price: number | null }[] = [];
 
 vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServerClient: () => ({
@@ -39,9 +39,7 @@ vi.mock('@/lib/supabase/server', () => ({
         return {
           select: () => ({
             eq: () => ({
-              eq: () => ({
-                limit: async () => ({ data: hiddenSettingRows, error: null }),
-              }),
+              limit: async () => ({ data: settingRows, error: null }),
             }),
           }),
         };
@@ -56,7 +54,7 @@ const { GET } = await import('./route');
 describe('GET /api/patient-portal/products', () => {
   beforeEach(() => {
     customerCodeValue = 'A000001';
-    hiddenSettingRows = [];
+    settingRows = [];
   });
 
   it('スコープが解決できない場合は空配列を返す（エラーにしない）', async () => {
@@ -73,9 +71,15 @@ describe('GET /api/patient-portal/products', () => {
   });
 
   it('医院が非表示にした商品は除外して返す', async () => {
-    hiddenSettingRows = [{ product_id: 'product-2' }];
+    settingRows = [{ product_id: 'product-2', is_visible: false, clinic_price: null }];
     const res = await GET();
     const body = await res.json();
     expect(body.products.map((p: { id: string }) => p.id)).toEqual(['product-1']);
+  });
+
+  it('医院価格を患者表示価格として返す', async () => {
+    settingRows = [{ product_id: 'product-1', is_visible: true, clinic_price: 850 }];
+    const body = await (await GET()).json();
+    expect(body.products.find((p: { id: string }) => p.id === 'product-1').price).toBe(850);
   });
 });

@@ -5,6 +5,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { ServerTiming } from '@/lib/serverTiming';
 import { CLINIC_PRODUCT_SETTING_COLUMNS } from '@/lib/supabase/types';
 import type { ClinicProductSetting } from '@/lib/supabase/types';
+import { resolveClinicProductPricing } from '@/lib/productPricing';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,10 +73,13 @@ export async function GET(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!clinicResult.data) return NextResponse.json({ error: '医院が見つかりません。' }, { status: 404 });
 
-  const visibility = new Map(
-    ((settingsResult.data ?? []) as ClinicProductSetting[]).map((setting) => [setting.product_id, setting.is_visible]),
+  const settingByProductId = new Map(
+    ((settingsResult.data ?? []) as ClinicProductSetting[]).map((setting) => [setting.product_id, setting]),
   );
-  const products = (productsResult.data ?? []).filter((product) => visibility.get(product.id) !== false);
+  const products = (productsResult.data ?? []).flatMap((product) => {
+    const pricing = resolveClinicProductPricing(product, settingByProductId.get(product.id), null);
+    return pricing.isVisible ? [{ ...product, price: pricing.clinicPrice }] : [];
+  });
 
   return NextResponse.json(
     { clinic: clinicResult.data, patients: patientsResult.data ?? [], products },

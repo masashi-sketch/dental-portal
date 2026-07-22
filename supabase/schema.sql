@@ -506,7 +506,7 @@ create index idx_diagnoses_patient_latest
 create table public.clinic_terms (
   customer_code       text primary key references public.clinics (customer_code) on delete cascade,
   commission_rate     numeric(5,2) not null default 0,  -- コミッション率（%）
-  wholesale_rate      numeric(5,2) not null default 0,  -- 仕切値率（%）
+  wholesale_rate      numeric(5,2) not null default 0 check (wholesale_rate between 0 and 100), -- 仕切値率（%）
   payment_terms_site  text,                              -- 支払条件（例：月末締め翌月末払い）
   payment_method      text,                              -- 支払方法（例：銀行振込）
   contract_started_at date,                              -- 契約開始日
@@ -649,7 +649,7 @@ create table public.products (
   -- カテゴリはバイオガイア公式サイト（jp.biogaia.com）の商品分類に合わせる
   category      text not null check (category in ('お口と喉のケア','赤ちゃん・キッズ','抵抗力サポート','胃腸のサポート','ペット向け')),
   description   text,                -- 一覧カードの説明文
-  price         int not null,        -- 患者様向け参考価格（税込・円）
+  price         int not null,        -- BGJが管理する基準価格（税込・円）。患者表示は医院価格を優先
   unit          text,                -- 例「本」「個」「セット」
   image_type    text not null default 'supplement'
     check (image_type in ('supplement','yogurt','toothbrush','oral')),
@@ -685,6 +685,7 @@ create table public.clinic_product_settings (
   customer_code text not null references public.clinics (customer_code) on delete cascade,
   product_id    uuid not null references public.products (id) on delete cascade,
   is_visible    boolean not null default true,
+  clinic_price  integer check (clinic_price is null or clinic_price >= 0), -- nullならproducts.price（基準価格）を患者表示価格にする
   updated_at    timestamptz not null default now(),
   primary key (customer_code, product_id)
 );
@@ -754,6 +755,7 @@ create table public.patient_order_items (
   unit_snapshot         text,
   image_type_snapshot   text not null default 'supplement'
                           check (image_type_snapshot in ('supplement','yogurt','toothbrush','oral')),
+  image_url_snapshot    text,
   daily_amount_snapshot text,
   volume_snapshot       text,
   caution_snapshot      text,
@@ -1102,14 +1104,17 @@ begin
 
   insert into public.patient_order_items (
     order_id, product_id, product_name, unit_price, quantity,
-    unit_snapshot, image_type_snapshot, daily_amount_snapshot,
+    unit_snapshot, image_type_snapshot, image_url_snapshot, daily_amount_snapshot,
     volume_snapshot, caution_snapshot
   )
-  select v_order_id, product.id, product.name, product.price, requested.quantity,
-         product.unit, product.image_type, product.daily_amount,
+  select v_order_id, product.id, product.name,
+         coalesce(setting.clinic_price, product.price), requested.quantity,
+         product.unit, product.image_type, product.image_url, product.daily_amount,
          product.volume, product.caution
     from jsonb_to_recordset(p_items) as requested("productId" uuid, quantity integer)
-    join public.products product on product.id = requested."productId";
+    join public.products product on product.id = requested."productId"
+    left join public.clinic_product_settings setting
+      on setting.customer_code = p_customer_code and setting.product_id = product.id;
 
   insert into public.order_delivery_destinations (
     order_id, delivery_destination_id, label, postal_code, prefecture, city,
@@ -1206,11 +1211,13 @@ begin
 
   insert into public.patient_order_items (
     order_id, product_id, product_name, unit_price, quantity,
-    unit_snapshot, image_type_snapshot, daily_amount_snapshot,
+    unit_snapshot, image_type_snapshot, image_url_snapshot, daily_amount_snapshot,
     volume_snapshot, caution_snapshot
   ) values (
-    v_order_id, v_product.id, v_product.name, v_product.price, p_quantity,
-    v_product.unit, v_product.image_type, v_product.daily_amount,
+    v_order_id, v_product.id, v_product.name,
+    coalesce((select clinic_price from public.clinic_product_settings
+              where customer_code = p_customer_code and product_id = v_product.id), v_product.price),
+    p_quantity, v_product.unit, v_product.image_type, v_product.image_url, v_product.daily_amount,
     v_product.volume, v_product.caution
   );
   return v_order_id;
@@ -1307,14 +1314,17 @@ begin
 
   insert into public.patient_order_items (
     order_id, product_id, product_name, unit_price, quantity,
-    unit_snapshot, image_type_snapshot, daily_amount_snapshot,
+    unit_snapshot, image_type_snapshot, image_url_snapshot, daily_amount_snapshot,
     volume_snapshot, caution_snapshot
   )
-  select v_order_id, product.id, product.name, product.price, requested.quantity,
-         product.unit, product.image_type, product.daily_amount,
+  select v_order_id, product.id, product.name,
+         coalesce(setting.clinic_price, product.price), requested.quantity,
+         product.unit, product.image_type, product.image_url, product.daily_amount,
          product.volume, product.caution
     from jsonb_to_recordset(p_items) as requested("productId" uuid, quantity integer)
-    join public.products product on product.id = requested."productId";
+    join public.products product on product.id = requested."productId"
+    left join public.clinic_product_settings setting
+      on setting.customer_code = p_customer_code and setting.product_id = product.id;
 
   insert into public.patient_order_events (
     order_id, event_type, actor_type, actor_identifier, to_status

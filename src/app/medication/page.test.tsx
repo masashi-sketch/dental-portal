@@ -63,7 +63,7 @@ describe('MedicationPage 先生のおすすめへの導線', () => {
       id: 'order-1', fulfillment_method: 'pickup', status: 'ready', ordered_at: '2026-07-20T00:00:00Z',
       items: [{
         id: 'item-1', product_name: 'マスタ登録サプリ', quantity: 2, unit_snapshot: '箱',
-        image_type_snapshot: 'supplement', daily_amount_snapshot: '1日1粒', volume_snapshot: '30粒',
+        image_type_snapshot: 'supplement', image_url_snapshot: 'https://example.com/product.png', daily_amount_snapshot: '1日1粒', volume_snapshot: '30粒',
         caution_snapshot: '高温多湿を避けてください。',
       }],
     }]);
@@ -72,6 +72,7 @@ describe('MedicationPage 先生のおすすめへの導線', () => {
     expect(await screen.findByText('マスタ登録サプリ')).toBeInTheDocument();
     expect(screen.getByText('現在の状態：準備完了')).toBeInTheDocument();
     expect(screen.getByText((_, element) => element?.textContent === '数量：2箱')).toBeInTheDocument();
+    expect(screen.getByTestId('product-visual')).toHaveAttribute('src', 'https://example.com/product.png');
   });
 });
 

@@ -41,6 +41,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     contractRenewalAt,
   } = body ?? {};
 
+  if (wholesaleRate !== undefined
+    && (typeof wholesaleRate !== 'number' || !Number.isFinite(wholesaleRate) || wholesaleRate < 0 || wholesaleRate > 100)) {
+    return NextResponse.json({ error: '仕切値率は0〜100%で指定してください。' }, { status: 400 });
+  }
+
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from('clinic_terms')

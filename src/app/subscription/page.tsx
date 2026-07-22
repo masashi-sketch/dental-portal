@@ -174,7 +174,7 @@ export default function SubscriptionPage() {
                     {/* 画像 */}
                     <div className="sm:w-56 sm:shrink-0 p-4">
                       <div className="relative">
-                        <ProductVisual type={product.image_type} className="w-full h-48 flex items-center justify-center rounded-2xl" />
+                        <ProductVisual type={product.image_type} imageUrl={product.image_url} className="w-full h-48 flex items-center justify-center rounded-2xl" />
                         {product.badge && <span className={`absolute top-2.5 left-2.5 text-xs font-semibold px-2.5 py-1 rounded-full ${PRODUCT_BADGE_CLASS[product.badge_color ?? 'slate']}`}>
                           {product.badge}
                         </span>}

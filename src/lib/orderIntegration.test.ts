@@ -24,7 +24,7 @@ const order: PatientOrder = {
   items: [
     {
       id: 'line-1', order_id: 'order-1', product_id: 'product-1', product_name: '商品A',
-      unit_price: 1200, quantity: 2, unit_snapshot: null, image_type_snapshot: 'supplement',
+      unit_price: 1200, quantity: 2, unit_snapshot: null, image_type_snapshot: 'supplement', image_url_snapshot: null,
       daily_amount_snapshot: null, volume_snapshot: null, caution_snapshot: null,
       external_line_item_id: null, created_at: '2026-07-22T00:00:00.000Z',
     },

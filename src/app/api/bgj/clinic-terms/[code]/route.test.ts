@@ -97,4 +97,11 @@ describe('PUT /api/bgj/clinic-terms/[code]', () => {
       expect.objectContaining({ commission_rate: 15, wholesale_rate: 60, payment_method: '口座振替' }),
     );
   });
+
+  it('仕切値率が0〜100%の範囲外なら拒否する', async () => {
+    sessionValue = makeSession();
+    const res = await PUT(putRequest({ wholesaleRate: 120 }), { params });
+    expect(res.status).toBe(400);
+    expect(upsertSpy).not.toHaveBeenCalled();
+  });
 });

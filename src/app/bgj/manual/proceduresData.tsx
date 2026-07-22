@@ -612,8 +612,8 @@ create table public.clinic_login_tokens (
                       患者ポータル「おすすめ商品」（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/shop</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/shop/[id]</code>）を静的ダミーデータから実データに切り替えた（Shopify連携ロードマップのPhase 1）。構成は「<strong>BGJが商品マスタを管理 → 各医院が自院の患者ポータルへの表示有無を決定 → 患者ポータルに反映</strong>」。
                     </p>
                     <ul className="list-disc list-inside pl-2">
-                      <li><strong>BGJポータル「マスタ &gt; 商品マスタ」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/master/products</code>）：商品の登録・編集・削除。基本情報（名称・カテゴリ・価格・バッジ等）、詳細ページ項目（内容量・成分・使用方法・注意事項）、先生のおすすめ（主な働き・1日の目安・推奨度・一言コメント、全医院共通）を1つのフォームで管理。「公開」ステータスのみ患者ポータルに掲載される。</li>
-                      <li><strong>医院用ポータル「商品管理」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/products</code>）：公開商品ごとの表示/非表示トグルのみ（商品情報の編集は不可）。</li>
+                      <li><strong>BGJポータル「マスタ &gt; 商品マスタ」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/master/products</code>）：商品の登録・編集・削除。基本情報（名称・カテゴリ・基準価格・画像・バッジ等）、詳細ページ項目、先生のおすすめを管理する。「公開」ステータスのみ患者ポータルに掲載される。</li>
+                      <li><strong>医院用ポータル「商品管理」</strong>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/products</code>）：商品写真、医院価格、契約仕切値、BGJ基準価格を確認し、患者表示のON/OFFと医院価格を編集する。医院価格が患者ポータルと新規注文の単価になる。</li>
                     </ul>
                   </WithImage>
                   <Code>{`create table public.products (
@@ -640,6 +640,7 @@ create table public.clinic_product_settings (
   customer_code text not null references public.clinics (customer_code) on delete cascade,
   product_id    uuid not null references public.products (id) on delete cascade,
   is_visible    boolean not null default true,
+  clinic_price  integer check (clinic_price is null or clinic_price >= 0),
   updated_at    timestamptz not null default now(),
   primary key (customer_code, product_id)
 );`}</Code>
@@ -651,7 +652,7 @@ create table public.clinic_product_settings (
               content: (
                 <WithImage image={{ src: "/manual/admin-products.png", alt: "医院用ポータルの商品管理画面。患者ポータル表示トグル" }}>
                   <p>
-                    <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_product_settings</code>に行が無い商品は「表示」扱い。BGJが新商品を公開すると全医院の患者ポータルに自動で並び、医院が非表示にした時だけ行がupsertされる（医院側の手間を最小にする意図的な設計）。
+                    <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_product_settings</code>に行が無い商品は「表示」かつ医院価格＝基準価格として扱う。仕切値は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">products.price × clinic_terms.wholesale_rate ÷ 100</code>を1円単位で四捨五入して都度算出し、第3正規形を保つため保存しない。医院が変更した患者表示価格だけを<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_price</code>へ保存する。
                   </p>
                 </WithImage>
               ),
@@ -664,7 +665,7 @@ create table public.clinic_product_settings (
                     <strong>API構成：</strong>BGJ用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/bgj/products</code>（全ハンドラ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">requireBgjSession</code>）、医院用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/admin/product-settings</code>（GETは公開商品＋自院設定のマージ、PATCHはclinicロール限定のupsert）、患者用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/patient-portal/products</code>（公開商品から非表示分を除外した一覧のみ）。<strong>患者用APIは意図的に一覧のみで単品取得パラメータを持たない</strong>（詳細ページも一覧からfindするため、非表示・非公開の商品は直接URLアクセスでも自動的に「見つかりません」になり、認可の抜け道ができない）。
                   </p>
                   <p>
-                    商品画像は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_url</code>（実ファイル、手順19参照）が未設定の場合に<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_type</code>（CSSグラデーション＋SVG描画、共通コンポーネント<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ProductVisual.tsx</code>）でフォールバック表示する。バッジ色・カテゴリ等の候補値は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/productDisplay.ts</code>（静的クラス名マップ、clinicStatusColors.tsと同方式）に集約している。
+                    商品画像は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_url</code>（実ファイル、手順19参照）を医院の商品管理、患者の商品一覧・詳細・定期購入へ共通表示する。未設定の場合は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_type</code>のグラデーションへフォールバックする。注文時には<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">image_url_snapshot</code>へ保存し、後のマスタ変更から過去注文表示を守る。
                   </p>
                 </>
               ),
@@ -694,7 +695,7 @@ create table public.clinic_product_settings (
           </ul>
         </WithImage>
         <p>
-          注文明細は商品マスタへの参照に加えて、名称・価格・単位・画像種別・用量・内容量・注意事項を注文時点のスナップショットとして保存する。商品マスタを後日変更しても過去注文の表示・金額は変わらない。
+          注文明細は商品マスタへの参照に加えて、名称・医院価格・単位・画像種別・画像URL・用量・内容量・注意事項を注文時点のスナップショットとして保存する。商品マスタや医院価格を後日変更しても過去注文の表示・金額は変わらない。
         </p>
         <p>
           注文登録はDB関数<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">create_internal_patient_order</code>で注文ヘッダーと明細を1トランザクションとして作成する。画面が生成する<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">idempotency_key</code>は失敗・再試行中も維持し、同じ通信が再送されても既存注文IDを返すため二重登録されない。Shopify webhookの重複配信にも同じ設計を流用する。

@@ -164,7 +164,7 @@ export default function ProductsMasterPage() {
 
   const handleSave = async () => {
     if (!form.name.trim() || !form.price.trim()) {
-      showToast("商品名と価格を入力してください");
+      showToast("商品名と基準価格を入力してください");
       return;
     }
     setSaving(true);
@@ -256,7 +256,7 @@ export default function ProductsMasterPage() {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">画像</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">商品名</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">カテゴリ</th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500">価格</th>
+                <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500">基準価格</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">バッジ</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">定期購入</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500">ステータス</th>
@@ -362,7 +362,7 @@ export default function ProductsMasterPage() {
                 </div>
               </div>
               <div>
-                <label className={labelClass}>価格（税込・円、必須）</label>
+                <label className={labelClass}>基準価格（税込・円、必須）</label>
                 <input type="number" placeholder="例）3980" value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })} className={inputClass} />
               </div>

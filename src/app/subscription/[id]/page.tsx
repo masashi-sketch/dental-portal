@@ -127,7 +127,7 @@ export default function SubscriptionOrderPage() {
           {/* 商品サマリーカード */}
           {(
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4">
-              <ProductVisual type={product.image_type} className="w-20 h-20 shrink-0 rounded-xl flex items-center justify-center" />
+              <ProductVisual type={product.image_type} imageUrl={product.image_url} className="w-20 h-20 shrink-0 rounded-xl flex items-center justify-center" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-400 mb-0.5">{product.description}</p>
                 <p className="font-bold text-gray-900 text-sm leading-snug break-all">{product.name}</p>
@@ -366,7 +366,7 @@ export default function SubscriptionOrderPage() {
 
                 {/* 商品 */}
                 <div className="flex items-center gap-4 pb-5 border-b border-gray-50">
-                  <ProductVisual type={product.image_type} className="w-20 h-20 shrink-0 rounded-xl flex items-center justify-center" />
+                  <ProductVisual type={product.image_type} imageUrl={product.image_url} className="w-20 h-20 shrink-0 rounded-xl flex items-center justify-center" />
                   <div>
                     <p className="font-bold text-gray-900">{product.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{product.volume}</p>

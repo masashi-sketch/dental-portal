@@ -10,6 +10,7 @@ import {
   PRODUCT_COLUMNS,
 } from '@/lib/supabase/types';
 import type { ClinicProductSetting, Product } from '@/lib/supabase/types';
+import { resolveClinicProductPricing } from '@/lib/productPricing';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,12 +65,13 @@ export async function GET(request: NextRequest) {
   const error = ordersResult.error ?? patientsResult.error ?? productsResult.error ?? settingsResult.error;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const visibilityByProductId = new Map(
-    ((settingsResult.data ?? []) as ClinicProductSetting[]).map((setting) => [setting.product_id, setting.is_visible]),
+  const settingByProductId = new Map(
+    ((settingsResult.data ?? []) as ClinicProductSetting[]).map((setting) => [setting.product_id, setting]),
   );
   const products = ((productsResult.data ?? []) as Product[]).map((product) => ({
     ...product,
-    isVisible: visibilityByProductId.get(product.id) ?? true,
+    price: resolveClinicProductPricing(product, settingByProductId.get(product.id), null).clinicPrice,
+    isVisible: settingByProductId.get(product.id)?.is_visible ?? true,
   }));
 
   return NextResponse.json(

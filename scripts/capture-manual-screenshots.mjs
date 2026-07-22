@@ -112,6 +112,16 @@ async function newPublicPage(browser) {
 // role単位でページをまとめ、同じページ内で複数タブを連続撮影する
 // （ログイン・ページ遷移の重複を避ける）。
 const manifest = {
+  productPricing: [
+    {
+      role: 'admin',
+      shots: [{ path: '/admin/products', file: 'admin-products.png', waitAfterNav: 8000 }],
+    },
+    {
+      role: 'patient',
+      shots: [{ path: '/shop', file: 'patient-shop.png', waitAfterNav: 9000 }],
+    },
+  ],
   shared: [
     {
       role: 'public',

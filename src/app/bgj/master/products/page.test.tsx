@@ -68,7 +68,7 @@ describe('ProductsMasterPage', () => {
 
     fireEvent.click(screen.getByText('商品を追加'));
     fireEvent.click(screen.getByText('追加'));
-    expect(await screen.findByText('商品名と価格を入力してください')).toBeInTheDocument();
+    expect(await screen.findByText('商品名と基準価格を入力してください')).toBeInTheDocument();
     expect(fetchMock.mock.calls.filter(([, init]) => (init as RequestInit)?.method === 'POST')).toHaveLength(0);
   });
 

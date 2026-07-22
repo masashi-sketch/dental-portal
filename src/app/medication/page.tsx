@@ -225,7 +225,7 @@ export default function MedicationPage() {
                 <div key={item.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className="flex flex-col sm:flex-row">
                     <div className="sm:w-44 sm:shrink-0 p-4">
-                      <ProductVisual type={item.image_type_snapshot} className="w-full h-36 flex items-center justify-center rounded-2xl" />
+                      <ProductVisual type={item.image_type_snapshot} imageUrl={item.image_url_snapshot} className="w-full h-36 flex items-center justify-center rounded-2xl" />
                     </div>
                     <div className="flex-1 px-4 pb-5 sm:py-5 sm:pr-5 sm:pl-0">
                       <h2 className="text-lg font-bold text-gray-900 mb-2">{item.product_name}</h2>

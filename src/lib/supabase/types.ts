@@ -455,10 +455,11 @@ export type ClinicProductSetting = {
   customer_code: string;
   product_id: string;
   is_visible: boolean;
+  clinic_price: number | null;
   updated_at: string;
 };
 
-export const CLINIC_PRODUCT_SETTING_COLUMNS = 'customer_code, product_id, is_visible, updated_at';
+export const CLINIC_PRODUCT_SETTING_COLUMNS = 'customer_code, product_id, is_visible, clinic_price, updated_at';
 
 export type PatientOrderType = 'one_time' | 'subscription';
 export type FulfillmentMethod = 'pickup' | 'delivery';
@@ -528,6 +529,7 @@ export type PatientOrderItem = {
   quantity: number;
   unit_snapshot: string | null;
   image_type_snapshot: ProductImageType;
+  image_url_snapshot: string | null;
   daily_amount_snapshot: string | null;
   volume_snapshot: string | null;
   caution_snapshot: string | null;
@@ -561,6 +563,6 @@ export type PatientOrder = {
 export const PATIENT_ORDER_COLUMNS =
   'id, customer_code, patient_id, order_type, fulfillment_method, status, ordered_at, next_fulfillment_date, source, created_via, external_order_id, sync_status, sync_error, idempotency_key, external_updated_at, created_at, updated_at';
 export const PATIENT_ORDER_ITEM_COLUMNS =
-  'id, order_id, product_id, product_name, unit_price, quantity, unit_snapshot, image_type_snapshot, daily_amount_snapshot, volume_snapshot, caution_snapshot, external_line_item_id, created_at';
+  'id, order_id, product_id, product_name, unit_price, quantity, unit_snapshot, image_type_snapshot, image_url_snapshot, daily_amount_snapshot, volume_snapshot, caution_snapshot, external_line_item_id, created_at';
 export const PATIENT_ORDER_WITH_DETAILS_COLUMNS =
   `${PATIENT_ORDER_COLUMNS}, patient:patients!patient_id(id, name, patient_no), items:patient_order_items(${PATIENT_ORDER_ITEM_COLUMNS}), delivery_destination:order_delivery_destinations!order_id(${ORDER_DELIVERY_DESTINATION_COLUMNS})`;

@@ -107,7 +107,7 @@ export default function ClinicTermsManager({
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 mb-1 block">仕切値率（%）</label>
-              <input type="number" step="0.01" value={termsForm.wholesaleRate}
+              <input type="number" min="0" max="100" step="0.01" value={termsForm.wholesaleRate}
                 onChange={(e) => setTermsForm({ ...termsForm, wholesaleRate: e.target.value })}
                 className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
             </div>

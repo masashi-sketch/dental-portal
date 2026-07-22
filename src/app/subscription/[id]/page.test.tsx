@@ -10,7 +10,7 @@ describe('SubscriptionOrderPage', () => {
     fetchMock.mockImplementation((url: string) => {
       if (url.includes('/products')) return Promise.resolve({ ok: true, json: async () => ({ products: [{
         id: 'product-1', name: '定期対象商品', description: '説明', price: 3000, unit: '箱',
-        image_type: 'supplement', subscription_available: true, volume: '30粒',
+        image_type: 'supplement', image_url: 'https://example.com/product.png', subscription_available: true, volume: '30粒',
       }] }) });
       if (url.includes('/clinic-branding')) return Promise.resolve({ ok: true, json: async () => ({ displayName: 'テスト医院', nav: {} }) });
       throw new Error(`unexpected fetch: ${url}`);

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { resolveScopedCustomerCode } from '@/lib/auth/clinicScope';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { CLINIC_PRODUCT_SETTING_COLUMNS, PRODUCT_COLUMNS } from '@/lib/supabase/types';
-import type { ClinicProductSetting, Product } from '@/lib/supabase/types';
+import { resolveClinicProductPricing } from '@/lib/productPricing';
+import { CLINIC_PRODUCT_SETTING_COLUMNS, CLINIC_TERMS_COLUMNS, PRODUCT_COLUMNS } from '@/lib/supabase/types';
+import type { ClinicProductSetting, ClinicTerms, Product } from '@/lib/supabase/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = getSupabaseServerClient();
-  const [{ data: products, error: productsError }, { data: settings, error: settingsError }] = await Promise.all([
+  const [productsResult, settingsResult, termsResult] = await Promise.all([
     supabase
       .from('products')
       .select(PRODUCT_COLUMNS)
@@ -36,17 +37,23 @@ export async function GET(request: NextRequest) {
       .select(CLINIC_PRODUCT_SETTING_COLUMNS)
       .eq('customer_code', customerCode)
       .limit(500),
+    supabase
+      .from('clinic_terms')
+      .select(CLINIC_TERMS_COLUMNS)
+      .eq('customer_code', customerCode)
+      .maybeSingle(),
   ]);
 
-  if (productsError) return NextResponse.json({ error: productsError.message }, { status: 500 });
-  if (settingsError) return NextResponse.json({ error: settingsError.message }, { status: 500 });
+  const error = productsResult.error ?? settingsResult.error ?? termsResult.error;
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const visibilityByProductId = new Map(
-    ((settings ?? []) as ClinicProductSetting[]).map((s) => [s.product_id, s.is_visible]),
+  const settingByProductId = new Map(
+    ((settingsResult.data ?? []) as ClinicProductSetting[]).map((setting) => [setting.product_id, setting]),
   );
-  const items = ((products ?? []) as Product[]).map((p) => ({
-    ...p,
-    isVisible: visibilityByProductId.get(p.id) ?? true,
+  const wholesaleRate = (termsResult.data as ClinicTerms | null)?.wholesale_rate ?? null;
+  const items = ((productsResult.data ?? []) as Product[]).map((product) => ({
+    ...product,
+    ...resolveClinicProductPricing(product, settingByProductId.get(product.id), wholesaleRate),
   }));
 
   return NextResponse.json({ products: items });
@@ -61,16 +68,17 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { productId, isVisible } = body ?? {};
-  if (typeof productId !== 'string' || !productId || typeof isVisible !== 'boolean') {
-    return NextResponse.json({ error: 'productIdとisVisibleは必須です。' }, { status: 400 });
+  const { productId, isVisible, clinicPrice } = body ?? {};
+  if (typeof productId !== 'string' || !productId || typeof isVisible !== 'boolean'
+    || !Number.isInteger(clinicPrice) || clinicPrice < 0 || clinicPrice > 10_000_000) {
+    return NextResponse.json({ error: '商品、医院価格、表示設定を正しく指定してください。' }, { status: 400 });
   }
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from('clinic_product_settings')
     .upsert(
-      { customer_code: session.user.customerCode, product_id: productId, is_visible: isVisible },
+      { customer_code: session.user.customerCode, product_id: productId, is_visible: isVisible, clinic_price: clinicPrice },
       { onConflict: 'customer_code,product_id' },
     )
     .select(CLINIC_PRODUCT_SETTING_COLUMNS)

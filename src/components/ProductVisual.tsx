@@ -1,9 +1,7 @@
 import type { ProductImageType } from '@/lib/supabase/types';
 
-// 商品のダミー画像（グラデーション＋SVGアイコン）。実画像ファイルは持たず、
-// products.image_type のキーで見た目を出し分ける（実画像はPhase 2のShopify同期時に
-// image_url列を追加して対応予定）。従来 /shop と /shop/[id] に重複定義されていた
-// 描画ロジックの共通化（subscription系ページは意図的にスコープ外で個別実装のまま）。
+// products.image_urlがあれば登録写真を表示し、未設定時だけimage_typeに応じた
+// グラデーション＋SVGへフォールバックする。商品を扱う全ポータルで共通利用する。
 const CONFIG: Record<ProductImageType, { from: string; to: string; icon: React.ReactNode }> = {
   supplement: {
     from: '#6366f1', to: '#a5b4fc',

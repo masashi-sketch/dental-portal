@@ -6,7 +6,7 @@ const fetchMock = vi.fn();
 
 const subscriptionProduct = {
   id: 'product-1', name: 'マスタ登録サプリ', description: '商品マスタの説明', price: 3980,
-  unit: '月', image_type: 'supplement', badge: null, badge_color: null,
+  unit: '月', image_type: 'supplement', image_url: 'https://example.com/product.png', badge: null, badge_color: null,
   subscription_available: true, volume: '30粒', working_point: null, daily_amount: null,
   doctor_comment: null,
 };
@@ -40,6 +40,7 @@ describe('SubscriptionPage', () => {
 
     expect(await screen.findByText('山田太郎先生が継続をおすすめする理由')).toBeInTheDocument();
     expect(screen.getByText('マスタ登録サプリ')).toBeInTheDocument();
+    expect(screen.getByTestId('product-visual')).toHaveAttribute('src', 'https://example.com/product.png');
   });
 
   it('院長ラベルが無ければ先頭のスタッフにフォールバックする', async () => {

@@ -124,8 +124,41 @@ CURRENT_TABLES = [
         [
             c("商品ID", "id", "uuid", "PK", default="gen_random_uuid()"),
             c("商品名", "name", "text"),
-            c("参考価格", "price", "integer", nullable="NO", constraint=">= 0"),
+            c("基準価格", "price", "integer", nullable="NO", constraint=">= 0"),
+            c("商品画像URL", "image_url", "text", nullable="YES", description="Supabase Storage公開URL"),
             c("公開状態", "status", "text", default="下書き", constraint="公開 / 下書き"),
+        ],
+    ),
+    TableDefinition(
+        "現行",
+        "医院契約情報",
+        "clinic_terms",
+        "実装済み・価格計算元",
+        "医院ごとの契約仕切値率。仕切値は基準価格×仕切値率を1円単位で四捨五入し、保存しない。",
+        [
+            c("得意先コード", "customer_code", "text", "PK / FK", constraint="clinics.customer_code ON DELETE CASCADE"),
+            c("コミッション率", "commission_rate", "numeric(5,2)", default="0"),
+            c("仕切値率", "wholesale_rate", "numeric(5,2)", default="0", constraint="0〜100"),
+            c("支払条件", "payment_terms_site", "text", nullable="YES"),
+            c("支払方法", "payment_method", "text", nullable="YES"),
+            c("契約開始日", "contract_started_at", "date", nullable="YES"),
+            c("契約更新日", "contract_renewal_at", "date", nullable="YES"),
+            c("更新日時", "updated_at", "timestamptz", default="now()"),
+            c("更新者", "updated_by", "text", nullable="YES"),
+        ],
+    ),
+    TableDefinition(
+        "現行",
+        "医院商品設定",
+        "clinic_product_settings",
+        "実装済み・患者表示価格",
+        "医院×商品の表示設定と医院価格。clinic_priceがNULLならproducts.priceを患者表示価格にする。",
+        [
+            c("得意先コード", "customer_code", "text", "PK / FK", constraint="clinics.customer_code ON DELETE CASCADE"),
+            c("商品ID", "product_id", "uuid", "PK / FK", constraint="products.id ON DELETE CASCADE"),
+            c("表示可否", "is_visible", "boolean", default="true"),
+            c("医院価格", "clinic_price", "integer", nullable="YES", constraint=">= 0。NULLは基準価格を使用"),
+            c("更新日時", "updated_at", "timestamptz", default="now()"),
         ],
     ),
     TableDefinition(
@@ -169,6 +202,7 @@ CURRENT_TABLES = [
             c("数量", "quantity", "integer", default="1", constraint="> 0"),
             c("単位スナップショット", "unit_snapshot", "text", nullable="YES"),
             c("画像種別スナップショット", "image_type_snapshot", "text", default="supplement", constraint="supplement / yogurt / toothbrush / oral"),
+            c("画像URLスナップショット", "image_url_snapshot", "text", nullable="YES"),
             c("用量スナップショット", "daily_amount_snapshot", "text", nullable="YES"),
             c("内容量スナップショット", "volume_snapshot", "text", nullable="YES"),
             c("注意事項スナップショット", "caution_snapshot", "text", nullable="YES"),
@@ -416,6 +450,8 @@ FUTURE_TABLES = [
 
 
 EXACT_SCHEMA_TABLES = {
+    "clinic_terms",
+    "clinic_product_settings",
     "patient_orders",
     "patient_order_items",
     "delivery_destinations",
@@ -462,6 +498,9 @@ def validate_current_tables() -> None:
 
 
 RELATIONSHIPS_CURRENT = [
+    ("医院", "clinics.customer_code", "1", "0..1", "clinic_terms.customer_code", "医院契約情報", "PK・FK・CASCADE"),
+    ("医院", "clinics.customer_code", "1", "N", "clinic_product_settings.customer_code", "医院商品設定", "PK・FK・CASCADE"),
+    ("商品", "products.id", "1", "N", "clinic_product_settings.product_id", "医院商品設定", "PK・FK・CASCADE"),
     ("医院", "clinics.customer_code", "1", "N", "patient_orders.customer_code", "患者注文", "FK"),
     ("患者", "patients.id", "1", "N", "patient_orders.patient_id", "患者注文", "FK・現状CASCADE"),
     ("患者注文", "patient_orders.id", "1", "N", "patient_order_items.order_id", "患者注文明細", "FK・CASCADE"),
@@ -512,6 +551,7 @@ MIGRATION_PLAN = [
     ("Phase 1-2", "一部完了", "patient_order_events", "状態変更、操作者、変更前後を記録済み。変更理由の記録は今後追加する。", "注文更新と同一トランザクション。"),
     ("Phase 1-3", "次に実施", "patient_orders.version", "楽観的排他を導入する。", "競合時は409。"),
     ("Phase 1-4", "完了", "delivery_destinations / order_delivery_destinations", "医院・患者の複数送り先と注文時スナップショットを運用する。", "進行中注文の送り先は論理削除不可。"),
+    ("Phase 1-5", "完了", "clinic_product_settings / patient_order_items", "医院価格と注文時商品画像を運用する。", "仕切値は導出し、重複保存しない。"),
     ("Phase 2-1", "仕様確定後", "commerce_accounts / Inbox / Outbox", "Shopify接続・Webhook受信・外部送信を分離する。", "外部仕様確定前に作り込まない。"),
     ("Phase 2-2", "仕様確定後", "決済・返金・配送投影", "Shopify状態を医院業務状態と別軸で保持する。", "確定額と参考額を混同しない。"),
     ("Phase 2-3", "仕様確定後", "patient_subscriptions", "定期購入契約を読み取り用投影として追加する。", "変更・解約はShopify正本。"),
@@ -749,7 +789,7 @@ def make_current_er_sheet() -> Sheet:
         sheet.widths[column] = 15
     write_entity_box(sheet, 4, 1, "医院", "clinics", [("得意先コード", "customer_code", "PK"), ("医院名", "name", "")])
     write_entity_box(sheet, 4, 7, "患者", "patients", [("患者ID", "id", "PK"), ("得意先コード", "customer_code", "FK"), ("患者番号", "patient_no", ""), ("患者氏名", "name", "")])
-    write_entity_box(sheet, 4, 13, "商品", "products", [("商品ID", "id", "PK"), ("商品名", "name", ""), ("参考価格", "price", "")])
+    write_entity_box(sheet, 4, 13, "商品", "products", [("商品ID", "id", "PK"), ("商品名", "name", ""), ("基準価格", "price", "")])
     sheet.merged_value(12, 4, 13, 10, "医院 1 ───< N 患者注文 >─── 1 患者", 12)
     write_entity_box(sheet, 15, 3, "患者注文", "patient_orders", [
         ("内部注文ID", "id", "PK"),
@@ -768,6 +808,7 @@ def make_current_er_sheet() -> Sheet:
         ("注文時商品名", "product_name", ""),
         ("注文時単価", "unit_price", ""),
         ("数量", "quantity", ""),
+        ("画像URL", "image_url_snapshot", ""),
     ])
     sheet.merged_value(25, 12, 26, 17, "商品 0..1 ───< N 注文明細", 12)
     write_entity_box(sheet, 29, 1, "送り先マスタ", "delivery_destinations", [
@@ -794,8 +835,18 @@ def make_current_er_sheet() -> Sheet:
         ("変更前状態", "from_status", ""),
         ("変更後状態", "to_status", ""),
     ])
+    write_entity_box(sheet, 44, 1, "医院契約情報", "clinic_terms", [
+        ("得意先コード", "customer_code", "PK/FK"),
+        ("仕切値率", "wholesale_rate", ""),
+    ])
+    write_entity_box(sheet, 58, 1, "医院商品設定", "clinic_product_settings", [
+        ("得意先コード", "customer_code", "PK/FK"),
+        ("商品ID", "product_id", "PK/FK"),
+        ("表示可否", "is_visible", ""),
+        ("医院価格", "clinic_price", ""),
+    ])
     sheet.merged_value(26, 2, 27, 10, "患者注文 1 ─── 0..1 注文配送先", 12)
-    add_relationship_table(sheet, 58, RELATIONSHIPS_CURRENT, 17)
+    add_relationship_table(sheet, 72, RELATIONSHIPS_CURRENT, 17)
     return sheet
 
 

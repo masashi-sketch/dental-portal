@@ -137,7 +137,7 @@ describe('ManualPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'デフォルト表示の設計' }));
 
-    expect(screen.getByText(/医院側の手間を最小にする意図的な設計/)).toBeInTheDocument();
+    expect(screen.getByText(/を1円単位で四捨五入して都度算出し/)).toBeInTheDocument();
     expect(screen.queryByText(/商品の登録・編集・削除/)).not.toBeInTheDocument();
   });
 
