@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { resolveScopedCustomerCode } from '@/lib/auth/clinicScope';
+import { hasClinicPermission, resolveScopedCustomerCode } from '@/lib/auth/clinicScope';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { CLINIC_CONTACT_WITH_PREFERENCES_COLUMNS, CLINIC_USER_PUBLIC_COLUMNS } from '@/lib/supabase/types';
 import { parseClinicContactInput } from '@/lib/clinicContacts/validation';
@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session?.user || !['bgj', 'clinic'].includes(String(session.user.role))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!hasClinicPermission(session, 'view_contacts')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const customerCode = await resolveScopedCustomerCode(session, request.nextUrl.searchParams.get('customerCode'));
   if (!customerCode) return NextResponse.json({ contacts: [], clinicUsers: [] });
   const supabase = getSupabaseServerClient();
@@ -20,12 +21,19 @@ export async function GET(request: NextRequest) {
     supabase.from('clinic_users').select(CLINIC_USER_PUBLIC_COLUMNS).eq('customer_code', customerCode).order('created_at').limit(100),
   ]);
   if (error || usersError) return NextResponse.json({ error: (error ?? usersError)?.message }, { status: 500 });
-  return NextResponse.json({ contacts: contacts ?? [], clinicUsers: clinicUsers ?? [] });
+  const userIds = (clinicUsers ?? []).map((user) => user.id);
+  const { data: assignments, error: assignmentsError } = userIds.length
+    ? await supabase.from('clinic_user_role_assignments').select('clinic_user_id, role_key').in('clinic_user_id', userIds)
+    : { data: [], error: null };
+  if (assignmentsError) return NextResponse.json({ error: assignmentsError.message }, { status: 500 });
+  const roleMap = new Map((assignments ?? []).map((assignment) => [assignment.clinic_user_id, assignment.role_key]));
+  return NextResponse.json({ contacts: contacts ?? [], clinicUsers: (clinicUsers ?? []).map((user) => ({ ...user, role_key: roleMap.get(user.id) ?? 'admin' })) });
 }
 
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session?.user || !['bgj', 'clinic'].includes(String(session.user.role))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!hasClinicPermission(session, 'manage_contacts')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await request.json().catch(() => null);
   const requestedCode = body && typeof body === 'object' && typeof (body as Record<string, unknown>).customerCode === 'string'
     ? (body as Record<string, unknown>).customerCode as string

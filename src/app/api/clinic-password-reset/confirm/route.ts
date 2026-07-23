@@ -24,10 +24,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'リンクが無効か、期限切れです。もう一度お試しください。' }, { status: 400 });
   }
 
-  const { error } = await supabase
-    .from('clinic_users')
-    .update({ password_hash: hashPassword(password) })
-    .eq('id', result.clinicUserId);
+  const { error } = await supabase.rpc('set_clinic_user_password', {
+    p_clinic_user_id: result.clinicUserId,
+    p_password_hash: hashPassword(password),
+  });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });

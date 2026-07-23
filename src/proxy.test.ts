@@ -63,3 +63,24 @@ describe('external-links access', () => {
     expect(response.headers.get('location')).toBe('https://example.com/admin');
   });
 });
+
+describe('医院の閲覧専用ロール', () => {
+  function request(method: string) {
+    const req = new NextRequest('https://example.com/api/admin/orders', {
+      method,
+      headers: { cookie: 'portal-selected=true' },
+    }) as NextRequest & { auth: unknown };
+    req.auth = { user: { role: 'clinic', clinicRole: 'viewer', customerCode: 'A000001' } };
+    return req;
+  }
+
+  it('GETは通す', () => {
+    expect(proxy(request('GET')).status).not.toBe(403);
+  });
+
+  it('更新系メソッドは403で拒否する', async () => {
+    const response = proxy(request('POST'));
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: '閲覧専用アカウントでは更新できません。' });
+  });
+});

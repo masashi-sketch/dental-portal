@@ -2,6 +2,21 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import type { Session } from 'next-auth';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { ClinicPortalPermissionKey, ClinicPortalRoleKey } from '@/lib/supabase/types';
+
+const ROLE_PERMISSIONS: Record<ClinicPortalRoleKey, ClinicPortalPermissionKey[]> = {
+  admin: ['view_contacts', 'manage_contacts', 'manage_logins'],
+  staff: ['view_contacts'],
+  viewer: ['view_contacts'],
+};
+
+export function hasClinicPermission(session: Session, permission: ClinicPortalPermissionKey): boolean {
+  if (session.user.role === 'bgj') return true;
+  if (session.user.role !== 'clinic' || session.user.accountDisabled) return false;
+  if (session.user.clinicPermissions?.length) return session.user.clinicPermissions.includes(permission);
+  const role = session.user.clinicRole ?? 'admin';
+  return ROLE_PERMISSIONS[role].includes(permission);
+}
 
 // /api/bgj/* はBGJ社員（Google認証）専用。clinic/patientロールのセッションには
 // emailが無いため`!session?.user?.email`だけでも実質同じ判定になるが、それは

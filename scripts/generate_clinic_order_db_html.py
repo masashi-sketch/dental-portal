@@ -131,7 +131,11 @@ IMPORTANT_FIELDS = {
     "webinar_events": ["id", "webinar_id", "event_type", "actor_email", "to_status"],
     "clinic_contacts": ["id", "customer_code", "clinic_user_id", "name", "email", "phone", "is_primary", "status", "deleted_at"],
     "clinic_contact_notification_preferences": ["contact_id", "topic", "channel", "enabled"],
-    "clinic_contact_events": ["id", "contact_id", "event_type", "actor_type", "created_at"],
+    "clinic_contact_events": ["id", "contact_id", "event_type", "actor_type", "metadata", "created_at"],
+    "clinic_users": ["id", "customer_code", "login_id", "email", "status", "session_version", "last_login_at"],
+    "clinic_portal_roles": ["role_key", "label", "description", "sort_order"],
+    "clinic_portal_role_permissions": ["role_key", "permission_key"],
+    "clinic_user_role_assignments": ["clinic_user_id", "role_key", "assigned_by"],
 }
 
 
@@ -233,6 +237,8 @@ def build_html(source) -> str:
         "webinar_target_clinics": (960, 2450), "webinar_events": (1420, 2650),
         "clinic_contacts": (40, 3000), "clinic_contact_notification_preferences": (500, 3000),
         "clinic_contact_events": (960, 3000),
+        "clinic_users": (40, 3450), "clinic_user_role_assignments": (500, 3450),
+        "clinic_portal_roles": (960, 3450), "clinic_portal_role_permissions": (1420, 3450),
     }
     current_edges = [
         ("clinics", "clinic_terms", "医院契約条件"),
@@ -260,6 +266,11 @@ def build_html(source) -> str:
         ("clinics", "clinic_contacts", "業務連絡担当者"),
         ("clinic_contacts", "clinic_contact_notification_preferences", "通知設定"),
         ("clinic_contacts", "clinic_contact_events", "操作履歴"),
+        ("clinics", "clinic_users", "医院別ログイン"),
+        ("clinic_users", "clinic_contacts", "担当者プロフィール"),
+        ("clinic_users", "clinic_user_role_assignments", "権限割当"),
+        ("clinic_portal_roles", "clinic_user_role_assignments", "割当権限"),
+        ("clinic_portal_roles", "clinic_portal_role_permissions", "許可機能"),
     ]
     future_edges = [
         ("commerce_accounts", "patient_orders", "接続先"),
@@ -282,7 +293,7 @@ def build_html(source) -> str:
     }
     unified_er_detail = er_diagram(
         "unified-er", all_tables, unified_positions, current_edges + future_edges,
-        height=3600, width=2400, future_names=future_only_names,
+        height=3900, width=2400, future_names=future_only_names,
     )
     unified_er = f'''
 <div class="meaning-box"><strong>この図が表すこと</strong><p>現在動いている注文管理に、Shopify連携後の定期購入・決済・配送を段階的に追加します。患者が単発で注文する場合は「定期購入」を通りません。</p></div>

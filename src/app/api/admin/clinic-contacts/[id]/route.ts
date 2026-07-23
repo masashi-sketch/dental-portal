@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { parseClinicContactInput } from '@/lib/clinicContacts/validation';
+import { hasClinicPermission } from '@/lib/auth/clinicScope';
 
-async function scope(id: string) {
+async function scope(id: string, permission: 'view_contacts' | 'manage_contacts' = 'manage_contacts') {
   const session = await auth();
   if (!session?.user || !['bgj', 'clinic'].includes(String(session.user.role))) return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+  if (!hasClinicPermission(session, permission)) return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
   const supabase = getSupabaseServerClient();
   const { data } = await supabase.from('clinic_contacts').select('customer_code').eq('id', id).is('deleted_at', null).maybeSingle();
   if (!data || (session.user.role === 'clinic' && data.customer_code !== session.user.customerCode)) {

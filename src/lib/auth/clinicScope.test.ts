@@ -19,9 +19,26 @@ vi.mock('next/headers', () => ({
 const {
   isClinicResourceInScope,
   isPatientInScope,
+  hasClinicPermission,
   requireBgjSession,
   resolveScopedCustomerCode,
 } = await import('./clinicScope');
+
+describe('hasClinicPermission', () => {
+  it('BGJセッションは全ての医院担当者操作が可能', () => {
+    expect(hasClinicPermission(makeSession({ role: 'bgj' }), 'manage_logins')).toBe(true);
+  });
+
+  it('医院管理者のみ担当者とログインを編集できる', () => {
+    expect(hasClinicPermission(makeSession({ role: 'clinic', clinicRole: 'admin' }), 'manage_contacts')).toBe(true);
+    expect(hasClinicPermission(makeSession({ role: 'clinic', clinicRole: 'staff' }), 'manage_contacts')).toBe(false);
+    expect(hasClinicPermission(makeSession({ role: 'clinic', clinicRole: 'viewer' }), 'manage_logins')).toBe(false);
+  });
+
+  it('無効化済みセッションには閲覧も許可しない', () => {
+    expect(hasClinicPermission(makeSession({ role: 'clinic', clinicRole: 'admin', accountDisabled: true }), 'view_contacts')).toBe(false);
+  });
+});
 
 function makeSession(overrides: Partial<Session['user']>): Session {
   return {

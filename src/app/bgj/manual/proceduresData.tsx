@@ -826,7 +826,9 @@ create table public.clinic_product_settings (
         <p>医院代表情報・医院ログイン・患者向けスタッフ紹介とは別に、業務連絡担当者を医院ごとに複数管理する。</p>
         <ul className="list-disc list-inside pl-2">
           <li><strong>画面：</strong>BGJの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/contacts</code>で全医院を横断検索し、得意先・役職・担当者名・担当内容別に絞り込む。得意先詳細「担当者」タブと医院用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/clinic-info/contacts</code>は共通編集コンポーネントを使用し、医院ログインは自院スコープへ固定する。</li>
-          <li><strong>DB：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_contacts</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_contact_notification_preferences</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_contact_events</code>へ第3正規形で分離する。</li>
+          <li><strong>DB：</strong>担当者、認証情報、権限マスタ、権限機能、ログイン権限割当、通知設定、監査履歴を個別テーブルへ分離し、第3正規形を維持する。</li>
+          <li><strong>個人ログイン：</strong>医院管理者は担当者からログインIDを発行し、管理者・一般・閲覧専用を割り当てる。一般は担当者管理を閲覧のみ、閲覧専用は医院ポータル全体の更新系APIを使用できない。</li>
+          <li><strong>セキュリティ：</strong>担当者の無効化・論理削除は関連ログインを自動無効化する。パスワード変更と無効化でセッション世代を更新し、旧セッションを即時失効させる。医院ごとの最後の有効な管理者は変更・無効化できない。</li>
           <li><strong>整合性：</strong>主担当は医院ごとに最大1人、医院内の有効な担当者メールと医院ログイン関連は重複不可。保存・主担当切替・通知設定・履歴はDB関数で1トランザクションにする。</li>
           <li><strong>削除：</strong>物理削除せず<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">deleted_at</code>を設定し、操作履歴を保持する。</li>
           <li><strong>通知：</strong>ウェビナーは担当者設定を優先し、未設定医院だけ従来の医院ログインメールへフォールバックする。</li>

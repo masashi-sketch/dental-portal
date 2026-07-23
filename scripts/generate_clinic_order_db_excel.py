@@ -366,6 +366,39 @@ CURRENT_TABLES = [
             c("論理削除日時", "deleted_at", "timestamptz", nullable="YES"),
             c("作成日時", "created_at", "timestamptz", default="now()"), c("更新日時", "updated_at", "timestamptz", default="now()"),
         ]),
+    TableDefinition("現行", "医院ポータルログイン", "clinic_users", "実装済み・Phase 1",
+        "認証情報とセッション世代を保持する。担当者プロフィールとはclinic_contactsで関連する。", [
+            c("医院ログインID", "id", "uuid", "PK", default="gen_random_uuid()"),
+            c("得意先コード", "customer_code", "text", "FK", constraint="clinics.customer_code ON DELETE CASCADE"),
+            c("ログインID", "login_id", "text", "UK"), c("パスワードハッシュ", "password_hash", "text"),
+            c("表示名", "name", "text", nullable="YES"), c("メールアドレス", "email", "text", nullable="YES"),
+            c("状態", "status", "text", default="有効", constraint="有効 / 無効"),
+            c("作成日時", "created_at", "timestamptz", default="now()"), c("更新日時", "updated_at", "timestamptz", default="now()"),
+            c("ログイン失敗回数", "failed_login_attempts", "integer", default="0"),
+            c("ロック解除日時", "locked_until", "timestamptz", nullable="YES"),
+            c("セッション世代", "session_version", "integer", default="1", constraint="> 0", description="無効化・パスワード変更時に加算し旧セッションを失効"),
+            c("最終ログイン日時", "last_login_at", "timestamptz", nullable="YES"),
+            c("パスワード変更日時", "password_changed_at", "timestamptz", nullable="YES"),
+        ]),
+    TableDefinition("現行", "医院ポータル権限", "clinic_portal_roles", "実装済み・Phase 1",
+        "管理者・一般・閲覧専用の権限マスタ。", [
+            c("権限キー", "role_key", "text", "PK", constraint="admin / staff / viewer"),
+            c("権限名", "label", "text", "UK"), c("説明", "description", "text"), c("表示順", "sort_order", "integer", "UK"),
+            c("作成日時", "created_at", "timestamptz", default="now()"), c("更新日時", "updated_at", "timestamptz", default="now()"),
+        ]),
+    TableDefinition("現行", "医院ポータル権限機能", "clinic_portal_role_permissions", "実装済み・Phase 1",
+        "権限と操作可能な機能を多対多で管理する。", [
+            c("権限キー", "role_key", "text", "PK / FK", constraint="clinic_portal_roles.role_key ON DELETE RESTRICT"),
+            c("機能キー", "permission_key", "text", "PK", constraint="view_contacts / manage_contacts / manage_logins"),
+            c("作成日時", "created_at", "timestamptz", default="now()"),
+        ]),
+    TableDefinition("現行", "医院ログイン権限割当", "clinic_user_role_assignments", "実装済み・Phase 1",
+        "1ログインに1権限を割り当て、認証情報と権限マスタを分離する。", [
+            c("医院ログインID", "clinic_user_id", "uuid", "PK / FK", constraint="clinic_users.id ON DELETE CASCADE"),
+            c("権限キー", "role_key", "text", "FK", constraint="clinic_portal_roles.role_key ON DELETE RESTRICT"),
+            c("割当操作者", "assigned_by", "text", default="system"),
+            c("作成日時", "created_at", "timestamptz", default="now()"), c("更新日時", "updated_at", "timestamptz", default="now()"),
+        ]),
     TableDefinition("現行", "担当者通知設定", "clinic_contact_notification_preferences", "実装済み",
         "担当者ごとの連絡内容と方法を多値属性として分離する。", [
             c("担当者ID", "contact_id", "uuid", "PK / FK", constraint="clinic_contacts.id ON DELETE RESTRICT"),
@@ -379,7 +412,8 @@ CURRENT_TABLES = [
             c("イベントID", "id", "uuid", "PK", default="gen_random_uuid()"),
             c("担当者ID", "contact_id", "uuid", "FK", constraint="clinic_contacts.id ON DELETE RESTRICT"),
             c("イベント種別", "event_type", "text"), c("操作者種別", "actor_type", "text"),
-            c("操作者識別子", "actor_identifier", "text"), c("発生日時", "created_at", "timestamptz", default="now()"),
+            c("操作者識別子", "actor_identifier", "text"), c("追加情報", "metadata", "jsonb", default="{}"),
+            c("発生日時", "created_at", "timestamptz", default="now()"),
         ]),
 ]
 
@@ -578,6 +612,10 @@ EXACT_SCHEMA_TABLES = {
     "clinic_contacts",
     "clinic_contact_notification_preferences",
     "clinic_contact_events",
+    "clinic_users",
+    "clinic_portal_roles",
+    "clinic_portal_role_permissions",
+    "clinic_user_role_assignments",
 }
 
 
@@ -643,6 +681,10 @@ RELATIONSHIPS_CURRENT = [
     ("ウェビナー", "webinars.id", "1", "N", "webinar_events.webinar_id", "ウェビナー操作履歴", "FK・CASCADE"),
     ("医院", "clinics.customer_code", "1", "N", "clinic_contacts.customer_code", "医院業務連絡担当者", "FK・RESTRICT"),
     ("医院ログイン", "clinic_users.id", "1", "0..1", "clinic_contacts.clinic_user_id", "医院業務連絡担当者", "FK・SET NULL"),
+    ("医院", "clinics.customer_code", "1", "N", "clinic_users.customer_code", "医院ポータルログイン", "FK・CASCADE"),
+    ("医院ポータル権限", "clinic_portal_roles.role_key", "1", "N", "clinic_portal_role_permissions.role_key", "権限機能", "PK・FK・RESTRICT"),
+    ("医院ポータルログイン", "clinic_users.id", "1", "0..1", "clinic_user_role_assignments.clinic_user_id", "権限割当", "PK・FK・CASCADE"),
+    ("医院ポータル権限", "clinic_portal_roles.role_key", "1", "N", "clinic_user_role_assignments.role_key", "権限割当", "FK・RESTRICT"),
     ("医院業務連絡担当者", "clinic_contacts.id", "1", "N", "clinic_contact_notification_preferences.contact_id", "担当者通知設定", "PK・FK・RESTRICT"),
     ("医院業務連絡担当者", "clinic_contacts.id", "1", "N", "clinic_contact_events.contact_id", "担当者操作履歴", "FK・RESTRICT"),
 ]
@@ -681,6 +723,8 @@ CONSTRAINTS = [
     ("現行", "UK10", "clinic_contacts", "customer_code WHERE is_primary AND status='active' AND deleted_at IS NULL", "PARTIAL UNIQUE", "医院ごとの有効な主担当を1人に限定。"),
     ("現行", "UK11", "clinic_contacts", "customer_code, lower(email) WHERE deleted_at IS NULL", "PARTIAL UNIQUE", "医院内の担当者メール重複防止。"),
     ("現行", "UK12", "clinic_contacts", "clinic_user_id WHERE deleted_at IS NULL", "PARTIAL UNIQUE", "1ログインと複数担当者の誤関連防止。"),
+    ("現行", "UK13", "clinic_users", "login_id", "UNIQUE", "ログインIDの重複防止。"),
+    ("現行", "UK14", "clinic_users", "email WHERE email IS NOT NULL", "PARTIAL UNIQUE", "パスワード再設定先の重複防止。"),
     ("将来案", "UK1", "commerce_accounts", "provider, external_account_id", "UNIQUE", "外部接続先の重複防止。"),
     ("将来案", "UK2", "patient_fulfillment_items", "fulfillment_id, order_item_id", "UNIQUE", "同一配送への明細重複防止。"),
     ("将来案", "UK3", "patient_subscriptions", "commerce_account_id, external_subscription_id", "UNIQUE", "外部契約の重複防止。"),

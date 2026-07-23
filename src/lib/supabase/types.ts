@@ -311,10 +311,16 @@ export type ClinicUser = {
   updated_at: string;
   failed_login_attempts: number;
   locked_until: string | null;
+  session_version: number;
+  last_login_at: string | null;
+  password_changed_at: string | null;
 };
 
 // クライアントへ返す用（password_hash・ログインロックアウト関連の内部情報を含まない）
 export type ClinicUserPublic = Omit<ClinicUser, 'password_hash' | 'failed_login_attempts' | 'locked_until'>;
+export type ClinicPortalRoleKey = 'admin' | 'staff' | 'viewer';
+export type ClinicPortalPermissionKey = 'view_contacts' | 'manage_contacts' | 'manage_logins';
+export type ClinicUserWithRole = ClinicUserPublic & { role_key: ClinicPortalRoleKey };
 
 // 医院スタッフのパスワード再設定メール用の使い捨てトークン。
 // src/lib/auth/clinicLoginToken.tsのみで扱う（クライアントへは返さない）。
@@ -403,11 +409,11 @@ export const CLINIC_STATUS_COLUMNS = 'id, name, color, created_at, updated_at';
 export const STAFF_AREA_COLUMNS = 'id, name, created_at, updated_at';
 
 export const CLINIC_USER_COLUMNS =
-  'id, customer_code, login_id, password_hash, name, email, status, created_at, updated_at, failed_login_attempts, locked_until';
+  'id, customer_code, login_id, password_hash, name, email, status, created_at, updated_at, failed_login_attempts, locked_until, session_version, last_login_at, password_changed_at';
 
 // クライアントへ返す一覧・詳細用（password_hashを含めない）
 export const CLINIC_USER_PUBLIC_COLUMNS =
-  'id, customer_code, login_id, name, email, status, created_at, updated_at';
+  'id, customer_code, login_id, name, email, status, created_at, updated_at, session_version, last_login_at, password_changed_at';
 
 export const CLINIC_LOGIN_TOKEN_COLUMNS = 'id, clinic_user_id, expires_at, used_at, purpose';
 

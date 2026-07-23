@@ -1,33 +1,33 @@
 'use client';
 
 import { useState } from 'react';
-import type { ClinicContact, ClinicUserPublic } from '@/lib/supabase/types';
+import type { ClinicContact, ClinicPortalRoleKey, ClinicUserWithRole } from '@/lib/supabase/types';
 
 type LoginForm = {
   loginId: string;
   password: string;
   email: string;
   status: '有効' | '無効';
+  roleKey: ClinicPortalRoleKey;
 };
 
 export default function ClinicContactLoginEditor({
-  customerCode,
   contact,
   clinicUser,
   onClose,
   onSaved,
 }: {
-  customerCode: string;
   contact: ClinicContact;
-  clinicUser: ClinicUserPublic | null;
+  clinicUser: ClinicUserWithRole | null;
   onClose: () => void;
-  onSaved: (clinicUser: ClinicUserPublic) => Promise<void>;
+  onSaved: (clinicUser: ClinicUserWithRole) => Promise<void>;
 }) {
   const [form, setForm] = useState<LoginForm>({
     loginId: clinicUser?.login_id ?? '',
     password: '',
     email: clinicUser?.email ?? contact.email ?? '',
     status: clinicUser?.status ?? '有効',
+    roleKey: clinicUser?.role_key ?? 'staff',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,16 +36,14 @@ export default function ClinicContactLoginEditor({
     if (saving) return;
     setSaving(true); setError(null);
     try {
-      const response = await fetch(`/api/bgj/clinics/${encodeURIComponent(customerCode)}/user`, {
-        method: clinicUser ? 'PATCH' : 'POST',
+      const response = await fetch(`/api/admin/clinic-contacts/${contact.id}/login`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(clinicUser
-          ? { id: clinicUser.id, loginId: form.loginId, password: form.password || undefined, name: contact.name, email: form.email, status: form.status }
-          : { loginId: form.loginId, password: form.password, name: contact.name, email: form.email }),
+        body: JSON.stringify({ loginId: form.loginId, password: form.password || undefined, email: form.email, status: form.status, roleKey: form.roleKey }),
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.error ?? 'ログイン情報を保存できませんでした。');
-      await onSaved(body.clinicUser as ClinicUserPublic);
+      await onSaved(body.clinicUser as ClinicUserWithRole);
       onClose();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'ログイン情報を保存できませんでした。');
@@ -64,6 +62,7 @@ export default function ClinicContactLoginEditor({
         <label className="block"><span className="text-sm font-bold text-slate-700">ログインID *</span><input autoComplete="off" value={form.loginId} maxLength={100} onChange={(event) => setForm({ ...form, loginId: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 focus:ring-2 focus:ring-violet-400" /></label>
         <label className="block"><span className="text-sm font-bold text-slate-700">{clinicUser ? '新しいパスワード（変更時のみ）' : '初期パスワード *'}</span><input type="password" autoComplete="new-password" value={form.password} maxLength={128} onChange={(event) => setForm({ ...form, password: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 focus:ring-2 focus:ring-violet-400" /><span className="mt-1 block text-xs text-slate-400">8〜128文字。保存後にパスワードを表示することはできません。</span></label>
         <label className="block"><span className="text-sm font-bold text-slate-700">パスワード再設定用メール</span><input type="email" value={form.email} maxLength={254} onChange={(event) => setForm({ ...form, email: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 focus:ring-2 focus:ring-violet-400" /></label>
+        <label className="block"><span className="text-sm font-bold text-slate-700">権限区分</span><select value={form.roleKey} onChange={(event) => setForm({ ...form, roleKey: event.target.value as ClinicPortalRoleKey })} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3"><option value="admin">管理者</option><option value="staff">一般</option><option value="viewer">閲覧専用</option></select><span className="mt-1 block text-xs text-slate-400">担当者とログインを管理できるのは管理者だけです。</span></label>
         {clinicUser && <label className="block"><span className="text-sm font-bold text-slate-700">ログイン状態</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as LoginForm['status'] })} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3"><option value="有効">有効</option><option value="無効">無効</option></select></label>}
         <div className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">ログインIDはこの担当者に関連付けて管理します。担当者の業務連絡用メールと、ログインのパスワード再設定用メールは用途を分離したまま保持します。</div>
       </div>

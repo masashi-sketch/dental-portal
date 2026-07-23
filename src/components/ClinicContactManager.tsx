@@ -5,9 +5,10 @@ import LoadingState from '@/components/ui/LoadingState';
 import ClinicContactLoginEditor from '@/components/ClinicContactLoginEditor';
 import { useToast } from '@/hooks/useToast';
 import { CLINIC_CONTACT_TOPIC_OPTIONS } from '@/lib/clinicContacts/topics';
-import type { ClinicContact, ClinicContactChannel, ClinicContactTopic, ClinicUserPublic } from '@/lib/supabase/types';
+import type { ClinicContact, ClinicContactChannel, ClinicContactTopic, ClinicUserWithRole } from '@/lib/supabase/types';
 
 const TOPICS = CLINIC_CONTACT_TOPIC_OPTIONS;
+const ROLE_LABEL = { admin: '管理者', staff: '一般', viewer: '閲覧専用' } as const;
 type Form = {
   id: string | null; version: number; clinicUserId: string; name: string; department: string;
   title: string; email: string; phone: string; isPrimary: boolean; status: 'active' | 'inactive';
@@ -20,10 +21,10 @@ const THEMES = {
   violet: { main: 'bg-violet-600 hover:bg-violet-500', text: 'text-violet-700', pale: 'bg-violet-50 border-violet-100', toast: 'bg-violet-600', ring: 'focus:ring-violet-400' },
 } as const;
 
-export default function ClinicContactManager({ customerCode, theme = 'sky', manageLogins = false }: { customerCode?: string; theme?: 'sky' | 'violet'; manageLogins?: boolean }) {
+export default function ClinicContactManager({ customerCode, theme = 'sky', manageLogins = false, canEdit = true }: { customerCode?: string; theme?: 'sky' | 'violet'; manageLogins?: boolean; canEdit?: boolean }) {
   const t = THEMES[theme];
   const [contacts, setContacts] = useState<ClinicContact[]>([]);
-  const [clinicUsers, setClinicUsers] = useState<ClinicUserPublic[]>([]);
+  const [clinicUsers, setClinicUsers] = useState<ClinicUserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Form | null>(null);
@@ -87,37 +88,22 @@ export default function ClinicContactManager({ customerCode, theme = 'sky', mana
     setForm({ ...form, [channel]: checked ? [...form[channel], topic] : form[channel].filter((item) => item !== topic) });
   };
 
-  const linkLoginToContact = async (contact: ClinicContact, clinicUser: ClinicUserPublic) => {
-    if (contact.clinic_user_id !== clinicUser.id) {
-      const enabled = (topic: ClinicContactTopic, channel: ClinicContactChannel) => contact.preferences.some((preference) => preference.topic === topic && preference.channel === channel && preference.enabled);
-      const response = await fetch(`/api/admin/clinic-contacts/${contact.id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: contact.id, version: contact.version, clinicUserId: clinicUser.id, name: contact.name,
-          department: contact.department ?? '', title: contact.title ?? '', email: contact.email ?? '', phone: contact.phone ?? '',
-          isPrimary: contact.is_primary, status: contact.status, notes: contact.notes ?? '',
-          emailTopics: TOPICS.filter(({ key }) => enabled(key, 'email')).map(({ key }) => key),
-          phoneTopics: TOPICS.filter(({ key }) => enabled(key, 'phone')).map(({ key }) => key), customerCode,
-        }),
-      });
-      const body = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(`ログインは発行されましたが、担当者との関連付けに失敗しました。${body?.error ?? ''}`);
-    }
+  const linkLoginToContact = async (contact: ClinicContact) => {
     showToast(contact.clinic_user_id ? 'ログイン情報を更新しました' : 'ログインを発行して担当者に関連付けました');
     await load();
   };
 
   return <div>
     {toast && <div className={`fixed left-1/2 top-5 z-50 -translate-x-1/2 rounded-2xl px-5 py-3 text-white shadow-xl ${t.toast}`}>{toast}</div>}
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-bold text-slate-800">医院担当者</h2><p className="mt-1 text-xs leading-relaxed text-slate-500">医院の代表電話やログイン情報とは別に、業務連絡を受け取る担当者を管理します。</p></div><button type="button" onClick={() => setForm(emptyForm())} className={`rounded-xl px-4 py-2.5 text-sm font-bold text-white ${t.main}`}>＋ 担当者を追加</button></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-bold text-slate-800">医院担当者</h2><p className="mt-1 text-xs leading-relaxed text-slate-500">医院のスタッフ情報と個人用ログインを管理します。</p></div>{canEdit && <button type="button" onClick={() => setForm(emptyForm())} className={`rounded-xl px-4 py-2.5 text-sm font-bold text-white ${t.main}`}>＋ 担当者を追加</button>}</div>
     {error && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
     {loading ? <div className="py-16"><LoadingState /></div> : <div className="mt-4 grid gap-3 lg:grid-cols-2">{contacts.map((contact) => {
       const enabledTopics = TOPICS.filter(({ key }) => contact.preferences.some((preference) => preference.topic === key && preference.enabled));
       return <article key={contact.id} className={`rounded-2xl border bg-white p-4 shadow-sm ${contact.status === 'inactive' ? 'border-slate-200 opacity-70' : contact.is_primary ? t.pale : 'border-slate-200'}`}>
-        <div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold text-slate-800">{contact.name}</h3>{contact.is_primary && <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${t.pale} ${t.text}`}>主担当</span>}{contact.status === 'inactive' && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500">無効</span>}</div><p className="mt-1 text-xs text-slate-500">{[contact.department, contact.title].filter(Boolean).join('・') || '部署・役職未設定'}</p></div><div className="flex gap-1"><button type="button" onClick={() => openEdit(contact)} className={`rounded-lg px-2 py-1 text-xs font-bold ${t.text}`}>編集</button><button type="button" disabled={saving} onClick={() => void remove(contact)} className="rounded-lg px-2 py-1 text-xs font-bold text-red-600 disabled:opacity-50">削除</button></div></div>
-        <dl className="mt-4 space-y-2 text-sm"><div className="flex gap-2"><dt className="w-14 shrink-0 text-xs text-slate-400">メール</dt><dd className="break-all text-slate-700">{contact.email || '—'}</dd></div><div className="flex gap-2"><dt className="w-14 shrink-0 text-xs text-slate-400">電話</dt><dd className="text-slate-700">{contact.phone || '—'}</dd></div><div className="flex gap-2"><dt className="w-14 shrink-0 text-xs text-slate-400">ログイン</dt><dd className="text-slate-700">{contact.clinic_user_id ? `${userMap.get(contact.clinic_user_id)?.login_id ?? '関連あり'}（${userMap.get(contact.clinic_user_id)?.status ?? '状態不明'}）` : '未発行'}</dd></div></dl>
+        <div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold text-slate-800">{contact.name}</h3>{contact.is_primary && <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${t.pale} ${t.text}`}>主担当</span>}{contact.status === 'inactive' && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500">無効</span>}</div><p className="mt-1 text-xs text-slate-500">{[contact.department, contact.title].filter(Boolean).join('・') || '部署・役職未設定'}</p></div>{canEdit && <div className="flex gap-1"><button type="button" onClick={() => openEdit(contact)} className={`rounded-lg px-2 py-1 text-xs font-bold ${t.text}`}>編集</button><button type="button" disabled={saving} onClick={() => void remove(contact)} className="rounded-lg px-2 py-1 text-xs font-bold text-red-600 disabled:opacity-50">削除</button></div>}</div>
+        <dl className="mt-4 space-y-2 text-sm"><div className="flex gap-2"><dt className="w-20 shrink-0 text-xs text-slate-400">メール</dt><dd className="break-all text-slate-700">{contact.email || '—'}</dd></div><div className="flex gap-2"><dt className="w-20 shrink-0 text-xs text-slate-400">電話</dt><dd className="text-slate-700">{contact.phone || '—'}</dd></div><div className="flex gap-2"><dt className="w-20 shrink-0 text-xs text-slate-400">ログイン</dt><dd className="text-slate-700">{contact.clinic_user_id ? `${userMap.get(contact.clinic_user_id)?.login_id ?? '関連あり'}（${userMap.get(contact.clinic_user_id)?.status ?? '状態不明'}）` : '未発行'}</dd></div>{contact.clinic_user_id && <><div className="flex gap-2"><dt className="w-20 shrink-0 text-xs text-slate-400">権限</dt><dd className="text-slate-700">{ROLE_LABEL[userMap.get(contact.clinic_user_id)?.role_key ?? 'staff']}</dd></div><div className="flex gap-2"><dt className="w-20 shrink-0 text-xs text-slate-400">最終ログイン</dt><dd className="text-slate-700">{userMap.get(contact.clinic_user_id)?.last_login_at ? new Intl.DateTimeFormat('ja-JP', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(userMap.get(contact.clinic_user_id)!.last_login_at!)) : '未ログイン'}</dd></div></>}</dl>
         <div className="mt-3 flex flex-wrap gap-1.5">{enabledTopics.map(({ key, label }) => <span key={key} className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">{label}</span>)}{enabledTopics.length === 0 && <span className="text-xs text-slate-400">通知設定なし</span>}</div>
-        {manageLogins && customerCode && <button type="button" onClick={() => setLoginContact(contact)} className="mt-3 rounded-lg border border-violet-200 px-3 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-50">{contact.clinic_user_id ? 'ログイン情報を管理' : 'ログインIDを発行'}</button>}
+        {manageLogins && canEdit && <button type="button" onClick={() => setLoginContact(contact)} className={`mt-3 rounded-lg border px-3 py-1.5 text-xs font-bold ${theme === 'violet' ? 'border-violet-200 text-violet-700 hover:bg-violet-50' : 'border-sky-200 text-sky-700 hover:bg-sky-50'}`}>{contact.clinic_user_id ? 'ログイン情報を管理' : 'ログインIDを発行'}</button>}
       </article>;
     })}{contacts.length === 0 && <div className="col-span-full rounded-2xl border border-dashed border-slate-300 py-16 text-center text-sm text-slate-400">担当者はまだ登録されていません</div>}</div>}
 
@@ -129,6 +115,6 @@ export default function ClinicContactManager({ customerCode, theme = 'sky', mana
       <section><h3 className="text-sm font-bold text-slate-700">連絡内容と方法</h3><div className="mt-2 overflow-hidden rounded-xl border border-slate-200"><div className="grid grid-cols-[1fr_80px_80px] bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500"><span>内容</span><span className="text-center">メール</span><span className="text-center">電話</span></div>{TOPICS.map(({ key, label }) => <div key={key} className="grid grid-cols-[1fr_80px_80px] items-center border-t border-slate-100 px-3 py-2.5 text-sm"><span className="text-slate-700">{label}</span><input aria-label={`${label}をメール`} type="checkbox" disabled={!form.email} checked={form.emailTopics.includes(key)} onChange={(e) => toggleTopic('emailTopics', key, e.target.checked)} /><input aria-label={`${label}を電話`} type="checkbox" disabled={!form.phone} checked={form.phoneTopics.includes(key)} onChange={(e) => toggleTopic('phoneTopics', key, e.target.checked)} /></div>)}</div><p className="mt-1 text-xs text-slate-400">現在の自動送信対象はウェビナーのメール通知です。その他は連絡先の分類として利用します。</p></section>
       <label className="block"><span className="text-sm font-bold text-slate-700">備考</span><textarea value={form.notes} maxLength={1000} rows={3} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" /></label>
     </div><footer className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4"><button type="button" onClick={() => !saving && setForm(null)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600">キャンセル</button><button type="button" disabled={saving} onClick={() => void save()} className={`rounded-xl px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50 ${t.main}`}>{saving ? '保存中…' : '保存する'}</button></footer></section></div>}
-    {loginContact && customerCode && <ClinicContactLoginEditor customerCode={customerCode} contact={loginContact} clinicUser={loginContact.clinic_user_id ? userMap.get(loginContact.clinic_user_id) ?? null : null} onClose={() => setLoginContact(null)} onSaved={(clinicUser) => linkLoginToContact(loginContact, clinicUser)} />}
+    {loginContact && <ClinicContactLoginEditor contact={loginContact} clinicUser={loginContact.clinic_user_id ? userMap.get(loginContact.clinic_user_id) ?? null : null} onClose={() => setLoginContact(null)} onSaved={() => linkLoginToContact(loginContact)} />}
   </div>;
 }

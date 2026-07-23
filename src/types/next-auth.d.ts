@@ -1,4 +1,5 @@
 import type { DefaultSession } from "next-auth";
+import type { ClinicPortalPermissionKey, ClinicPortalRoleKey } from "@/lib/supabase/types";
 
 declare module "next-auth" {
   interface Session {
@@ -6,6 +7,10 @@ declare module "next-auth" {
       role: "bgj" | "clinic" | "patient";
       customerCode: string | null;
       patientId: string | null;
+      clinicRole: ClinicPortalRoleKey | null;
+      clinicPermissions: ClinicPortalPermissionKey[];
+      clinicSessionVersion: number | null;
+      accountDisabled: boolean;
     };
   }
 }
@@ -15,5 +20,9 @@ declare module "next-auth/jwt" {
     role?: "bgj" | "clinic" | "patient";
     customerCode?: string | null;
     patientId?: string | null;
+    clinicRole?: ClinicPortalRoleKey | null;
+    clinicPermissions?: ClinicPortalPermissionKey[];
+    clinicSessionVersion?: number | null;
+    accountDisabled?: boolean;
   }
 }

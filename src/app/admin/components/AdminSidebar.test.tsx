@@ -50,7 +50,7 @@ describe('AdminSidebar 外部リンク（LINKS）', () => {
   it('クリニック情報から担当者情報を開ける', async () => {
     fetchMock.mockResolvedValue(jsonResponse({ externalLinks: [] }));
     render(<AdminSidebar active="clinicContacts" />);
-    const links = await screen.findAllByRole('link', { name: '担当者情報' });
+    const links = await screen.findAllByRole('link', { name: '担当者管理一覧' });
     expect(links[0]).toHaveAttribute('href', '/admin/clinic-info/contacts');
   });
 

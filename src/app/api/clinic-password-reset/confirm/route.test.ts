@@ -4,18 +4,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const updateSpy = vi.fn();
+const rpcSpy = vi.fn(async (name: string, params: Record<string, unknown>) => {
+  void name; void params;
+  return { error: null };
+});
 vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServerClient: () => ({
-    from: (table: string) => {
-      if (table !== 'clinic_users') throw new Error(`unexpected table: ${table}`);
-      return {
-        update: (patch: Record<string, unknown>) => {
-          updateSpy(patch);
-          return { eq: async () => ({ error: null }) };
-        },
-      };
-    },
+    rpc: rpcSpy,
   }),
 }));
 
@@ -35,7 +30,8 @@ function confirmRequest(body: Record<string, unknown>) {
 
 describe('POST /api/clinic-password-reset/confirm', () => {
   beforeEach(() => {
-    updateSpy.mockClear();
+    rpcSpy.mockClear();
+    rpcSpy.mockResolvedValue({ error: null });
     consumeClinicLoginTokenMock.mockClear();
     consumeClinicLoginTokenMock.mockResolvedValue(null);
   });
@@ -43,7 +39,7 @@ describe('POST /api/clinic-password-reset/confirm', () => {
   it('必須項目が不足していれば400', async () => {
     const res = await POST(confirmRequest({ token: 'tok' }));
     expect(res.status).toBe(400);
-    expect(updateSpy).not.toHaveBeenCalled();
+    expect(rpcSpy).not.toHaveBeenCalled();
   });
 
   it('パスワードが8文字未満なら400（トークン検証前に弾く）', async () => {
@@ -55,16 +51,19 @@ describe('POST /api/clinic-password-reset/confirm', () => {
   it('無効・期限切れトークンなら400で、パスワードは更新しない', async () => {
     const res = await POST(confirmRequest({ token: 'bad-token', password: 'password123' }));
     expect(res.status).toBe(400);
-    expect(updateSpy).not.toHaveBeenCalled();
+    expect(rpcSpy).not.toHaveBeenCalled();
   });
 
   it('有効なトークンならパスワードをハッシュ化して更新する', async () => {
     consumeClinicLoginTokenMock.mockResolvedValue({ clinicUserId: 'clinic-user-1' });
     const res = await POST(confirmRequest({ token: 'good-token', password: 'password123' }));
     expect(res.status).toBe(200);
-    expect(updateSpy).toHaveBeenCalledTimes(1);
-    const patch = updateSpy.mock.calls[0][0] as { password_hash: string };
-    expect(patch.password_hash).toBeDefined();
-    expect(patch.password_hash).not.toContain('password123');
+    expect(rpcSpy).toHaveBeenCalledTimes(1);
+    expect(rpcSpy).toHaveBeenCalledWith('set_clinic_user_password', expect.objectContaining({
+      p_clinic_user_id: 'clinic-user-1',
+    }));
+    const params = rpcSpy.mock.calls[0][1] as { p_password_hash: string };
+    expect(params.p_password_hash).toBeDefined();
+    expect(params.p_password_hash).not.toContain('password123');
   });
 });

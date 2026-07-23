@@ -6,7 +6,7 @@ import { CLINIC_USER_COLUMNS, PATIENT_COLUMNS } from "@/lib/supabase/types";
 import { verifyPassword } from "@/lib/auth/password";
 import { isLocked, recordFailedLoginAttempt, resetLoginAttempts } from "@/lib/auth/loginLockout";
 import { consumeLoginToken } from "@/lib/auth/loginToken";
-import type { ClinicUser, Patient } from "@/lib/supabase/types";
+import type { ClinicPortalPermissionKey, ClinicPortalRoleKey, ClinicUser, Patient } from "@/lib/supabase/types";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -44,12 +44,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (data.failed_login_attempts > 0 || data.locked_until) {
           await resetLoginAttempts(supabase, "clinic_users", data.id);
         }
+        const { data: sessionRows } = await supabase.rpc("get_clinic_session_state", {
+          p_clinic_user_id: data.id,
+        }) as { data: Array<{
+          role_key: ClinicPortalRoleKey;
+          permissions: ClinicPortalPermissionKey[];
+        }> | null };
+        const clinicAccess = sessionRows?.[0];
+        await supabase.from("clinic_users").update({ last_login_at: new Date().toISOString() }).eq("id", data.id);
 
         return {
           id: data.id,
           name: data.name ?? data.login_id,
           role: "clinic" as const,
           customerCode: data.customer_code,
+          clinicRole: clinicAccess?.role_key ?? "admin",
+          clinicPermissions: clinicAccess?.permissions ?? ['view_contacts', 'manage_contacts', 'manage_logins'],
+          clinicSessionVersion: data.session_version,
         };
       },
     }),
@@ -143,6 +154,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = (user as { role?: "clinic" | "patient" }).role ?? "bgj";
         token.customerCode = (user as { customerCode?: string }).customerCode ?? null;
         token.patientId = (user as { patientId?: string }).patientId ?? null;
+        token.clinicRole = (user as { clinicRole?: ClinicPortalRoleKey }).clinicRole ?? null;
+        token.clinicPermissions = (user as { clinicPermissions?: ClinicPortalPermissionKey[] }).clinicPermissions ?? [];
+        token.clinicSessionVersion = (user as { clinicSessionVersion?: number }).clinicSessionVersion ?? null;
+        token.accountDisabled = false;
+      } else if (token.role === "clinic" && token.sub) {
+        const supabase = getSupabaseServerClient();
+        const { data: sessionRows } = await supabase.rpc("get_clinic_session_state", {
+          p_clinic_user_id: token.sub,
+        }) as { data: Array<{
+          status: "有効" | "無効";
+          session_version: number;
+          role_key: ClinicPortalRoleKey;
+          permissions: ClinicPortalPermissionKey[];
+        }> | null };
+        const clinicUser = sessionRows?.[0];
+        token.accountDisabled = !clinicUser || clinicUser.status !== "有効"
+          || clinicUser.session_version !== token.clinicSessionVersion;
+        token.clinicRole = clinicUser?.role_key ?? "admin";
+        token.clinicPermissions = clinicUser?.permissions ?? [];
       }
       return token;
     },
@@ -150,6 +180,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.role = (token.role as "bgj" | "clinic" | "patient") ?? "bgj";
       session.user.customerCode = (token.customerCode as string | null) ?? null;
       session.user.patientId = (token.patientId as string | null) ?? null;
+      session.user.clinicRole = (token.clinicRole as ClinicPortalRoleKey | null) ?? null;
+      session.user.clinicPermissions = (token.clinicPermissions as ClinicPortalPermissionKey[] | undefined) ?? [];
+      session.user.clinicSessionVersion = (token.clinicSessionVersion as number | null) ?? null;
+      session.user.accountDisabled = Boolean(token.accountDisabled);
       return session;
     },
     async redirect({ url, baseUrl }) {

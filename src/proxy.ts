@@ -52,6 +52,13 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   if (isClinicPasswordResetApiPath) return NextResponse.next();
   if (isSharedExternalLinksGet) return NextResponse.next();
 
+  if (req.auth?.user?.accountDisabled) {
+    if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Session expired' }, { status: 401 });
+    const response = NextResponse.redirect(new URL('/clinic-login?reason=session-expired', req.url));
+    response.cookies.delete('portal-selected');
+    return response;
+  }
+
   const role = req.auth?.user?.role;
   const isPatientPortalPath = PATIENT_PORTAL_PATHS.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
@@ -93,6 +100,13 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   const isBgjPath = pathIs(pathname, "/bgj") || pathIs(pathname, "/api/bgj");
   if (role === "clinic" && isBgjPath) {
     return NextResponse.redirect(new URL("/admin", req.url));
+  }
+
+  // 閲覧専用ロールは医院ポータル全体の更新APIを一括で拒否する。
+  // 個別Routeの認可と併用し、新規APIの権限チェック漏れも防ぐ。
+  if (role === "clinic" && req.auth?.user?.clinicRole === "viewer"
+    && pathIs(pathname, "/api/admin") && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    return NextResponse.json({ error: '閲覧専用アカウントでは更新できません。' }, { status: 403 });
   }
 
   return NextResponse.next();

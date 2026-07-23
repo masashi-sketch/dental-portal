@@ -91,7 +91,7 @@ const navItems: (LinkNavItem | GroupNavItem)[] = [
       { key: 'clinicContract', label: '医院契約情報', href: '/admin/clinic-info/contract' },
       { key: 'clinicConfig',   label: '医院設定情報', href: '/admin/clinic-info/config' },
       { key: 'clinicQr',       label: 'QR設定',       href: '/admin/clinic-info/qr' },
-      { key: 'clinicContacts', label: '担当者情報',   href: '/admin/clinic-info/contacts' },
+      { key: 'clinicContacts', label: '担当者管理一覧', href: '/admin/clinic-info/contacts' },
     ],
   },
   { type: 'link',  key: 'news',       label: 'お知らせ管理',     href: '/admin/news',        icon: <IconBell />, dividerBefore: true },
