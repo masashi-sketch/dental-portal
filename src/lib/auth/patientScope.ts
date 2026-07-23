@@ -1,5 +1,6 @@
 import 'server-only';
 import type { Session } from 'next-auth';
+import { PORTAL_COOKIE } from '@/lib/portalCookies';
 import { cookies } from 'next/headers';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -20,7 +21,7 @@ export async function resolveEffectivePatientId(
 
   if (session.user.role === 'clinic' || session.user.role === 'bgj') {
     const cookieStore = await cookies();
-    const previewId = cookieStore.get('demo-patient-id')?.value ?? null;
+    const previewId = cookieStore.get(PORTAL_COOKIE.patientPreviewId)?.value ?? null;
     if (!previewId) return null;
 
     if (session.user.role === 'bgj') return previewId;
@@ -52,7 +53,7 @@ export async function resolveEffectiveCustomerCode(
 
   if (session.user.role === 'bgj') {
     const cookieStore = await cookies();
-    const previewId = cookieStore.get('demo-patient-id')?.value ?? null;
+    const previewId = cookieStore.get(PORTAL_COOKIE.patientPreviewId)?.value ?? null;
     if (!previewId) return null;
     const { data } = await supabase
       .from('patients')

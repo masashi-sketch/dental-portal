@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { signOut } from 'next-auth/react';
+import { preparePortalLogout } from '@/lib/client/portalState';
 
 export default function ClinicChangePasswordPage() {
   const [password, setPassword] = useState('');
@@ -22,7 +23,7 @@ export default function ClinicChangePasswordPage() {
       setSaving(false);
       return;
     }
-    document.cookie = 'portal-selected=; path=/; max-age=0; SameSite=Lax';
+    preparePortalLogout();
     await signOut({ callbackUrl: '/clinic-login?reason=password-changed' });
   };
 
@@ -40,4 +41,3 @@ export default function ClinicChangePasswordPage() {
     </section>
   </main>;
 }
-

@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useSession } from 'next-auth/react';
 import type { Clinic, ClinicIntroInfo, ClinicPatientSettings, SalesRepWithMaster } from '@/lib/supabase/types';
 import { effectiveAdminCustomerCode } from '@/lib/auth/effectiveAdminCustomerCode';
-import { requestClinicInfo } from '@/lib/client/clinicInfoRequest';
+import { requestClinicInfo, updateClinicInfoRequestCache } from '@/lib/client/clinicInfoRequest';
 
 // APIレスポンスはclinics・clinic_patient_settings・clinic_intro_infoを
 // フラットにマージした1つのオブジェクトを返すため、型もそれに合わせて合成する。
@@ -27,7 +28,7 @@ export function useClinicInfo(onLoad?: (clinic: ClinicWithStaff | null) => void)
   // ビューモードでは「見えるが自己編集はできない」状態になる。
   const customerCode = effectiveAdminCustomerCode(session) ?? '';
 
-  const [clinic, setClinic] = useState<ClinicWithStaff | null>(null);
+  const [clinic, setClinicState] = useState<ClinicWithStaff | null>(null);
   const [loaded, setLoaded] = useState(false);
   const onLoadRef = useRef(onLoad);
   useEffect(() => {
@@ -40,13 +41,21 @@ export function useClinicInfo(onLoad?: (clinic: ClinicWithStaff | null) => void)
     requestClinicInfo(customerCode)
       .then((next) => {
         if (cancelled) return;
-        setClinic(next);
+        setClinicState(next);
         onLoadRef.current?.(next);
       })
-      .catch(() => { if (!cancelled) setClinic(null); })
+      .catch(() => { if (!cancelled) setClinicState(null); })
       .finally(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
   }, [sessionStatus, customerCode]);
+
+  const setClinic: Dispatch<SetStateAction<ClinicWithStaff | null>> = useCallback((action) => {
+    setClinicState((previous) => {
+      const next = typeof action === 'function' ? action(previous) : action;
+      if (customerCode) updateClinicInfoRequestCache(customerCode, next);
+      return next;
+    });
+  }, [customerCode]);
 
   return { sessionStatus, isClinicRole, customerCode, clinic, setClinic, loaded };
 }

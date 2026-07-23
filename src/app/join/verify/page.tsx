@@ -5,8 +5,10 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { signIn, getSession } from 'next-auth/react';
 import Link from 'next/link';
+import { markPortalSelected, resetTransientPortalState } from '@/lib/client/portalState';
+import { PORTAL_COOKIE } from '@/lib/portalCookies';
 
-const LAST_CLINIC_COOKIE = 'patient-last-clinic';
+const LAST_CLINIC_COOKIE = PORTAL_COOKIE.lastClinic;
 
 // 初回登録メール本文のリンクからのワンクリックログイン専用ページ。
 // トークンはpatients.login_idやsignup_slugと違い、この1ページでしか使わない
@@ -27,7 +29,8 @@ function VerifyContent() {
         setStatus('error');
         return;
       }
-      document.cookie = 'portal-selected=true; path=/; SameSite=Lax';
+      resetTransientPortalState();
+      markPortalSelected();
       const session = await getSession();
       if (session?.user?.customerCode) {
         document.cookie = `${LAST_CLINIC_COOKIE}=${encodeURIComponent(session.user.customerCode)}; path=/; max-age=31536000; SameSite=Lax`;

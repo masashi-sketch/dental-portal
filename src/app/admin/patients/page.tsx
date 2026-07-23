@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
+import { beginPatientPreview } from '@/lib/client/portalState';
 import { useSignupPinRegenerate } from '@/hooks/useSignupPinRegenerate';
 import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { formatTimestampCompact } from '@/lib/formatTimestamp';
@@ -166,7 +167,7 @@ export default function AdminPatientsPage() {
   };
 
   const previewAsPatient = (id: string) => {
-    document.cookie = `demo-patient-id=${id}; path=/; max-age=86400; SameSite=Lax`;
+    beginPatientPreview(id);
     window.open('/medication', '_blank');
   };
 

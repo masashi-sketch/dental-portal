@@ -7,6 +7,7 @@ import SalesRepAvatar from '@/components/SalesRepAvatar';
 import { useActiveClinic } from '@/hooks/useActiveClinic';
 import type { ExternalLink, SalesRepWithMaster } from '@/lib/supabase/types';
 import { requestExternalLinks } from '@/lib/client/externalLinksRequest';
+import { preparePortalLogout } from '@/lib/client/portalState';
 
 export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'webinars' | 'clinicContract' | 'clinicConfig' | 'clinicQr' | 'clinicContacts' | 'clinicIntro' | 'clinicQa' | 'inquiry';
 
@@ -396,7 +397,7 @@ export default function AdminSidebar({ active }: { active: AdminPage }) {
         </div>
       </div>
       <button
-        onClick={() => { onNavClick?.(); document.cookie = "portal-selected=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/"; signOut({ callbackUrl: '/auth/signin' }); }}
+        onClick={() => { onNavClick?.(); preparePortalLogout(); signOut({ callbackUrl: '/auth/signin' }); }}
         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-sky-100/80 hover:bg-sky-800/50 hover:text-white transition-colors"
       >
         <IconLogout />ログアウト

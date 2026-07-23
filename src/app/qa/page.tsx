@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import PatientSidebarNav, { IconLogout, IconQA } from '@/components/PatientSidebarNav';
-import PreviewModeBanner from '@/components/PreviewModeBanner';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import type { ClinicQa } from '@/lib/supabase/types';
 
@@ -89,7 +88,6 @@ export default function QAPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 pb-20 md:pb-0">
 
-      <PreviewModeBanner />
 
       {/* アナウンスバー */}
       <div className="bg-[#F0F7FF] text-[#2563EB] text-xs text-center py-2 px-4">

@@ -1,5 +1,5 @@
 import type { Session } from 'next-auth';
-import { readBgjViewingCustomerCode } from '@/lib/bgjViewingCustomerCode';
+import { readPortalCookieState } from '@/lib/client/portalState';
 
 // 医院用ポータル（/admin/*）を「今どの得意先として見るか」を、クライアント側で
 // 一箇所に解決する。clinicロールは常に自院のcustomerCode、BGJ職員は得意先詳細の
@@ -7,6 +7,6 @@ import { readBgjViewingCustomerCode } from '@/lib/bgjViewingCustomerCode';
 // （無ければビュー対象なしなのでnull）を使う。patientロール等はnull。
 export function effectiveAdminCustomerCode(session: Session | null | undefined): string | null {
   if (session?.user?.role === 'clinic') return session.user.customerCode ?? null;
-  if (session?.user?.role === 'bgj') return readBgjViewingCustomerCode();
+  if (session?.user?.role === 'bgj') return readPortalCookieState().clinicPreviewCustomerCode;
   return null;
 }

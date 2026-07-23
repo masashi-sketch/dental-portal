@@ -5,10 +5,7 @@ import { getSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { rememberLoginClinic, useLoginClinicBranding } from '@/hooks/useLoginClinicBranding';
-
-function setPortalCookie() {
-  document.cookie = 'portal-selected=true; path=/; SameSite=Lax';
-}
+import { markPortalSelected, resetTransientPortalState } from '@/lib/client/portalState';
 
 export default function ClinicLoginPage() {
   const [loginId, setLoginId] = useState('');
@@ -38,7 +35,8 @@ export default function ClinicLoginPage() {
       return;
     }
 
-    setPortalCookie();
+    resetTransientPortalState();
+    markPortalSelected();
     const session = await getSession();
     if (session?.user?.customerCode) rememberLoginClinic(session.user.customerCode);
     router.push(session?.user?.clinicMustChangePassword ? '/clinic-change-password' : '/admin');

@@ -1,4 +1,4 @@
-import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   // Next.jsがワークスペースルートをホームディレクトリ全体と誤検出することがある
   // （その場合、初回リクエストの応答が極端に遅くなる/固まる）。明示的にこの
   // プロジェクトのディレクトリをルートに固定する。
-  outputFileTracingRoot: path.join(__dirname),
+  outputFileTracingRoot: fileURLToPath(new URL(".", import.meta.url)),
 };
 
 // SENTRY_AUTH_TOKENが無い場合はソースマップアップロードをスキップする

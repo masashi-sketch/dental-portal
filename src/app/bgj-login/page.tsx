@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { markPortalSelected, resetTransientPortalState } from '@/lib/client/portalState';
 
 // このページは/auth/signinでBGJポータルを選んだ場合のGoogle OAuth完了後の
 // 着地点として使われる（callbackUrl: "/bgj-login"）。以前はスタッフID・パスワードの
@@ -53,7 +54,11 @@ export default function BgjLoginPage() {
                 <span className="font-semibold">@biogaia.jp</span> のGoogleアカウントでログインしてください
               </p>
               <button
-                onClick={() => signIn('google', { callbackUrl: '/bgj/dashboard' })}
+                onClick={() => {
+                  resetTransientPortalState();
+                  markPortalSelected();
+                  signIn('google', { callbackUrl: '/bgj/dashboard' });
+                }}
                 className="w-full bg-violet-500 hover:bg-violet-400 text-white py-3 rounded-xl font-bold transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24">

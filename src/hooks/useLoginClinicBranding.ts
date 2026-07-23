@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { PORTAL_COOKIE } from '@/lib/portalCookies';
 
 export const DEFAULT_LOGIN_CLINIC_NAME = 'デンタルポータル';
 export const DEFAULT_LOGIN_BACKGROUND = '/patient-login-bg.jpg';
-export const LAST_CLINIC_COOKIE = 'patient-last-clinic';
+export const LAST_CLINIC_COOKIE = PORTAL_COOKIE.lastClinic;
 
 function readCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));

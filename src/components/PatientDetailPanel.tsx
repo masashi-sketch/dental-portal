@@ -7,6 +7,7 @@ import type { PatientPublic, PeriodontalDiagnosisWithMaster, PeriodontalGrade, P
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { requestClinicInfo } from '@/lib/client/clinicInfoRequest';
+import { beginPatientPreview } from '@/lib/client/portalState';
 
 type DiagnosisForm = {
   stageCode: string;
@@ -100,7 +101,7 @@ export default function PatientDetailPanel({
   }, [patient?.customer_code]);
 
   const previewAsPatient = () => {
-    document.cookie = `demo-patient-id=${id}; path=/; max-age=86400; SameSite=Lax`;
+    beginPatientPreview(id);
     window.open('/medication', '_blank');
   };
 

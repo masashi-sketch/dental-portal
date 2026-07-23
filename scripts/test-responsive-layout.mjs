@@ -37,7 +37,13 @@ async function verifyViewport(browser, sessionCookie, viewport) {
   try {
     await page.goto(`${BASE_URL}/admin/dashboard`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.locator('[data-app-ready="true"]').waitFor({ state: 'visible', timeout: 20_000 });
-    await page.getByTestId('admin-dashboard-content').waitFor({ state: 'visible' });
+    await Promise.all([
+      page.getByTestId('admin-dashboard-content').waitFor({ state: 'visible' }),
+      page.getByTestId('admin-desktop-sidebar').waitFor({ state: 'attached' }),
+      page.getByTestId('admin-compact-header').waitFor({ state: 'attached' }),
+      page.getByTestId('admin-stat-grid').waitFor({ state: 'attached' }),
+      page.getByTestId('sales-rep-contact-trigger').waitFor({ state: 'attached' }),
+    ]);
 
     const layout = await page.evaluate(() => {
       const desktopSidebar = document.querySelector('[data-testid="admin-desktop-sidebar"]');
@@ -104,6 +110,13 @@ async function verifyBgjOrdersViewport(browser, sessionCookie, viewport) {
     await page.goto(`${BASE_URL}/bgj/orders?view=received`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.locator('[data-app-ready="true"]').waitFor({ state: 'visible', timeout: 20_000 });
     await page.getByRole('heading', { name: '受注一覧' }).waitFor({ state: 'visible' });
+    await Promise.all([
+      page.getByTestId('bgj-orders-table').waitFor({ state: 'attached' }),
+      page.getByTestId('bgj-orders-cards').waitFor({ state: 'attached' }),
+    ]);
+    await page.waitForFunction(() => !Array.from(document.querySelectorAll('p,td')).some(
+      (element) => element.textContent?.trim() === '読み込み中...',
+    ));
     const layout = await page.evaluate(() => {
       const table = document.querySelector('[data-testid="bgj-orders-table"]');
       const cards = document.querySelector('[data-testid="bgj-orders-cards"]');

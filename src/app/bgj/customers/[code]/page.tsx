@@ -12,6 +12,7 @@ import { CLINIC_STATUS_BADGE_CLASS } from "@/lib/clinicStatusColors";
 import { clinicToForm, type ClinicFormState, type ClinicWithStaff } from "@/lib/clinicForm";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import { beginClinicPreview } from "@/lib/client/portalState";
 
 const tabLoading = <p className="py-8 text-center text-sm text-slate-400">タブを読み込み中...</p>;
 
@@ -233,7 +234,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                 size="sm"
                 className="shadow-sm"
                 onClick={() => {
-                  document.cookie = `bgj-viewing-customer-code=${code}; path=/; max-age=86400; SameSite=Lax`;
+                  beginClinicPreview(code);
                   window.open("/admin", "_blank");
                 }}
               >

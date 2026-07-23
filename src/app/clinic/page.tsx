@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
-import PreviewModeBanner from '@/components/PreviewModeBanner';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import type { ClinicStaff } from '@/lib/supabase/types';
 
@@ -95,7 +94,6 @@ export default function ClinicPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 pb-20 md:pb-0">
 
-      <PreviewModeBanner />
 
       {/* 上部アナウンスバー */}
       <div className="bg-[#F0F7FF] text-[#2563EB] text-xs text-center py-2 px-4">

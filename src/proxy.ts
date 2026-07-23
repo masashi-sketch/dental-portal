@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import type { Session } from "next-auth";
+import { PORTAL_COOKIE } from "@/lib/portalCookies";
 
 const PATIENT_PORTAL_PATHS = ["/home", "/medication", "/shop", "/subscription", "/qa", "/clinic"];
 
@@ -56,7 +57,7 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   if (req.auth?.user?.accountDisabled) {
     if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Session expired' }, { status: 401 });
     const response = NextResponse.redirect(new URL('/clinic-login?reason=session-expired', req.url));
-    response.cookies.delete('portal-selected');
+    response.cookies.delete(PORTAL_COOKIE.selected);
     return response;
   }
 
@@ -77,7 +78,7 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   if (isPatientPortalPath) {
     if (role === "patient") return NextResponse.next();
     if (role === "clinic" || role === "bgj") {
-      const previewing = !!req.cookies.get("demo-patient-id")?.value;
+      const previewing = !!req.cookies.get(PORTAL_COOKIE.patientPreviewId)?.value;
       if (previewing) return NextResponse.next();
       return NextResponse.redirect(new URL("/admin/patients", req.url));
     }
@@ -90,7 +91,7 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   }
 
   // 認証済みでもポータル未選択 → ポータル選択画面へ
-  const portalSelected = req.cookies.get("portal-selected")?.value;
+  const portalSelected = req.cookies.get(PORTAL_COOKIE.selected)?.value;
   if (!portalSelected) {
     return NextResponse.redirect(new URL("/auth/signin", req.url));
   }

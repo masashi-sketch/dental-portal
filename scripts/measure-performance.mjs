@@ -42,6 +42,8 @@ async function gotoWithRetry(page, url, options) {
 async function measureNavigation(page, url) {
   const start = Date.now();
   await gotoWithRetry(page, url, { waitUntil: 'domcontentloaded' });
+  // 全画面を全API完了まで隠す方式は廃止した。data-app-readyは初期HTMLに含まれ、
+  // ユーザーが画面骨格を見られる時点（DOMContentLoaded直後）を計測する。
   await page.locator('[data-app-ready="true"]').waitFor({ state: 'visible', timeout: NAV_TIMEOUT_MS });
   const displayReadyMs = Date.now() - start;
   await page.waitForLoadState('networkidle', { timeout: NAV_TIMEOUT_MS });

@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import BottomNav from '../components/BottomNav';
 import PatientSidebarNav, { IconLogout } from '@/components/PatientSidebarNav';
-import PreviewModeBanner from '@/components/PreviewModeBanner';
 import SalesRepAvatar from '@/components/SalesRepAvatar';
+import { preparePortalLogout } from '@/lib/client/portalState';
 import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import { usePrimaryDoctor } from '@/hooks/usePrimaryDoctor';
 import { usePatientProfile } from '@/hooks/usePatientProfile';
@@ -179,7 +179,6 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 pb-20 md:pb-0">
 
-      <PreviewModeBanner />
 
       {/* アナウンスバー */}
       <div className="bg-[#F0F7FF] text-[#2563EB] text-xs text-center py-2 px-4">
@@ -224,7 +223,7 @@ export default function HomePage() {
               </Link>
               <div className="my-1 h-px bg-gray-100" />
               <button
-                onClick={() => { document.cookie = "portal-selected=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/"; signOut({ callbackUrl: '/auth/signin' }); }}
+                onClick={() => { preparePortalLogout(); signOut({ callbackUrl: '/auth/signin' }); }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 <span className="text-gray-400"><IconLogout /></span>ログアウト

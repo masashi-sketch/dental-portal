@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import type { Session } from 'next-auth';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ClinicPortalPermissionKey, ClinicPortalRoleKey } from '@/lib/supabase/types';
+import { PORTAL_COOKIE } from '@/lib/portalCookies';
 
 const ROLE_PERMISSIONS: Record<ClinicPortalRoleKey, ClinicPortalPermissionKey[]> = {
   admin: ['view_contacts', 'manage_contacts', 'manage_logins'],
@@ -40,7 +41,7 @@ export async function resolveScopedCustomerCode(
   if (session.user.role === 'clinic') return session.user.customerCode;
   if (requestedCode) return requestedCode;
   const store = await cookies();
-  return store.get('bgj-viewing-customer-code')?.value ?? null;
+  return store.get(PORTAL_COOKIE.clinicPreviewCustomerCode)?.value ?? null;
 }
 
 // patient_id経由のAPI（詳細・診断など）で、クリニックログインが他院の患者IDに

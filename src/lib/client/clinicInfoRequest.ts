@@ -9,11 +9,11 @@ type CacheEntry = {
   request: Promise<ClinicInfo | null>;
 };
 
-const CACHE_TTL_MS = 5_000;
+const CACHE_TTL_MS = 60_000;
 const requestCache = new Map<string, CacheEntry>();
 
-// サイドバーと各画面が同時に同じ医院情報を要求するため、短時間だけPromiseを共有する。
-// 長期キャッシュにはせず、設定更新後の表示が古いまま残らないよう5秒で失効させる。
+// サイドバーと各画面が同じ医院情報を要求するためPromiseと結果を共有する。
+// 画面遷移のたびの再取得を避け、更新時はupdateClinicInfoRequestCacheで即時反映する。
 export function requestClinicInfo(customerCode: string): Promise<ClinicInfo | null> {
   const now = Date.now();
   const cached = requestCache.get(customerCode);
@@ -21,7 +21,10 @@ export function requestClinicInfo(customerCode: string): Promise<ClinicInfo | nu
 
   const request = fetch(`/api/admin/clinic-info?customerCode=${encodeURIComponent(customerCode)}`)
     .then(async (response) => {
-      if (!response.ok) return null;
+      if (!response.ok) {
+        requestCache.delete(customerCode);
+        return null;
+      }
       const body = await response.json();
       return (body.clinic ?? null) as ClinicInfo | null;
     })
@@ -32,6 +35,13 @@ export function requestClinicInfo(customerCode: string): Promise<ClinicInfo | nu
 
   requestCache.set(customerCode, { expiresAt: now + CACHE_TTL_MS, request });
   return request;
+}
+
+export function updateClinicInfoRequestCache(customerCode: string, clinic: ClinicInfo | null) {
+  requestCache.set(customerCode, {
+    expiresAt: Date.now() + CACHE_TTL_MS,
+    request: Promise.resolve(clinic),
+  });
 }
 
 export function clearClinicInfoRequestCache() {

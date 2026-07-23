@@ -3,6 +3,7 @@
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, Suspense } from "react";
+import { markPortalSelected, resetTransientPortalState } from "@/lib/client/portalState";
 
 const PORTALS = [
   {
@@ -49,11 +50,6 @@ const PORTALS = [
   },
 ];
 
-function setPortalCookie() {
-  // セッションCookie（ブラウザを閉じたらリセット）
-  document.cookie = "portal-selected=true; path=/; SameSite=Lax";
-}
-
 function SignInContent() {
   const [selected, setSelected] = useState(PORTALS[0]);
   const { data: session, status } = useSession();
@@ -64,13 +60,14 @@ function SignInContent() {
   const isAuthenticatedForSelected = status === "authenticated" && session?.user?.role === selected.id;
 
   const handleEnter = () => {
+    resetTransientPortalState();
     if (selected.id === "clinic" || selected.id === "patient") {
       // 医院用・患者様ポータルはGoogle OAuthを使わず、専用ログイン画面へ
       // （Google認証は@biogaia.jpドメイン限定のため、患者様が選んでも必ず失敗する）
       router.push(selected.href);
       return;
     }
-    setPortalCookie();
+    markPortalSelected();
     if (isAuthenticatedForSelected) {
       // 選択中のポータルのロールで既にGoogle認証済み → 直接ポータルへ
       router.push(selected.href);
