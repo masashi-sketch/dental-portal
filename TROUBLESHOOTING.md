@@ -125,6 +125,13 @@
 - **対処**：`src/lib/email/templates.ts`に`renderEmailTemplateHtml()`を新設し、`{{リンク}}`を`<a href="...">`のアンカータグに変換したHTML版本文を生成するようにした。`resolveClinicEmail.ts`が`htmlBody`を追加で返し、`sendPatientEmail()`（`sendEmail.ts`）に`html`引数を追加、`/api/password-reset/request`・`/api/join/[slug]`の両方で`html: rendered.htmlBody`を渡すようにした（2026-07-19）。HTML版はURLがhref属性に入るため、見た目の折り返しがあってもリンク自体は壊れない。他の項目（患者名・医院名等）もHTMLエスケープ済み（XSS対策）。
 - **気づくためのチェック**：SMTP送信自体は成功している（ログにエラーが出ない）のに「リンクが機能しない」という報告を受けたら、まず実際に送られたメールの生ソース（Gmailなら「メッセージのソースを表示」）でリンクURLの途中に`=\r\n`のような改行が入っていないか確認する。プレーンテキストのみでURLを送るテンプレートを新しく作る場合は、URLが80文字を超える可能性があるなら必ずHTML版（`<a href>`）も併記する。
 
+## devサーバーのコールドスタート直後、医院ログイン直後に`/clinic-login?reason=session-expired`へ誤って戻される
+
+- **症状**：医院担当者の個人ログイン・権限管理（Phase 1）の実画面検証で、`/clinic-login`でのログイン成功直後に`/admin/clinic-info/contacts`へ遷移すると、`session-expired`理由付きで`/clinic-login`へ強制的に戻された。DB側（`clinic_users.session_version`・`clinic_user_role_assignments`）を直接確認しても不整合は無く、`src/auth.ts`の`jwt()`コールバックに一時的なデバッグログを仕込んで再現させても、`token.clinicSessionVersion`とRPC（`get_clinic_session_state`）が返す`session_version`は常に一致していた。2回目以降のアクセスでは再現しなかった。
+- **原因（推定）**：`npm run dev --webpack`起動直後の最初のリクエストで、対象ルート（`/admin/clinic-info/contacts`・`proxy.ts`自体）のwebpackコンパイルに10秒以上かかる（上記「開発環境（localhost）でページの初回表示が数秒〜20秒以上かかり」の項と同根）。このコールドスタートの重さと、ログイン直後に発生する複数の`/api/auth/session`同時リクエストが重なったタイミングで、`jwt()`内のSupabase RPC呼び出しが何らかの理由で失敗・空応答になり、`clinicUser`が`undefined`扱いになって`accountDisabled: true`と誤判定されたと考えられる（ログ上は`GET /api/auth/session 200 in 5.5s`のように明らかに通常より遅いリクエストが1件挟まっていた）。DB側のデータは常に正しかったため、実装ロジック自体のバグではない。
+- **対処**：本番環境（Vercel）は`next build`で事前コンパイル済みのためこの現象自体が起こらない。ローカルで医院ログイン系の機能を検証する際は、devサーバー起動直後の1回目のアクセスで`session-expired`に飛ばされても即座にバグと断定せず、対象ページに一度アクセスしてコンパイルを終わらせてから改めてログインし直す（2回目以降は安定して再現しないことを確認済み）。
+- **気づくためのチェック**：医院ログイン直後に理由不明の`session-expired`を見たら、まずdevサーバーのログで直前の`/api/auth/session`や対象ページの`next.js:`内訳（コンパイル時間）が異常に長くないかを確認する。長ければコールドスタートを疑い、DB（`clinic_users.session_version`とRPC`get_clinic_session_state`の返り値）を先に疑わない。
+
 ---
 
 ## 今後の運用方針
