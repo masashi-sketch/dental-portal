@@ -39,11 +39,23 @@ export default function SubscriptionOrderPage() {
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [destinationId, setDestinationId] = useState('');
   const [selectedDestination, setSelectedDestination] = useState<DeliveryDestination | null>(null);
+  const [clinicDestinationId, setClinicDestinationId] = useState('');
+  const [selectedClinicDestination, setSelectedClinicDestination] = useState<DeliveryDestination | null>(null);
   const [destinationError, setDestinationError] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [completedRequestNumber, setCompletedRequestNumber] = useState<number | null>(null);
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
   const { clinicName, navVisibility } = usePatientClinicBranding();
   const handleDestinationSelect = useCallback((selectedId: string, destination?: DeliveryDestination) => {
     setDestinationId(selectedId);
     setSelectedDestination(destination ?? null);
+    setDestinationError(null);
+  }, []);
+  const handleClinicDestinationSelect = useCallback((selectedId: string, destination?: DeliveryDestination) => {
+    setClinicDestinationId(selectedId);
+    setSelectedClinicDestination(destination ?? null);
     setDestinationError(null);
   }, []);
 
@@ -65,16 +77,35 @@ export default function SubscriptionOrderPage() {
   const months = period === '6ヶ月' ? 6 : 3;
   const monthlyPrice = period === '6ヶ月' ? product.sixMonthPrice : product.threeMonthPrice;
   const totalPrice = monthlyPrice * months;
-  const deliveryIncomplete = delivery === '自宅' && !destinationId;
-  const formattedDestination = selectedDestination ? formatShippingAddress({
-    postalCode: selectedDestination.postal_code,
-    prefecture: selectedDestination.prefecture,
-    city: selectedDestination.city,
-    addressLine1: selectedDestination.address_line1,
-    addressLine2: selectedDestination.address_line2 ?? '',
-    recipientName: selectedDestination.recipient_name,
-    phone: selectedDestination.phone,
+  const activeDestinationId = delivery === '自宅' ? destinationId : clinicDestinationId;
+  const activeDestination = delivery === '自宅' ? selectedDestination : selectedClinicDestination;
+  const deliveryIncomplete = Boolean(delivery) && !activeDestinationId;
+  const formattedDestination = activeDestination ? formatShippingAddress({
+    postalCode: activeDestination.postal_code,
+    prefecture: activeDestination.prefecture,
+    city: activeDestination.city,
+    addressLine1: activeDestination.address_line1,
+    addressLine2: activeDestination.address_line2 ?? '',
+    recipientName: activeDestination.recipient_name,
+    phone: activeDestination.phone,
   }) : '';
+
+  const submitRequest = async () => {
+    if (!period || !delivery || !activeDestinationId || !consent || submitting) return;
+    setSubmitting(true); setSubmitError(null);
+    try {
+      const response = await fetch('/api/patient-portal/subscription-requests', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id, quantity: 1, termMonths: months,
+          fulfillmentMethod: delivery === '自宅' ? 'delivery' : 'pickup',
+          deliveryDestinationId: activeDestinationId, idempotencyKey, consent: true }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.error ?? '定期購入を申し込めませんでした。');
+      setCompletedRequestNumber(body.request.request_number);
+    } catch (error) { setSubmitError(error instanceof Error ? error.message : '定期購入を申し込めませんでした。'); }
+    finally { setSubmitting(false); }
+  };
 
   const steps = [
     { num: 1, label: '期間選択' },
@@ -184,8 +215,8 @@ export default function SubscriptionOrderPage() {
           {/* ──── STEP 1: 期間選択 ──── */}
           {step === 1 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-1">定期購入の料金シミュレーション</h2>
-              <p className="text-sm text-gray-400 mb-6">医院が設定した期間別の月額を表示しています。</p>
+              <h2 className="text-lg font-bold text-gray-900 mb-1">定期購入コースを選択</h2>
+              <p className="text-sm text-gray-400 mb-6">医院が設定した期間別の月額です。選択期間は最低継続期間になります。</p>
 
               <div className="flex flex-col gap-4">
                 {/* 6ヶ月コース */}
@@ -219,7 +250,6 @@ export default function SubscriptionOrderPage() {
                     </div>
                   </div>
                 </button>
-
                 {/* 3ヶ月コース */}
                 <button
                   onClick={() => setPeriod('3ヶ月')}
@@ -350,6 +380,20 @@ export default function SubscriptionOrderPage() {
                     </div>
                   </div>
                 </button>
+                {delivery === '医院' && (
+                  <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
+                    <DeliveryDestinationPicker
+                      apiBase="/api/patient-portal/clinic-delivery-destinations"
+                      ownerLabel="受け取り医院の送り先"
+                      selectedId={clinicDestinationId}
+                      onSelect={handleClinicDestinationSelect}
+                      color="indigo"
+                      onError={setDestinationError}
+                      readOnly
+                    />
+                    {destinationError && <p className="mt-3 text-xs text-red-600">{destinationError}</p>}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 mt-6">
@@ -394,7 +438,7 @@ export default function SubscriptionOrderPage() {
                   {[
                     { label: 'コース',       value: `${period}コース` },
                     { label: 'お届け方法',   value: delivery === '自宅' ? 'ご自宅へお届け' : `医院で受け取り（${clinicName ?? 'デンタルポータル'}）` },
-                    ...(delivery === '自宅' ? [{ label: '配送先', value: formattedDestination }] : []),
+                    { label: delivery === '自宅' ? '配送先' : '医院送り先', value: formattedDestination },
                     { label: '月額（税込）', value: `¥${monthlyPrice.toLocaleString()}` },
                     { label: '合計（税込）', value: `¥${totalPrice.toLocaleString()}（${months}ヶ月分）` },
                   ].map(({ label, value }) => (
@@ -406,11 +450,22 @@ export default function SubscriptionOrderPage() {
                 </div>
 
                 <div className="mt-4 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-xs text-indigo-700 leading-relaxed">
-                  これは申込前の参考シミュレーションです。現時点では契約・決済・注文は作成されません。
+                  月ごとのお支払い・お届けを予定し、表示合計は最低継続期間の参考総額です。送信後はBGJで申込内容を確認します。この段階ではShopify上の契約・決済・受注はまだ作成されません。
                 </div>
+                <label className="mt-4 flex items-start gap-3 rounded-xl border border-gray-200 p-4 text-sm text-gray-700">
+                  <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-1" />
+                  <span>{months}ヶ月コースの月額・受け取り方法・送り先を確認し、定期購入の申込審査へ送信することに同意します。</span>
+                </label>
+                {submitError && <p className="mt-3 text-sm text-red-600">{submitError}</p>}
               </div>
 
-              <div className="flex gap-3">
+              {completedRequestNumber ? (
+                <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800">
+                  <p className="font-bold">定期購入申込を受け付けました</p>
+                  <p className="mt-1 text-sm">申込番号：SUB-{String(completedRequestNumber).padStart(8, '0')}</p>
+                  <p className="mt-2 text-xs">BGJ確認後に次の手続きをご案内します。契約・決済・受注はまだ成立していません。</p>
+                </div>
+              ) : <div className="flex gap-3">
                 <button
                   onClick={() => setStep(2)}
                   className="flex items-center gap-2 px-5 py-4 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors"
@@ -418,12 +473,13 @@ export default function SubscriptionOrderPage() {
                   <IconArrowLeft />戻る
                 </button>
                 <button
-                  disabled
-                  className="flex-1 py-4 rounded-xl font-bold text-base bg-gray-100 text-gray-400 cursor-not-allowed"
+                  disabled={!consent || submitting}
+                  onClick={() => void submitRequest()}
+                  className="flex-1 py-4 rounded-xl font-bold text-base bg-[#4f46e5] text-white disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 >
-                  Shopify接続後にお申し込みいただけます
+                  {submitting ? '申込を送信しています…' : 'この内容で申込を送信'}
                 </button>
-              </div>
+              </div>}
             </div>
           )}
 

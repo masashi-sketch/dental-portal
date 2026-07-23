@@ -78,6 +78,11 @@ const navItems: NavItem[] = [
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 6h13v10H3zM16 10h3l2 3v3h-5zM7 19a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z" /></svg>,
   },
   {
+    label: "定期購入申込",
+    href: "/bgj/orders?view=subscriptions",
+    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6M20 20v-6h-6M5.5 15a7 7 0 0012 2M18.5 9a7 7 0 00-12-2" /></svg>,
+  },
+  {
     label: "在庫一覧",
     href: "/bgj/inventory?view=stock",
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 7l8-4 8 4-8 4-8-4zm0 0v10l8 4 8-4V7M12 11v10" /></svg>,
@@ -93,6 +98,12 @@ const navItems: NavItem[] = [
     href: "/bgj/billing",
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 14l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
     sectionLabel: "請求管理",
+  },
+  {
+    label: "ウェビナー一覧",
+    href: "/bgj/webinars",
+    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="5" width="14" height="14" rx="2" /><path strokeLinecap="round" strokeLinejoin="round" d="m17 10 4-2v8l-4-2" /></svg>,
+    sectionLabel: "ウェビナー管理",
   },
   {
     label: "システムダッシュボード",
@@ -174,6 +185,7 @@ function SidebarContent({
             || groupLabel === "受発注管理"
             || groupLabel === "在庫管理"
             || groupLabel === "請求管理"
+            || groupLabel === "ウェビナー管理"
             || groupLabel === "システム管理"
             || groupLabel === "ヘルプ";
           const groupHasActiveItem = group.items.some(

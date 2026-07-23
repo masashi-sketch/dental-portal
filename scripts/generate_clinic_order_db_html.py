@@ -113,6 +113,10 @@ IMPORTANT_FIELDS = {
     "delivery_destinations": ["id", "clinic_customer_code", "patient_id", "label", "postal_code", "is_default", "deleted_at"],
     "order_delivery_destinations": ["order_id", "delivery_destination_id", "label", "postal_code", "address_line1", "recipient_name"],
     "patient_order_events": ["id", "order_id", "event_type", "actor_type", "created_at"],
+    "patient_subscription_requests": ["id", "request_number", "customer_code", "patient_id", "term_months", "fulfillment_method", "status", "version"],
+    "patient_subscription_request_items": ["id", "request_id", "product_id", "unit_price", "quantity"],
+    "patient_subscription_request_destinations": ["request_id", "delivery_destination_id", "postal_code", "address_line1"],
+    "patient_subscription_request_events": ["id", "request_id", "event_type", "actor_type", "to_status"],
     "commerce_accounts": ["id", "provider", "external_account_id", "status"],
     "order_transaction_projections": ["id", "order_id", "external_transaction_id", "transaction_type", "status", "amount"],
     "patient_fulfillments": ["id", "order_id", "fulfillment_type", "status", "tracking_number"],
@@ -121,6 +125,10 @@ IMPORTANT_FIELDS = {
     "patient_subscription_items": ["id", "subscription_id", "product_id", "quantity"],
     "commerce_webhook_events": ["id", "commerce_account_id", "external_event_id", "topic", "status"],
     "commerce_outbox": ["id", "commerce_account_id", "order_id", "command_type", "idempotency_key", "status"],
+    "webinars": ["id", "title", "status", "version", "published_at"],
+    "webinar_sessions": ["id", "webinar_id", "provider", "starts_at", "ends_at", "join_url"],
+    "webinar_target_clinics": ["webinar_id", "customer_code"],
+    "webinar_events": ["id", "webinar_id", "event_type", "actor_email", "to_status"],
 }
 
 
@@ -213,9 +221,13 @@ def build_html(source) -> str:
         "patient_orders": (960, 100), "patient_order_items": (960, 720),
         "delivery_destinations": (500, 1750), "order_delivery_destinations": (960, 1250),
         "patient_order_events": (1420, 40), "order_transaction_projections": (1420, 430),
+        "patient_subscription_requests": (1420, 1750), "patient_subscription_request_items": (1880, 1750),
+        "patient_subscription_request_destinations": (1420, 2200), "patient_subscription_request_events": (1880, 2200),
         "patient_fulfillments": (1420, 850), "patient_fulfillment_items": (1420, 1300),
         "commerce_accounts": (1880, 80), "commerce_webhook_events": (1880, 530),
         "commerce_outbox": (1880, 1030),
+        "webinars": (40, 2450), "webinar_sessions": (500, 2450),
+        "webinar_target_clinics": (960, 2450), "webinar_events": (1420, 2650),
     }
     current_edges = [
         ("clinics", "clinic_terms", "医院契約条件"),
@@ -230,6 +242,16 @@ def build_html(source) -> str:
         ("patient_orders", "order_delivery_destinations", "注文時スナップショット"),
         ("patient_orders", "patient_order_events", "操作履歴"),
         ("products", "patient_order_items", "商品スナップショット元"),
+        ("clinics", "patient_subscription_requests", "医院の申込"),
+        ("patients", "patient_subscription_requests", "患者の申込"),
+        ("patient_subscription_requests", "patient_subscription_request_items", "申込明細"),
+        ("patient_subscription_requests", "patient_subscription_request_destinations", "申込時送り先"),
+        ("patient_subscription_requests", "patient_subscription_request_events", "申込操作履歴"),
+        ("delivery_destinations", "patient_subscription_request_destinations", "選択元"),
+        ("webinars", "webinar_sessions", "開催枠"),
+        ("webinars", "webinar_target_clinics", "公開対象"),
+        ("clinics", "webinar_target_clinics", "対象医院"),
+        ("webinars", "webinar_events", "操作履歴"),
     ]
     future_edges = [
         ("commerce_accounts", "patient_orders", "接続先"),
@@ -252,7 +274,7 @@ def build_html(source) -> str:
     }
     unified_er_detail = er_diagram(
         "unified-er", all_tables, unified_positions, current_edges + future_edges,
-        height=1800, width=2400, future_names=future_only_names,
+        height=3200, width=2400, future_names=future_only_names,
     )
     unified_er = f'''
 <div class="meaning-box"><strong>この図が表すこと</strong><p>現在動いている注文管理に、Shopify連携後の定期購入・決済・配送を段階的に追加します。患者が単発で注文する場合は「定期購入」を通りません。</p></div>

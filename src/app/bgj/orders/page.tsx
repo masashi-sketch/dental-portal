@@ -1,4 +1,5 @@
 import BgjReceivedOrders from './BgjReceivedOrders';
+import BgjSubscriptionRequests from './BgjSubscriptionRequests';
 
 type OrdersPageProps = {
   searchParams: Promise<{ view?: string | string[] }>;
@@ -13,11 +14,15 @@ const views = {
     title: "発注一覧",
     description: "仕入先への発注状況を確認する画面です。",
   },
+  subscriptions: {
+    title: "定期購入申込",
+    description: "患者から届いた定期購入申込を確認・審査する画面です。",
+  },
 } as const;
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const requestedView = (await searchParams).view;
-  const viewKey = requestedView === "purchase" ? "purchase" : "received";
+  const viewKey = requestedView === "purchase" ? "purchase" : requestedView === 'subscriptions' ? 'subscriptions' : "received";
   const view = views[viewKey];
 
   return (
@@ -30,6 +35,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
       {viewKey === 'received' ? (
         <BgjReceivedOrders />
+      ) : viewKey === 'subscriptions' ? (
+        <BgjSubscriptionRequests />
       ) : (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
           <h2 className="font-bold">仕入先との連携仕様確定後に実装します</h2>

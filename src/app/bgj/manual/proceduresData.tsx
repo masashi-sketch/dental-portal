@@ -693,6 +693,7 @@ create table public.clinic_product_settings (
             <li><strong>医院：</strong>実患者・自院で表示中の公開商品・数量・受け取り方法を指定し、医院受け取りなら医院、配送なら患者の登録済み送り先を選んで注文登録する。注文は受付済み→準備中→準備完了/配送中→完了へ更新する。</li>
             <li><strong>患者：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/medication</code>で本人（スタッフの場合は検証済みプレビュー患者）の複数送り先を管理し、注文商品・受け取り方法・進捗を表示する。</li>
             <li><strong>BGJ：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/orders?view=received</code>で全医院の患者注文を横断表示し、業務状態・連携元・同期状態・得意先コード・外部注文IDで絞り込む。「＋ 新規受注」から医院・既存患者・複数商品を選択し、医院受け取りまたは配送先付き自宅配送を代理登録できる。</li>
+            <li><strong>定期購入申込：</strong>患者は3ヶ月／6ヶ月、医院受け取り／自宅配送、送り先を選んで申込する。BGJは<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/orders?view=subscriptions</code>で受付中申込を承認・却下する。承認はShopify連携準備の確認であり、契約・決済・実受注ではない。</li>
             <li><strong>将来連携：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">source</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">external_order_id</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">sync_status</code>を正規化注文モデルへ変換し、内部登録とShopify注文を同じ画面に統合する。</li>
           </ul>
         </WithImage>
@@ -799,6 +800,22 @@ create table public.clinic_product_settings (
           },
         ]}
       />
+    ),
+  },
+  {
+    key: "21",
+    label: "21. ウェビナー Phase 1",
+    content: (
+      <>
+        <p>BGJがGoogle Meet／Zoomの参加URLを対象医院へ公開する第一段階。外部APIの認証・会議自動作成はまだ行わない。</p>
+        <ul className="list-disc list-inside pl-2">
+          <li><strong>BGJ：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/webinars</code>で下書き作成・編集・公開・中止と対象医院を管理する。</li>
+          <li><strong>医院：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/webinars</code>で、自院が対象の公開中ウェビナーだけを確認して外部参加URLを開く。</li>
+          <li><strong>DB：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinars</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinar_sessions</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinar_target_clinics</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinar_events</code>に第3正規形で分離する。保存・状態遷移はDB関数でトランザクション化し、versionで更新競合を検出する。</li>
+          <li><strong>通知：</strong>公開確定後、対象医院の有効な医院ログインに登録されたメールアドレスへ既存Workspace SMTPで送る。画面レスポンスを待たせないため<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>を使い、送信失敗で公開自体は取り消さない。</li>
+          <li><strong>次段階：</strong>Google Calendar／Meet APIとZoom Server-to-Server OAuthをAdapterで接続する。登録者・Webhook・出席・録画情報はその後に追加する。</li>
+        </ul>
+      </>
     ),
   },
 ];

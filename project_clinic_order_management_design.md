@@ -252,9 +252,24 @@ Shopify注文のキャンセル・返金を医院業務状態の`canceled`更新
 - イベント種別、操作者種別・識別子
 - 変更前後の状態、発生日時
 
+#### `patient_subscription_requests` 系列
+
+- `patient_subscription_requests`は患者が送信しBGJが審査する申込ヘッダーであり、Shopify上の契約や`patient_orders`の実受注ではない。
+- `patient_subscription_request_items`へ申込時点の商品名・期間別月額・画像・数量を保存する。
+- `patient_subscription_request_destinations`へ医院受け取り／自宅配送の選択元IDと住所スナップショットを1対1で保存する。
+- `patient_subscription_request_events`へ申込・承認・却下・取消の操作者、変更前後、理由を保存する。
+- 状態は`submitted`、`approved`、`rejected`、`canceled`。患者は受付中のみ取消可能で、BGJ更新は`version`による楽観的排他を行う。
+- 申込登録は冪等キーを使い、4テーブルを1トランザクションで更新する。受付中・承認済み申込の送り先は論理削除できない。
+
 ### 9.2 追加候補
 
 外部サービスの仕様確定前に全テーブルを作り込まず、必要になった段階で増分マイグレーションとして追加する。
+
+### 9.4 ウェビナー Phase 1（2026-07-23実装）
+
+BGJが主催情報を管理し、Google Meet／Zoomで発行済みの参加URLを対象医院へ公開する。`webinars`を本体、`webinar_sessions`を開催日時・配信サービス・参加URL、`webinar_target_clinics`を医院との多対多中間表、`webinar_events`を監査履歴として分離し、第3正規形を維持する。保存と状態遷移はDB関数で1トランザクション化し、`version`による楽観的排他を行う。
+
+医院APIはログインセッションの得意先コードと対象医院中間表を照合し、自院向けかつ公開中の行だけを返す。公開後のSMTP通知はレスポンス後に実行し、通知障害と公開確定を分離する。Phase 1では外部認証情報を保存せず、Google／Zoom側で作成したHTTPS参加URLだけを扱う。Google Calendar／Meet API、Zoom Server-to-Server OAuth、申込者、出席、Webhook、録画情報は後続Phaseで追加する。
 
 | テーブル／項目 | 目的 | 導入時期 |
 |---|---|---|
@@ -280,7 +295,7 @@ Shopify注文のキャンセル・返金を医院業務状態の`canceled`更新
 
 #### 現在の実DB
 
-以下は2026-07-22時点で実装済みの物理構造である。商品は削除後も注文スナップショットが残り、自宅配送では注文時点の配送先を独立した1対1テーブルに保存する。
+以下は2026-07-23時点で実装済みの物理構造である。商品は削除後も注文スナップショットが残り、自宅配送では注文時点の配送先を独立した1対1テーブルに保存する。定期購入申込系列は実受注・将来のShopify契約系列と分離する。
 
 ```mermaid
 erDiagram

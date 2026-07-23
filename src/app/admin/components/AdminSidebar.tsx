@@ -8,7 +8,7 @@ import { useActiveClinic } from '@/hooks/useActiveClinic';
 import type { ExternalLink, SalesRepWithMaster } from '@/lib/supabase/types';
 import { requestExternalLinks } from '@/lib/client/externalLinksRequest';
 
-export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'clinicContract' | 'clinicConfig' | 'clinicQr' | 'clinicIntro' | 'clinicQa' | 'inquiry';
+export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'webinars' | 'clinicContract' | 'clinicConfig' | 'clinicQr' | 'clinicIntro' | 'clinicQa' | 'inquiry';
 
 function IconDashboard() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>;
@@ -66,6 +66,9 @@ function IconQA() {
 function IconInquiry() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>;
 }
+function IconWebinar() {
+  return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="2" /><path d="m17 10 4-2v8l-4-2" /></svg>;
+}
 
 type LinkNavItem = { type: 'link'; key: AdminPage; label: string; href: string; icon: React.ReactNode; dividerBefore?: boolean };
 type GroupNavItem = {
@@ -96,6 +99,7 @@ const navItems: (LinkNavItem | GroupNavItem)[] = [
   { type: 'link',  key: 'inquiry',    label: '患者様用お問い合わせ', href: '/admin/inquiry',     icon: <IconInquiry /> },
   { type: 'link',  key: 'orders',     label: '定期購入管理',     href: '/admin/orders',      icon: <IconRefresh /> },
   { type: 'link',  key: 'products',   label: '商品管理',         href: '/admin/products',    icon: <IconBag /> },
+  { type: 'link',  key: 'webinars',   label: 'ウェビナー',       href: '/admin/webinars',    icon: <IconWebinar /> },
   { type: 'link',  key: 'campaign',   label: 'キャンペーン情報', href: '/admin/campaign',    icon: <IconCampaign />,   dividerBefore: true },
   { type: 'link',  key: 'biogaia',    label: 'バイオガイア通信', href: '/admin/biogaia',     icon: <IconNewsletter /> },
 ];

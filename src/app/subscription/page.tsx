@@ -10,6 +10,7 @@ import { usePatientClinicBranding } from '@/hooks/usePatientClinicBranding';
 import { usePrimaryDoctor } from '@/hooks/usePrimaryDoctor';
 import { usePatientProducts } from '@/hooks/usePatientProducts';
 import { PRODUCT_BADGE_CLASS } from '@/lib/productDisplay';
+import SubscriptionRequestsPanel from './SubscriptionRequestsPanel';
 
 function IconBell() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>;
@@ -37,7 +38,7 @@ const benefits = [
   { icon: <IconTruck />, title: '毎月自動お届け', desc: '申込後は手続き不要。毎月定期的にお届けします。' },
   { icon: <IconShield />, title: '品質保証', desc: '歯科医師・歯科衛生士監修の安心商品のみをご提供。' },
   { icon: <IconStar />, title: '継続サポート価格', desc: '医院が設定した3ヶ月・6ヶ月コースの価格でご案内します。' },
-  { icon: <IconCheck />, title: 'いつでも解約', desc: '次回お届け日の7日前までに解約申請でいつでも停止可。' },
+  { icon: <IconCheck />, title: '申込状況を確認', desc: '受付・確認状況をポータルで確認できます。受付中は取消も可能です。' },
 ];
 
 export default function SubscriptionPage() {
@@ -95,6 +96,7 @@ export default function SubscriptionPage() {
 
         {/* メインコンテンツ */}
         <main className="flex-1 flex flex-col gap-6 min-w-0">
+          <SubscriptionRequestsPanel />
 
           {/* ヒーローバナー */}
           <div className="relative bg-gradient-to-r from-[#4f46e5] to-[#818cf8] rounded-2xl p-6 sm:p-8 text-white overflow-hidden">

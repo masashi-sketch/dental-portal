@@ -569,3 +569,95 @@ export const PATIENT_ORDER_ITEM_COLUMNS =
   'id, order_id, product_id, product_name, unit_price, quantity, unit_snapshot, image_type_snapshot, image_url_snapshot, daily_amount_snapshot, volume_snapshot, caution_snapshot, external_line_item_id, created_at';
 export const PATIENT_ORDER_WITH_DETAILS_COLUMNS =
   `${PATIENT_ORDER_COLUMNS}, patient:patients!patient_id(id, name, patient_no), items:patient_order_items(${PATIENT_ORDER_ITEM_COLUMNS}), delivery_destination:order_delivery_destinations!order_id(${ORDER_DELIVERY_DESTINATION_COLUMNS})`;
+
+export type SubscriptionRequestStatus = 'submitted' | 'approved' | 'rejected' | 'canceled';
+
+export type PatientSubscriptionRequest = {
+  id: string;
+  request_number: number;
+  customer_code: string;
+  patient_id: string;
+  term_months: 3 | 6;
+  fulfillment_method: FulfillmentMethod;
+  status: SubscriptionRequestStatus;
+  version: number;
+  submitted_at: string;
+  reviewed_at: string | null;
+  canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
+  patient?: { id: string; name: string; patient_no: string } | null;
+  clinic?: { customer_code: string; name: string } | null;
+  items?: PatientSubscriptionRequestItem[];
+  destination?: PatientSubscriptionRequestDestination | null;
+};
+
+export type PatientSubscriptionRequestItem = {
+  id: string;
+  request_id: string;
+  product_id: string | null;
+  product_name: string;
+  unit_price: number;
+  quantity: number;
+  image_url_snapshot: string | null;
+  created_at: string;
+};
+
+export type PatientSubscriptionRequestDestination = Omit<OrderDeliveryDestination, 'order_id'> & {
+  request_id: string;
+};
+
+export const SUBSCRIPTION_REQUEST_COLUMNS =
+  'id, request_number, customer_code, patient_id, term_months, fulfillment_method, status, version, submitted_at, reviewed_at, canceled_at, created_at, updated_at';
+export const SUBSCRIPTION_REQUEST_ITEM_COLUMNS =
+  'id, request_id, product_id, product_name, unit_price, quantity, image_url_snapshot, created_at';
+export const SUBSCRIPTION_REQUEST_DESTINATION_COLUMNS =
+  'request_id, delivery_destination_id, label, postal_code, prefecture, city, address_line1, address_line2, recipient_name, phone, created_at';
+export const SUBSCRIPTION_REQUEST_WITH_DETAILS_COLUMNS =
+  `${SUBSCRIPTION_REQUEST_COLUMNS}, patient:patients!patient_id(id, name, patient_no), clinic:clinics!customer_code(customer_code, name), items:patient_subscription_request_items(${SUBSCRIPTION_REQUEST_ITEM_COLUMNS}), destination:patient_subscription_request_destinations!request_id(${SUBSCRIPTION_REQUEST_DESTINATION_COLUMNS})`;
+
+export type WebinarStatus = 'draft' | 'published' | 'canceled';
+export type WebinarProvider = 'google_meet' | 'zoom';
+
+export type WebinarSession = {
+  id: string;
+  webinar_id: string;
+  provider: WebinarProvider;
+  starts_at: string;
+  ends_at: string;
+  timezone: string;
+  join_url: string;
+  external_space_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WebinarTargetClinic = {
+  webinar_id: string;
+  customer_code: string;
+  created_at: string;
+  clinic?: { customer_code: string; name: string } | null;
+};
+
+export type Webinar = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: WebinarStatus;
+  organizer_email: string;
+  version: number;
+  published_at: string | null;
+  canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
+  sessions: WebinarSession[];
+  target_clinics: WebinarTargetClinic[];
+};
+
+export const WEBINAR_COLUMNS =
+  'id, title, description, status, organizer_email, version, published_at, canceled_at, created_at, updated_at';
+export const WEBINAR_SESSION_COLUMNS =
+  'id, webinar_id, provider, starts_at, ends_at, timezone, join_url, external_space_id, created_at, updated_at';
+export const WEBINAR_TARGET_CLINIC_COLUMNS = 'webinar_id, customer_code, created_at';
+export const WEBINAR_WITH_DETAILS_COLUMNS =
+  `${WEBINAR_COLUMNS}, sessions:webinar_sessions(${WEBINAR_SESSION_COLUMNS}), target_clinics:webinar_target_clinics(${WEBINAR_TARGET_CLINIC_COLUMNS}, clinic:clinics!customer_code(customer_code, name))`;

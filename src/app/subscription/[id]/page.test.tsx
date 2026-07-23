@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import SubscriptionOrderPage from './page';
 
 const fetchMock = vi.fn();
@@ -14,11 +14,17 @@ describe('SubscriptionOrderPage', () => {
         clinicPrice: 3000, threeMonthPrice: 2800, sixMonthPrice: 2500,
       }] }) });
       if (url.includes('/clinic-branding')) return Promise.resolve({ ok: true, json: async () => ({ displayName: 'テスト医院', nav: {} }) });
+      if (url.includes('/clinic-delivery-destinations')) return Promise.resolve({ ok: true, json: async () => ({ destinations: [{
+        id: 'clinic-destination-1', patient_id: null, clinic_customer_code: 'clinic-1', label: '本院', postal_code: '730-0001',
+        prefecture: '広島県', city: '広島市', address_line1: '中区1-1', address_line2: null,
+        recipient_name: 'テスト医院', phone: '082-123-4567', is_default: true, deleted_at: null, created_at: '', updated_at: '',
+      }] }) });
       if (url.includes('/delivery-destinations')) return Promise.resolve({ ok: true, json: async () => ({ destinations: [{
         id: 'destination-1', patient_id: 'patient-1', clinic_customer_code: null, label: '自宅', postal_code: '100-0001',
         prefecture: '東京都', city: '千代田区', address_line1: '千代田1-1', address_line2: null,
         recipient_name: '患者 花子', phone: '090-1234-5678', is_default: true, deleted_at: null, created_at: '', updated_at: '',
       }] }) });
+      if (url.includes('/subscription-requests')) return Promise.resolve({ ok: true, json: async () => ({ request: { request_number: 12 } }) });
       throw new Error(`unexpected fetch: ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -26,17 +32,20 @@ describe('SubscriptionOrderPage', () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
-  it('Shopify接続前はシミュレーションのみで申込完了にしない', async () => {
+  it('Shopify契約や実受注を作らず申込審査へ送信する', async () => {
     render(<SubscriptionOrderPage />);
     fireEvent.click(await screen.findByRole('button', { name: /3ヶ月コース/ }));
     fireEvent.click(screen.getByRole('button', { name: /次へ：お届け先/ }));
     fireEvent.click(screen.getByRole('button', { name: /医院で受け取り/ }));
-    fireEvent.click(screen.getByRole('button', { name: /次へ：内容を確認/ }));
+    const nextButton = screen.getByRole('button', { name: /次へ：内容を確認/ });
+    await waitFor(() => expect(nextButton).toBeEnabled());
+    fireEvent.click(nextButton);
 
-    const button = screen.getByRole('button', { name: 'Shopify接続後にお申し込みいただけます' });
-    expect(button).toBeDisabled();
-    expect(screen.getByText(/現時点では契約・決済・注文は作成されません/)).toBeInTheDocument();
-    expect(screen.queryByText(/お申し込みが完了しました/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Shopify上の契約・決済・受注はまだ作成されません/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'この内容で申込を送信' }));
+    expect(await screen.findByText('定期購入申込を受け付けました')).toBeInTheDocument();
+    expect(screen.getByText(/SUB-00000012/)).toBeInTheDocument();
   });
 
   it('自宅受け取りを選択して配送先を確認できる', async () => {

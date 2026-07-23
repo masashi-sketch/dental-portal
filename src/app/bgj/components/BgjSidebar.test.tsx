@@ -15,7 +15,7 @@ vi.mock('next-auth/react', () => ({
 }));
 
 describe('BgjSidebar', () => {
-  it('マスタ・受発注管理・在庫管理・請求管理・システム管理・ヘルプの各グループラベルを表示する', () => {
+  it('マスタ・受発注管理・在庫管理・請求管理・ウェビナー管理・システム管理・ヘルプの各グループラベルを表示する', () => {
     usePathnameMock.mockReturnValue('/bgj/dashboard');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
     render(<BgjSidebar />);
@@ -24,6 +24,7 @@ describe('BgjSidebar', () => {
     expect(screen.getAllByText('受発注管理').length).toBeGreaterThan(0);
     expect(screen.getAllByText('在庫管理').length).toBeGreaterThan(0);
     expect(screen.getAllByText('請求管理').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('ウェビナー管理').length).toBeGreaterThan(0);
     expect(screen.getAllByText('システム管理').length).toBeGreaterThan(0);
     expect(screen.getAllByText('ヘルプ').length).toBeGreaterThan(0);
     expect(screen.queryByText('LINKマスタ')).not.toBeInTheDocument();
@@ -32,6 +33,14 @@ describe('BgjSidebar', () => {
 
     expect(screen.getAllByText('LINKマスタ').length).toBeGreaterThan(0);
     expect(screen.getAllByRole('link', { name: /LINKマスタ/ })[0]).toHaveAttribute('href', '/bgj/master/links');
+  });
+
+  it('ウェビナー管理を開くとウェビナー一覧を表示する', () => {
+    usePathnameMock.mockReturnValue('/bgj/dashboard');
+    useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    render(<BgjSidebar />);
+    fireEvent.click(screen.getAllByLabelText('ウェビナー管理を開く')[0]);
+    expect(screen.getAllByRole('link', { name: 'ウェビナー一覧' })[0]).toHaveAttribute('href', '/bgj/webinars');
   });
 
   it('受発注管理と在庫管理を開くと各メニューを表示する', () => {
@@ -47,6 +56,7 @@ describe('BgjSidebar', () => {
 
     expect(screen.getAllByRole('link', { name: '受注一覧' })[0]).toHaveAttribute('href', '/bgj/orders?view=received');
     expect(screen.getAllByRole('link', { name: '発注一覧' })[0]).toHaveAttribute('href', '/bgj/orders?view=purchase');
+    expect(screen.getAllByRole('link', { name: '定期購入申込' })[0]).toHaveAttribute('href', '/bgj/orders?view=subscriptions');
     expect(screen.getAllByRole('link', { name: '在庫一覧' })[0]).toHaveAttribute('href', '/bgj/inventory?view=stock');
     expect(screen.getAllByRole('link', { name: '入出庫履歴' })[0]).toHaveAttribute('href', '/bgj/inventory?view=movements');
   });

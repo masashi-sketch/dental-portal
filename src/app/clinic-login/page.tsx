@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { getSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { rememberLoginClinic, useLoginClinicBranding } from '@/hooks/useLoginClinicBranding';
 
 function setPortalCookie() {
   document.cookie = 'portal-selected=true; path=/; SameSite=Lax';
@@ -14,6 +15,7 @@ export default function ClinicLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { clinicName, backgroundUrl } = useLoginClinicBranding();
   const router = useRouter();
 
   const handleSubmit = async () => {
@@ -37,11 +39,17 @@ export default function ClinicLoginPage() {
     }
 
     setPortalCookie();
+    const session = await getSession();
+    if (session?.user?.customerCode) rememberLoginClinic(session.user.customerCode);
     router.push('/admin');
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden bg-gradient-to-br from-teal-950 via-emerald-900 to-teal-800">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden bg-gray-950"
+      style={{ backgroundImage: `url(${backgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat' }}
+    >
+      <div className="absolute inset-0 bg-teal-950/70" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
@@ -55,7 +63,7 @@ export default function ClinicLoginPage() {
             </svg>
           </div>
           <h1 className="text-white text-xl font-bold">医院用ポータル</h1>
-          <p className="text-teal-300 text-sm mt-1">歯科医院専用ログイン</p>
+          <p className="text-teal-200 text-sm mt-1">{clinicName} スタッフログイン</p>
         </div>
 
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-7 border border-white/20 shadow-2xl">
