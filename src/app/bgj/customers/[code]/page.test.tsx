@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, act, fireEvent } from '@testing-library/react';
+import { render, screen, act, fireEvent, waitFor } from '@testing-library/react';
 import CustomerDetailPage from './page';
 import { makeClinicWithStaff } from '@/test/fixtures';
 
@@ -69,21 +69,29 @@ describe('CustomerDetailPage 初期データ取得', () => {
     expect(await screen.findByText('得意先情報の取得に失敗しました')).toBeInTheDocument();
   });
 
-  it('「医院ポータルを開く（ビュー）」を押すとcookieをセットし別タブで/adminを開く', async () => {
+  it('「医院ポータルを開く（ビュー）」を押すと署名トークンを発行して別タブで/adminを開く', async () => {
     fetchMock.mockImplementation((url: string) => {
       if (url === '/api/bgj/clinics/A000001?include=edit-options') return jsonResponse({ clinic, salesReps: [], clinicStatuses: [] });
+      if (url === '/api/portal-preview') return jsonResponse({ token: 'signed-token' });
       throw new Error(`unexpected fetch: ${url}`);
     });
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
-    document.cookie = 'bgj-viewing-customer-code=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    const replaceSpy = vi.fn();
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue({
+      opener: null,
+      location: { replace: replaceSpy },
+      close: vi.fn(),
+    } as unknown as Window);
 
     await renderPage("A000001");
     fireEvent.click(await screen.findByText('医院ポータルを開く（ビュー）'));
 
-    expect(document.cookie).toContain('bgj-viewing-customer-code=A000001');
-    expect(openSpy).toHaveBeenCalledWith('/admin', '_blank');
+    await waitFor(() => expect(replaceSpy).toHaveBeenCalledWith('/admin?portalPreview=signed-token'));
+    expect(openSpy).toHaveBeenCalledWith('about:blank', '_blank');
+    expect(fetchMock).toHaveBeenCalledWith('/api/portal-preview', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ kind: 'clinic', targetId: 'A000001' }),
+    }));
 
     openSpy.mockRestore();
-    document.cookie = 'bgj-viewing-customer-code=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
   });
 });

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Session } from 'next-auth';
 import { effectiveAdminCustomerCode } from './effectiveAdminCustomerCode';
+import { clearTestPortalPreview, setTestPortalPreview } from '@/test/portalPreview';
 
 function makeSession(overrides: Partial<Session['user']>): Session {
   return {
@@ -11,6 +12,7 @@ function makeSession(overrides: Partial<Session['user']>): Session {
 
 function clearCookies() {
   document.cookie = 'bgj-viewing-customer-code=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+  clearTestPortalPreview();
 }
 
 describe('effectiveAdminCustomerCode', () => {
@@ -24,13 +26,13 @@ describe('effectiveAdminCustomerCode', () => {
     expect(effectiveAdminCustomerCode(session)).toBe('A000001');
   });
 
-  it('bgjロールはbgj-viewing-customer-code cookieを返す', () => {
-    document.cookie = 'bgj-viewing-customer-code=A000002; path=/';
+  it('bgjロールはタブ固有の医院プレビュー対象を返す', () => {
+    setTestPortalPreview('clinic', 'A000002');
     const session = makeSession({ role: 'bgj' });
     expect(effectiveAdminCustomerCode(session)).toBe('A000002');
   });
 
-  it('bgjロールでcookieが無ければnull', () => {
+  it('bgjロールでプレビューが無ければnull', () => {
     const session = makeSession({ role: 'bgj' });
     expect(effectiveAdminCustomerCode(session)).toBeNull();
   });

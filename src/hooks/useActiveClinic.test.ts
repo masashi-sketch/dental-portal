@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { clearTestPortalPreview, setTestPortalPreview } from '@/test/portalPreview';
 
 const useSessionMock = vi.fn();
 vi.mock('next-auth/react', () => ({
@@ -17,6 +18,7 @@ function jsonResponse(data: unknown, ok = true) {
 
 function clearCookies() {
   document.cookie = 'bgj-viewing-customer-code=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+  clearTestPortalPreview();
 }
 
 describe('useActiveClinic', () => {
@@ -56,8 +58,8 @@ describe('useActiveClinic', () => {
     expect(result.current.clinicName).toBeNull();
   });
 
-  it('bgjロールでもcookieがあれば、そのcustomerCodeで取得する（医院ポータルのビュー機能）', async () => {
-    document.cookie = 'bgj-viewing-customer-code=A000002; path=/';
+  it('bgjロールでもタブ固有プレビューがあれば、そのcustomerCodeで取得する', async () => {
+    setTestPortalPreview('clinic', 'A000002');
     useSessionMock.mockReturnValue({ data: { user: { role: 'bgj' } }, status: 'authenticated' });
     fetchMock.mockImplementation(() => jsonResponse({ clinic: { display_name: 'ビュー先歯科', staff: null } }));
 

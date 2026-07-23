@@ -74,14 +74,12 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
 
-  // 患者ポータルのページ群は「実患者本人」か「スタッフのプレビューモード」のみ許可
+  // 患者ポータルのページシェルは実患者と認証済みスタッフに許可する。スタッフの
+  // 実データAPIは各Route Handlerがタブ固有の署名トークンを必須にする。
+  // sessionStorageはHTTPナビゲーション前に参照できないため、Proxyで判定しない。
   if (isPatientPortalPath) {
     if (role === "patient") return NextResponse.next();
-    if (role === "clinic" || role === "bgj") {
-      const previewing = !!req.cookies.get(PORTAL_COOKIE.patientPreviewId)?.value;
-      if (previewing) return NextResponse.next();
-      return NextResponse.redirect(new URL("/admin/patients", req.url));
-    }
+    if (role === "clinic" || role === "bgj") return NextResponse.next();
     return NextResponse.redirect(new URL("/", req.url));
   }
 

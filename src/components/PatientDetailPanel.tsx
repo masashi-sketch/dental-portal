@@ -7,7 +7,7 @@ import type { PatientPublic, PeriodontalDiagnosisWithMaster, PeriodontalGrade, P
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { requestClinicInfo } from '@/lib/client/clinicInfoRequest';
-import { beginPatientPreview } from '@/lib/client/portalState';
+import { openPatientPreview } from '@/lib/client/portalState';
 
 type DiagnosisForm = {
   stageCode: string;
@@ -101,8 +101,9 @@ export default function PatientDetailPanel({
   }, [patient?.customer_code]);
 
   const previewAsPatient = () => {
-    beginPatientPreview(id);
-    window.open('/medication', '_blank');
+    openPatientPreview(id).catch((e) => {
+      setError(e instanceof Error ? e.message : 'プレビューの開始に失敗しました。');
+    });
   };
 
   const openDiagnosisForm = () => {

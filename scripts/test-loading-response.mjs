@@ -3,8 +3,6 @@ import { chromium } from 'playwright';
 import { ensureNextTestServer } from './nextTestServer.mjs';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
-const API_DELAY_MS = 1_500;
-
 async function main() {
   const server = await ensureNextTestServer(BASE_URL);
   let browser;
@@ -20,12 +18,8 @@ async function main() {
     const context = await browser.newContext();
     const page = await context.newPage();
     let delayedRequestCount = 0;
-    let resolveSessionRequest;
-    const sessionRequestStarted = new Promise((resolve) => { resolveSessionRequest = resolve; });
     await page.route('**/api/auth/session', async (route) => {
       delayedRequestCount += 1;
-      resolveSessionRequest();
-      await new Promise((resolve) => setTimeout(resolve, API_DELAY_MS));
       await route.continue();
     });
 
@@ -36,21 +30,13 @@ async function main() {
     await content.waitFor({ state: 'visible', timeout: 2_000 });
 
     const elapsedMs = Date.now() - startedAt;
-    if (elapsedMs >= API_DELAY_MS) {
-      throw new Error(`セッションAPI完了まで初期画面がブロックされました: ${elapsedMs}ms`);
+    await page.waitForTimeout(500);
+    if (delayedRequestCount !== 0) {
+      throw new Error(`初期セッションを注入済みなのにセッションAPIが${delayedRequestCount}件呼ばれました`);
     }
-    await Promise.race([
-      sessionRequestStarted,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('セッションAPIが開始されませんでした')), 2_000)),
-    ]);
-    if (delayedRequestCount === 0) {
-      throw new Error('検証対象のセッションAPIが呼び出されませんでした');
-    }
+    if (!await content.isVisible()) throw new Error('初期画面が非表示になりました');
 
-    await page.waitForTimeout(API_DELAY_MS);
-    if (!await content.isVisible()) throw new Error('セッションAPI完了後に画面が非表示になりました');
-
-    console.log(`✓ 低速APIを待たず初期画面を表示しました (${elapsedMs}ms、遅延API ${delayedRequestCount}件)`);
+    console.log(`✓ 初期画面を表示し、クライアントのセッションAPI呼び出しは0件でした (${elapsedMs}ms)`);
   } finally {
     await browser?.close();
     server?.kill('SIGTERM');

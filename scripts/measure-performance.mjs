@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ローカルdevサーバーに対する自動シナリオ計測スクリプト（Playwright）。
 // 対象: 医院ポータル（clinic-credentials）・患者ポータル（医院の「患者ポータルをプレビュー」と同じ
-// demo-patient-idクッキー機構経由）・BGJポータル（Google OAuth画面は自動操作せず、AUTH_SECRETで
+// タブ固有の署名トークン経由）・BGJポータル（Google OAuth画面は自動操作せず、AUTH_SECRETで
 // 正規のセッションCookieを直接発行して注入する。mintTestSession.mjs参照、localhost限定ガード付き）。
 // 実行: node --env-file=.env.local scripts/measure-performance.mjs
 import { chromium } from 'playwright';
@@ -127,6 +127,20 @@ async function getFirstClinicCode(page) {
   return href.replace('/bgj/customers/', '');
 }
 
+async function startPatientPreview(page, patientId) {
+  const token = await page.evaluate(async (targetId) => {
+    const response = await fetch('/api/portal-preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'patient', targetId }),
+    });
+    const body = await response.json();
+    if (!response.ok || !body.token) throw new Error(body.error ?? '患者プレビューの開始に失敗しました');
+    return body.token;
+  }, patientId);
+  await gotoWithRetry(page, `${BASE_URL}/home?portalPreview=${encodeURIComponent(token)}`, { waitUntil: 'networkidle' });
+}
+
 async function main() {
   const browser = await chromium.launch();
   const context = await browser.newContext();
@@ -146,9 +160,7 @@ async function main() {
   await runScenarioStep(page, '注文 (/admin/orders)', `${BASE_URL}/admin/orders`, clinicResults);
   await runScenarioStep(page, `患者詳細 (/admin/patients/${patientId})`, `${BASE_URL}/admin/patients/${patientId}`, clinicResults);
 
-  await context.addCookies([
-    { name: 'demo-patient-id', value: patientId, url: BASE_URL, sameSite: 'Lax' },
-  ]);
+  await startPatientPreview(page, patientId);
 
   console.log('\n[患者シナリオ] プレビュー→ホーム→受け取り→定期購入（医院スタッフの患者プレビュー機構を使用）');
   const patientResults = [];

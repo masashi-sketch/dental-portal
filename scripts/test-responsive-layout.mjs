@@ -30,13 +30,22 @@ async function verifyViewport(browser, sessionCookie, viewport) {
   await context.addCookies([
     sessionCookie,
     { name: 'portal-selected', value: 'true', url: BASE_URL, sameSite: 'Lax' },
-    { name: 'bgj-viewing-customer-code', value: 'A000001', url: BASE_URL, sameSite: 'Lax' },
   ]);
   const page = await context.newPage();
 
   try {
-    await page.goto(`${BASE_URL}/admin/dashboard`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    const previewResponse = await context.request.post(`${BASE_URL}/api/portal-preview`, {
+      data: { kind: 'clinic', targetId: 'A000001' },
+    });
+    const previewBody = await previewResponse.json();
+    if (!previewResponse.ok() || !previewBody.token) {
+      throw new Error(previewBody.error ?? '医院プレビューの開始に失敗しました');
+    }
+    const previewToken = previewBody.token;
+    await page.goto(`${BASE_URL}/admin/dashboard?portalPreview=${encodeURIComponent(previewToken)}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.locator('[data-app-ready="true"]').waitFor({ state: 'visible', timeout: 20_000 });
+    // SSR時点ではsessionStorageを読めないため、プレビュー復元後の医院情報取得まで待つ。
+    await page.waitForLoadState('networkidle', { timeout: 60_000 });
     await Promise.all([
       page.getByTestId('admin-dashboard-content').waitFor({ state: 'visible' }),
       page.getByTestId('admin-desktop-sidebar').waitFor({ state: 'attached' }),
@@ -52,7 +61,14 @@ async function verifyViewport(browser, sessionCookie, viewport) {
       const statGrid = document.querySelector('[data-testid="admin-stat-grid"]');
       const contactTrigger = document.querySelector('[data-testid="sales-rep-contact-trigger"]');
       if (!desktopSidebar || !compactHeader || !content || !statGrid || !contactTrigger) {
-        throw new Error('レスポンシブ検証用の要素が見つかりません');
+        throw new Error(`レスポンシブ検証用の要素が見つかりません: ${JSON.stringify({
+          desktopSidebar: !!desktopSidebar,
+          compactHeader: !!compactHeader,
+          content: !!content,
+          statGrid: !!statGrid,
+          contactTrigger: !!contactTrigger,
+          path: location.pathname,
+        })}`);
       }
 
       const sidebarRect = desktopSidebar.getBoundingClientRect();

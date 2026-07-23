@@ -4,17 +4,13 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Session } from 'next-auth';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-// next/headers の cookies() をテスト用にモックする。
-// demo-patient-id cookieの値だけを差し替えられるようにする。
-let mockCookieValue: string | null = null;
+let mockPreviewToken: string | null = null;
 vi.mock('next/headers', () => ({
-  cookies: async () => ({
-    get: (name: string) =>
-      name === 'demo-patient-id' && mockCookieValue !== null ? { value: mockCookieValue } : undefined,
-  }),
+  headers: async () => new Headers(mockPreviewToken ? { 'x-portal-preview-token': mockPreviewToken } : undefined),
 }));
 
 const { resolveEffectiveCustomerCode, resolveEffectivePatientId } = await import('./patientScope');
+const { signPortalPreviewToken } = await import('./portalPreviewToken');
 
 function makeSession(overrides: Partial<Session['user']>): Session {
   return {
@@ -23,6 +19,7 @@ function makeSession(overrides: Partial<Session['user']>): Session {
       customerCode: null,
       patientId: null,
       email: 'staff@biogaia.jp',
+      clinicUserId: 'clinic-user-1',
       ...overrides,
     },
     expires: '2099-01-01T00:00:00.000Z',
@@ -43,38 +40,40 @@ function fakeSupabase(data: { customer_code: string } | null): SupabaseClient {
 
 describe('resolveEffectivePatientId', () => {
   it('セッションが無ければnull', async () => {
-    mockCookieValue = null;
+    mockPreviewToken = null;
     await expect(resolveEffectivePatientId(fakeSupabase(null), null)).resolves.toBeNull();
   });
 
-  it('patientロールは常に自分自身のpatientId（cookieを見ない）', async () => {
-    mockCookieValue = 'other-patient-id';
+  it('patientロールは常に自分自身のpatientId（プレビューを見ない）', async () => {
     const session = makeSession({ role: 'patient', patientId: 'my-id', customerCode: 'A000001' });
     await expect(resolveEffectivePatientId(fakeSupabase(null), session)).resolves.toBe('my-id');
   });
 
-  it('bgjロールはdemo-patient-id cookieの値をそのまま信頼する', async () => {
-    mockCookieValue = 'preview-patient-1';
+  it('bgjロールは署名済み患者プレビューを利用する', async () => {
+    vi.stubEnv('AUTH_SECRET', 'preview-test-secret');
     const session = makeSession({ role: 'bgj' });
+    mockPreviewToken = signPortalPreviewToken(session, 'patient', 'preview-patient-1');
     await expect(resolveEffectivePatientId(fakeSupabase(null), session)).resolves.toBe('preview-patient-1');
   });
 
-  it('bgjロールでcookieが無ければnull', async () => {
-    mockCookieValue = null;
+  it('bgjロールでプレビューが無ければnull', async () => {
+    mockPreviewToken = null;
     const session = makeSession({ role: 'bgj' });
     await expect(resolveEffectivePatientId(fakeSupabase(null), session)).resolves.toBeNull();
   });
 
   it('clinicロールは自院の患者のプレビューのみ許可する', async () => {
-    mockCookieValue = 'preview-patient-1';
+    vi.stubEnv('AUTH_SECRET', 'preview-test-secret');
     const session = makeSession({ role: 'clinic', customerCode: 'A000001' });
+    mockPreviewToken = signPortalPreviewToken(session, 'patient', 'preview-patient-1');
     const supabase = fakeSupabase({ customer_code: 'A000001' });
     await expect(resolveEffectivePatientId(supabase, session)).resolves.toBe('preview-patient-1');
   });
 
   it('clinicロールは他院の患者IDをプレビューできない', async () => {
-    mockCookieValue = 'preview-patient-1';
+    vi.stubEnv('AUTH_SECRET', 'preview-test-secret');
     const session = makeSession({ role: 'clinic', customerCode: 'A000001' });
+    mockPreviewToken = signPortalPreviewToken(session, 'patient', 'preview-patient-1');
     const supabase = fakeSupabase({ customer_code: 'A999999' });
     await expect(resolveEffectivePatientId(supabase, session)).resolves.toBeNull();
   });
@@ -82,7 +81,7 @@ describe('resolveEffectivePatientId', () => {
 
 describe('resolveEffectiveCustomerCode', () => {
   it('patient/clinicロールはセッションのcustomerCodeをそのまま返す', async () => {
-    mockCookieValue = null;
+    mockPreviewToken = null;
     await expect(
       resolveEffectiveCustomerCode(fakeSupabase(null), makeSession({ role: 'patient', customerCode: 'A000001' })),
     ).resolves.toBe('A000001');
@@ -92,14 +91,15 @@ describe('resolveEffectiveCustomerCode', () => {
   });
 
   it('bgjロールはプレビュー対象患者の得意先コードを引く（他院も可）', async () => {
-    mockCookieValue = 'preview-patient-1';
+    vi.stubEnv('AUTH_SECRET', 'preview-test-secret');
     const session = makeSession({ role: 'bgj' });
+    mockPreviewToken = signPortalPreviewToken(session, 'patient', 'preview-patient-1');
     const supabase = fakeSupabase({ customer_code: 'A999999' });
     await expect(resolveEffectiveCustomerCode(supabase, session)).resolves.toBe('A999999');
   });
 
-  it('bgjロールでcookieが無ければnull', async () => {
-    mockCookieValue = null;
+  it('bgjロールでプレビューが無ければnull', async () => {
+    mockPreviewToken = null;
     const session = makeSession({ role: 'bgj' });
     await expect(resolveEffectiveCustomerCode(fakeSupabase(null), session)).resolves.toBeNull();
   });

@@ -12,7 +12,7 @@ import { CLINIC_STATUS_BADGE_CLASS } from "@/lib/clinicStatusColors";
 import { clinicToForm, type ClinicFormState, type ClinicWithStaff } from "@/lib/clinicForm";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import { beginClinicPreview } from "@/lib/client/portalState";
+import { openClinicPreview } from "@/lib/client/portalState";
 
 const tabLoading = <p className="py-8 text-center text-sm text-slate-400">タブを読み込み中...</p>;
 
@@ -233,10 +233,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
                 theme="violet"
                 size="sm"
                 className="shadow-sm"
-                onClick={() => {
-                  beginClinicPreview(code);
-                  window.open("/admin", "_blank");
-                }}
+                onClick={() => openClinicPreview(code).catch((error) => {
+                  showToast(error instanceof Error ? error.message : 'プレビューの開始に失敗しました。');
+                })}
               >
                 医院ポータルを開く（ビュー）
               </Button>

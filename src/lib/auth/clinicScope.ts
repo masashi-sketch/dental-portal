@@ -1,9 +1,9 @@
 import 'server-only';
-import { cookies } from 'next/headers';
+import { headers } from 'next/headers';
 import type { Session } from 'next-auth';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ClinicPortalPermissionKey, ClinicPortalRoleKey } from '@/lib/supabase/types';
-import { PORTAL_COOKIE } from '@/lib/portalCookies';
+import { PORTAL_PREVIEW_HEADER, verifyPortalPreviewToken } from '@/lib/auth/portalPreviewToken';
 
 const ROLE_PERMISSIONS: Record<ClinicPortalRoleKey, ClinicPortalPermissionKey[]> = {
   admin: ['view_contacts', 'manage_contacts', 'manage_logins'],
@@ -31,17 +31,17 @@ export function requireBgjSession(session: Session | null): session is Session {
 // クリニック（clinic-credentials）ログインは、クライアントが送ってきたcustomerCodeを
 // 一切信用せず、必ずセッションの得意先コードで上書きする。BGJ職員（Google）は
 // 従来通りクエリ／bodyのcustomerCode指定を信頼する。
-// BGJ職員がcustomerCodeを指定しなかった場合（/admin/*ページの多くはクエリを付けずに
-// fetchする）、得意先詳細ページの「医院ポータルを開く（ビュー）」ボタンがセットする
-// bgj-viewing-customer-codeクッキーへフォールバックする（患者側のdemo-patient-idと同じ設計）。
+// BGJ職員がcustomerCodeを指定しなかった場合は、タブ固有の署名済み
+// プレビュートークンから対象医院を解決する。共有Cookieは使用しない。
 export async function resolveScopedCustomerCode(
   session: Session,
   requestedCode: string | null,
 ): Promise<string | null> {
   if (session.user.role === 'clinic') return session.user.customerCode;
   if (requestedCode) return requestedCode;
-  const store = await cookies();
-  return store.get(PORTAL_COOKIE.clinicPreviewCustomerCode)?.value ?? null;
+  const token = (await headers()).get(PORTAL_PREVIEW_HEADER);
+  const preview = verifyPortalPreviewToken(token, session);
+  return preview?.kind === 'clinic' ? preview.targetId : null;
 }
 
 // patient_id経由のAPI（詳細・診断など）で、クリニックログインが他院の患者IDに

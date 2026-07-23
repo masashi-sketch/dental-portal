@@ -5,15 +5,9 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Session } from 'next-auth';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-// next/headers の cookies() をテスト用にモックする。
-// bgj-viewing-customer-code cookieの値だけを差し替えられるようにする
-// （patientScope.test.tsのdemo-patient-idモックと同じパターン）。
-let mockCookieValue: string | null = null;
+let mockPreviewToken: string | null = null;
 vi.mock('next/headers', () => ({
-  cookies: async () => ({
-    get: (name: string) =>
-      name === 'bgj-viewing-customer-code' && mockCookieValue !== null ? { value: mockCookieValue } : undefined,
-  }),
+  headers: async () => new Headers(mockPreviewToken ? { 'x-portal-preview-token': mockPreviewToken } : undefined),
 }));
 
 const {
@@ -23,6 +17,7 @@ const {
   requireBgjSession,
   resolveScopedCustomerCode,
 } = await import('./clinicScope');
+const { signPortalPreviewToken } = await import('./portalPreviewToken');
 
 describe('hasClinicPermission', () => {
   it('BGJセッションは全ての医院担当者操作が可能', () => {
@@ -47,6 +42,7 @@ function makeSession(overrides: Partial<Session['user']>): Session {
       customerCode: null,
       patientId: null,
       email: 'staff@biogaia.jp',
+      clinicUserId: 'clinic-user-1',
       ...overrides,
     },
     expires: '2099-01-01T00:00:00.000Z',
@@ -87,12 +83,10 @@ describe('requireBgjSession', () => {
 });
 
 describe('resolveScopedCustomerCode', () => {
-  it('clinicロールはrequestedCodeを無視し、常に自分のcustomerCodeを返す（cookieがあっても無視）', async () => {
-    mockCookieValue = 'A999998';
+  it('clinicロールはrequestedCodeを無視し、常に自分のcustomerCodeを返す', async () => {
     const session = makeSession({ role: 'clinic', customerCode: 'A000001' });
     await expect(resolveScopedCustomerCode(session, 'A999999')).resolves.toBe('A000001');
     await expect(resolveScopedCustomerCode(session, null)).resolves.toBe('A000001');
-    mockCookieValue = null;
   });
 
   it('bgjロールはrequestedCodeをそのまま信頼する', async () => {
@@ -100,14 +94,16 @@ describe('resolveScopedCustomerCode', () => {
     await expect(resolveScopedCustomerCode(session, 'A000002')).resolves.toBe('A000002');
   });
 
-  it('bgjロールでrequestedCodeが無い場合、bgj-viewing-customer-code cookieへフォールバックする', async () => {
-    mockCookieValue = 'A000003';
+  it('bgjロールでrequestedCodeが無い場合、署名済みプレビューへフォールバックする', async () => {
+    vi.stubEnv('AUTH_SECRET', 'preview-test-secret');
     const session = makeSession({ role: 'bgj' });
+    mockPreviewToken = signPortalPreviewToken(session, 'clinic', 'A000003');
     await expect(resolveScopedCustomerCode(session, null)).resolves.toBe('A000003');
-    mockCookieValue = null;
+    mockPreviewToken = null;
   });
 
-  it('bgjロールでrequestedCodeもcookieも無い場合はnull', async () => {
+  it('bgjロールでrequestedCodeもプレビューも無い場合はnull', async () => {
+    mockPreviewToken = null;
     const session = makeSession({ role: 'bgj' });
     await expect(resolveScopedCustomerCode(session, null)).resolves.toBeNull();
   });

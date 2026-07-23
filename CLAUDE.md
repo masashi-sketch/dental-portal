@@ -379,21 +379,21 @@ DB変更SQLを提示するときは、以下をセットにする。
 
 追加サービスを先に契約せず、導入済みのSentryとNext.jsの標準機能を使う。
 
-### レスポンス改善の設計原則（2026-07-22確定）
+### レスポンス改善の設計原則（2026-07-24更新）
 
-- **途中表示を完成扱いしない。** 初回表示と内部画面遷移では全画面ローディングを使い、初期API・フォント・遅延指定でない画像・最終描画フレームが揃ってから本文を一括表示する。初回ハイドレーションは500ms、表示済み画面からの遷移は120msのnetwork idleを確認する。15秒を超えた場合は操作不能のままにせず本文を表示し、「一部のデータを取得できませんでした」と再読み込み導線を出す（`AppReadyBoundary`）。
-- **評価指標は見た目ではなく`displayReadyMs`。** `data-app-ready="true"`になりユーザーが操作可能になった時刻を直接測る。`networkidle`は比較用に残すが、500msの待機を含むため画面表示目標の主指標にはしない。フルリロードとNext.jsクライアント遷移はセッション・共通キャッシュ条件が異なるため、同じ数値として混ぜない。
+- **画面骨格を通信完了でブロックしない。** 初期HTMLと操作可能な静的UIを先に表示し、可変データは各領域のloading／empty／error状態で段階表示する。全fetch・フォント・画像の完了を待つ全画面ローディングは、1件の低速APIが全画面を停止させるため使用しない。
+- **評価指標は初期表示とデータ完了を分離する。** `data-app-ready="true"`は初期HTMLが表示可能になった時刻、`networkidle`と各API時間は可変データの完了時刻として別々に測る。フルリロードとNext.jsクライアント遷移はセッション・共通キャッシュ条件が異なるため、同じ数値として混ぜない。
 - **bootstrap APIは同じ画面の初期表示データだけをまとめる。** 認証・権限確認・Serverless Function起動が重複する場合、1本のbootstrap APIで認証／スコープ解決を1回にし、独立したDB照会を`Promise.all`で並列化する。更新APIは責務と失敗範囲を明確にするため分離したままにする。注文は`/api/admin/orders/bootstrap`、患者詳細は`/api/admin/patients/[id]/bootstrap`が基準実装。
 - **共通UIデータを画面固有bootstrapへ無理に混ぜない。** サイドバーの医院情報・外部リンクのように複数画面で使うデータは共有リクエストキャッシュを使う。画面固有APIへ結合して依存関係を逆転させない。安定マスタはサーバー共有モジュール＋`unstable_cache`へ抽出する（`periodontalMaster.ts`）。患者別・医院別の可変データを一律に長期キャッシュしない。
 - **初期JavaScriptを必要な機能だけにする。** 初期表示されないタブ、QR/PDF、グラフ、管理パネルは`next/dynamic`でクリック時ロードする。条件分岐で非表示でも静的importなら初期bundleに含まれるため、bundleサイズを測って判断する。
-- **セッション取得を重複させない。** NextAuthの初回取得は`getSession({ broadcast: false })`を共有Promise化してから`SessionProvider`へ渡す。BroadcastChannel起因の再取得を避ける。開発モードの再コンパイル／Strict Modeと本番挙動は分けて検証する。
+- **セッション取得で全画面を止めない。** `SessionProvider`を1つだけ配置し、フォーカス復帰時の不要な再取得を無効化する。認証・認可はProxyと各APIで検証し、クライアントのセッション取得中も静的な画面骨格は表示する。
 - **速さと保守性を同時に満たす変更だけを採用する。** API本数を減らすためだけの巨大endpoint、別責務のUI同士を結ぶcallback連鎖、短期数値のための認可省略は採用しない。変更前後を同条件で複数回測定し、API内訳・p50/p75/p95・bundleサイズを記録する。新しい共通モジュールとAPIには同じ作業単位でテストを追加し、CI・本番ビルド・読み取り専用の本番スモークテストまで確認する。
 
-1. **ブラウザ実測（RUM）**：**2026-07-20実装済み**。`src/components/WebVitalsReporter.tsx`（`src/app/layout.tsx`に常時マウント）が`next/web-vitals`の`useReportWebVitals`でTTFB／FCP／LCP／INP／CLSを取得し、`metric.rating`が`good`以外（`needs-improvement`／`poor`）の計測のみSentryへ`captureMessage('web-vital.{name}')`で送信する（無料枠消費を抑えるため、良好な計測は送らない）。属性はルート名（`pathname`）・ポータル種別（`patient`/`clinic`/`bgj`、パス先頭で判定）のみで、患者名・医院名・メール・ID等は送らない。画面データ表示完了は`AppReadyBoundary`の`data-app-ready`をPlaywrightで直接計測する。
+1. **ブラウザ実測（RUM）**：**2026-07-20実装済み**。`src/components/WebVitalsReporter.tsx`（`src/app/layout.tsx`に常時マウント）が`next/web-vitals`の`useReportWebVitals`でTTFB／FCP／LCP／INP／CLSを取得し、`metric.rating`が`good`以外（`needs-improvement`／`poor`）の計測のみSentryへ`captureMessage('web-vital.{name}')`で送信する（無料枠消費を抑えるため、良好な計測は送らない）。属性はルート名（`pathname`）・ポータル種別（`patient`/`clinic`/`bgj`、パス先頭で判定）のみで、患者名・医院名・メール・ID等は送らない。初期HTMLの表示可能時点は`body[data-app-ready="true"]`をPlaywrightで直接計測する。
 2. **API／DB計測**：重要APIについて認証、Supabase照会、RPC、外部I/O、レスポンス生成を個別spanまたは`Server-Timing`で測定する。コールドスタートとウォーム時は分けて評価する。
-3. **自動シナリオ計測**：**2026-07-20実装済み、2026-07-22表示完了計測追加**。`scripts/measure-performance.mjs`（Playwright）が、患者（プレビュー→ホーム→受け取り→定期購入）、医院（ログイン→ダッシュボード→注文→患者詳細）、BGJ（ダッシュボード→得意先一覧→詳細→レポート）の3シナリオを、ウォームアップ2回＋計測10回／ステップで実行し、`displayReadyMs`・`wallMs`・TTFB・domContentLoaded・loadEventのp50/p75/p95を算出する。実行は`npm run perf:measure`（`.env.local`を`--env-file`で読み込み）。結果は`scripts/.perf-last-run.json`に出力後、`docs/performance-baseline.md`へ反映する。低速通信時の途中表示防止は`npm run test:e2e:loading`で検証し、GitHub Actionsでも実行する。
+3. **自動シナリオ計測**：**2026-07-20実装済み、2026-07-24非ブロッキング表示へ更新**。`scripts/measure-performance.mjs`（Playwright）が、患者（プレビュー→ホーム→受け取り→定期購入）、医院（ログイン→ダッシュボード→注文→患者詳細）、BGJ（ダッシュボード→得意先一覧→詳細→レポート）の3シナリオを、ウォームアップ2回＋計測10回／ステップで実行し、`displayReadyMs`・`wallMs`・TTFB・domContentLoaded・loadEventのp50/p75/p95を算出する。実行は`npm run perf:measure`（`.env.local`を`--env-file`で読み込み）。結果は`scripts/.perf-last-run.json`に出力後、`docs/performance-baseline.md`へ反映する。初期セッション注入後の`/api/auth/session`が0件であることを`npm run test:e2e:loading`で検証する。
    - **医院ポータル**：`.env.local`の`TEST_CLINIC_LOGIN_ID`/`TEST_CLINIC_LOGIN_PASSWORD`でログインする（[[project_test_credentials]]）。
-   - **患者ポータル**：直接ログイン用のテスト患者アカウントが無いため、`/admin/patients`の「患者ポータルをプレビュー」と同じ`demo-patient-id`クッキーをスクリプト側でも設定して到達する（実際の`patient-credentials`ログインフロー自体の時間は含まない）。
+   - **患者ポータル**：直接ログイン用のテスト患者アカウントが無いため、`/api/portal-preview`で操作者紐付き・15分有効の署名トークンを発行し、実画面と同じタブ固有`sessionStorage`経由で到達する（実際の`patient-credentials`ログインフロー自体の時間は含まない）。
    - **BGJポータル**：Google OAuth限定でPlaywrightからの自動ログインができないため、**Google側の画面は一切自動操作しない**。代わりに`scripts/mintTestSession.mjs`が、アプリ本体（`src/auth.ts`）と同じ`AUTH_SECRET`を使って`next-auth/jwt`の`encode()`でNextAuthのセッションJWE（Cookie名`authjs.session-token`）を直接発行し、ブラウザへ注入する。アプリ本体のコードは一切変更しない。**安全対策として`assertLocalBaseUrl()`がbaseURLのhostnameを検査し、`localhost`/`127.0.0.1`以外では必ず例外を投げる**（本番や共有環境へ誤用すると実質的にGoogle OAuth制限のバイパスになるため）。同種の「NextAuthセッションを直接発行してE2E計測・検証する」ニーズが今後出た場合はこのモジュールを再利用し、guardを外さない。**`src/proxy.ts`は認証済みでも`portal-selected`Cookieが無いと`/auth/signin`へ戻すため、セッションCookieと合わせて`portal-selected=true`も注入する必要がある**（実際にこれを忘れて`/bgj/customers`が`/auth/signin`にリダイレクトされる不具合が発生し、原因特定に`/api/auth/session`への直接アクセスで「セッション自体は正しくデコードされているか」を切り分けるデバッグ手順を使った）。
 4. **負荷試験**：本番書き込みでは実施せず、ステージングまたはSupabase branchで匿名化した300医院・4,000ユーザー・12ヶ月分相当のデータを使う。通常20同時接続、ピーク50、短時間スパイク100を基準シナリオとし、書き込みはテストデータと冪等キーを使う。
 5. **改善順**：基準値を取ってから、多重fetchをoverview/bootstrap APIへ統合、安定マスタや外部リンクをキャッシュ、商品取得の重複を共有hookへ統合する。患者別データへの一律キャッシュは行わない。
@@ -430,7 +430,7 @@ DB変更SQLを提示するときは、以下をセットにする。
 - **fetchするクライアントコンポーネントのテスト**は`vi.stubGlobal('fetch', fetchMock)`でURL・HTTPメソッド分岐のmockを組み、`afterEach`で`vi.unstubAllGlobals()`する（`src/components/ClinicTermsManager.test.tsx`が雛形）。rechartsなどjsdomで描画できない部品は`vi.mock`で差し替える（`ClinicSalesOrders.test.tsx`が雛形）。
 - フィールド数の多い`ClinicWithStaff`等の共通フィクスチャは`src/test/fixtures.ts`のファクトリ（`makeClinicWithStaff()`）を使う。テスト専用ファイルであり、アプリ本体からはimportしない。
 - 現状のカバレッジ：`src/lib/auth/`配下・`src/lib/patientNav.ts`・`src/lib/clinicForm.ts`のロジック、全APIルート（2026-07-20夜に24ファイル追加、認証必須の全ルートを網羅）、UIコンポーネント（`src/components/ui/`のButton/Card/LoadingState/ConfirmDialog、`PatientSidebarNav`、得意先詳細から抽出したClinicVisitList/ClinicBasicInfoTab/ClinicBusinessInfoTab/ClinicTermsManager/ClinicSalesOrders/ClinicStaffManager/ClinicQaManager/ClinicEmailTemplatesManager/SignupQrCard）、`useToast`、BGJマニュアルの`ManualNav`（2026-07-21のナビゲーション3カラム化で新設）。
-- **CI（GitHub Actions、`.github/workflows/ci.yml`）でpush/pull_request時にlint/tsc/test、低速通信時の全画面ローディングE2E、管理画面8解像度のレスポンシブE2Eを自動実行する**。git pre-commitフックは未設定。
+- **CI（GitHub Actions、`.github/workflows/ci.yml`）でpush/pull_request時にlint/tsc/test、低速通信時の非ブロッキング初期表示E2E、管理画面8解像度のレスポンシブE2Eを自動実行する**。git pre-commitフックは未設定。
 - 新しいテストを追加する場合は既存の書き方（`vitest`のdescribe/it、上記のmockパターン）を踏襲する。
 
 ## CI失敗通知を受け取ったときの対応方針（2026-07-18にユーザーが明示）

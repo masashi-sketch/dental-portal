@@ -12,6 +12,7 @@ vi.mock('@/auth', () => ({
 // このテストではcookieも無い状態（=undefined）を再現する。
 vi.mock('next/headers', () => ({
   cookies: async () => ({ get: () => undefined }),
+  headers: async () => new Headers(),
 }));
 
 let termsRow: Record<string, unknown> | null = null;

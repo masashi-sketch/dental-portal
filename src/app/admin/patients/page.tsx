@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '@/hooks/useToast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
-import { beginPatientPreview } from '@/lib/client/portalState';
+import { openPatientPreview } from '@/lib/client/portalState';
 import { useSignupPinRegenerate } from '@/hooks/useSignupPinRegenerate';
 import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { formatTimestampCompact } from '@/lib/formatTimestamp';
@@ -167,8 +167,9 @@ export default function AdminPatientsPage() {
   };
 
   const previewAsPatient = (id: string) => {
-    beginPatientPreview(id);
-    window.open('/medication', '_blank');
+    openPatientPreview(id).catch((e) => {
+      showToast(e instanceof Error ? e.message : 'プレビューの開始に失敗しました。');
+    });
   };
 
   return (

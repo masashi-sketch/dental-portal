@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import AdminPatientsPage from './page';
+import { clearTestPortalPreview, setTestPortalPreview } from '@/test/portalPreview';
 
 vi.mock('next-auth/react', () => ({
   useSession: () => ({ data: { user: { name: 'BGJ担当者', role: 'bgj' } }, status: 'authenticated' }),
@@ -31,6 +32,7 @@ function htmlResponse() {
 
 describe('AdminPatientsPage 一覧取得エラー表示', () => {
   beforeEach(() => {
+    clearTestPortalPreview();
     fetchMock.mockReset();
     fetchMock.mockImplementation((url: string) => {
       if (url === '/api/bgj/external-links') return jsonResponse({ externalLinks: [] });
@@ -42,6 +44,7 @@ describe('AdminPatientsPage 一覧取得エラー表示', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    clearTestPortalPreview();
   });
 
   it('通常時は患者一覧を表示する', async () => {
@@ -69,7 +72,7 @@ describe('AdminPatientsPage 一覧取得エラー表示', () => {
   });
 
   it('BGJ職員がビューモード中は、QR招待ボタンが表示され、新規患者IDの得意先コードが自動入力される', async () => {
-    document.cookie = 'bgj-viewing-customer-code=A000001; path=/';
+    setTestPortalPreview('clinic', 'A000001');
     fetchMock.mockImplementation((url: string) => {
       if (url === '/api/bgj/external-links') return jsonResponse({ externalLinks: [] });
       if (url === '/api/admin/patients') return jsonResponse({ patients: [] });

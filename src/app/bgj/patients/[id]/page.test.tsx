@@ -1,6 +1,6 @@
 import { act, Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import BgjPatientDetailPage from './page';
 import { clearClinicInfoRequestCache } from '@/lib/client/clinicInfoRequest';
 
@@ -46,6 +46,7 @@ describe('BgjPatientDetailPage', () => {
       if (url === '/api/admin/clinic-info?customerCode=A000001') {
         return jsonResponse({ clinic: { show_periodontal_diagnosis: false } });
       }
+      if (url === '/api/portal-preview') return jsonResponse({ token: 'signed-token' });
       throw new Error(`unexpected fetch: ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -63,14 +64,19 @@ describe('BgjPatientDetailPage', () => {
     expect(screen.getByText('患者様一覧').closest('a')).toHaveAttribute('href', '/bgj/patients');
   });
 
-  it('「患者ポータルを開く（ビュー）」ボタンでdemo-patient-id cookieをセットし別タブで/medicationを開く', async () => {
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+  it('「患者ポータルを開く（ビュー）」ボタンで署名トークンを発行し別タブで開く', async () => {
+    const replaceSpy = vi.fn();
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue({
+      opener: null,
+      location: { replace: replaceSpy },
+      close: vi.fn(),
+    } as unknown as Window);
     await renderPage(Promise.resolve({ id: 'p1' }));
 
     fireEvent.click(await screen.findByText('患者ポータルを開く（ビュー）'));
 
-    expect(document.cookie).toContain('demo-patient-id=p1');
-    expect(openSpy).toHaveBeenCalledWith('/medication', '_blank');
+    await waitFor(() => expect(replaceSpy).toHaveBeenCalledWith('/medication?portalPreview=signed-token'));
+    expect(openSpy).toHaveBeenCalledWith('about:blank', '_blank');
     openSpy.mockRestore();
   });
 });

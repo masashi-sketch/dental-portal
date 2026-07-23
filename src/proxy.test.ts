@@ -107,3 +107,17 @@ describe('医院の閲覧専用ロール', () => {
     await expect(response.json()).resolves.toEqual({ error: '閲覧専用アカウントでは更新できません。' });
   });
 });
+
+describe('患者ポータルのスタッフ用ページシェル', () => {
+  function request() {
+    const req = new NextRequest('https://example.com/medication', {
+      headers: { cookie: 'portal-selected=true' },
+    }) as NextRequest & { auth: unknown };
+    req.auth = { user: { role: 'clinic', clinicUserId: 'clinic-user-1', customerCode: 'A000001' } };
+    return req;
+  }
+
+  it('認証済みスタッフへページシェルを許可し、実データ認可はAPIで行う', () => {
+    expect(proxy(request()).headers.get('location')).toBeNull();
+  });
+});

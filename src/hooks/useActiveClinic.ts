@@ -10,8 +10,8 @@ import { requestClinicInfo } from '@/lib/client/clinicInfoRequest';
 // 医院用ポータルの「今どのクリニックとして見るか」の情報を取得する。
 // クリニックログイン（clinic-credentials）はセッションのcustomerCodeを使う。
 // BGJ職員は得意先を選択する仕組みを廃止したが、得意先詳細ページの
-// 「医院ポータルを開く（ビュー）」経由でアクセスした場合はbgj-viewing-customer-code
-// cookie（effectiveAdminCustomerCode参照）にフォールバックする。
+// 「医院ポータルを開く（ビュー）」経由ではタブ固有の署名付きプレビュー対象
+// （effectiveAdminCustomerCode参照）にフォールバックする。
 export function useActiveClinic() {
   const { data: session, status: sessionStatus } = useSession();
   const [clinicName, setClinicName] = useSafeState<string | null>(null);

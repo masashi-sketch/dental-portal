@@ -3,6 +3,7 @@ import { M_PLUS_Rounded_1c } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import WebVitalsReporter from "@/components/WebVitalsReporter";
+import { readHydratedSession } from '@/lib/auth/hydratedSession';
 
 const mPlusRounded = M_PLUS_Rounded_1c({
   weight: ["400", "700"],
@@ -21,16 +22,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await readHydratedSession();
   return (
     <html lang="ja" className={mPlusRounded.className}>
       <body className="min-h-screen flex flex-col overflow-x-hidden" data-app-ready="true">
         <WebVitalsReporter />
-        <Providers>
+        <Providers session={session}>
           {children}
         </Providers>
       </body>

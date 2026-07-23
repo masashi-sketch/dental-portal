@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import AdminDashboard from './page';
 import type { AdminOverview } from '@/lib/adminOverview';
+import { clearTestPortalPreview, setTestPortalPreview } from '@/test/portalPreview';
 
 const useSessionMock = vi.fn();
 vi.mock('next-auth/react', () => ({
@@ -50,6 +51,7 @@ vi.mock('@/hooks/useAdminOverview', () => ({
 function clearCookies() {
   document.cookie = 'patient-last-clinic=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
   document.cookie = 'bgj-viewing-customer-code=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+  clearTestPortalPreview();
 }
 
 describe('AdminDashboard', () => {
@@ -85,7 +87,7 @@ describe('AdminDashboard', () => {
 
   it('BGJのビューモード中は、ビュー対象の得意先コードでpatient-last-clinic cookieをセットする', () => {
     useSessionMock.mockReturnValue({ data: { user: { role: 'bgj' } }, status: 'authenticated' });
-    document.cookie = 'bgj-viewing-customer-code=A000002; path=/';
+    setTestPortalPreview('clinic', 'A000002');
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<AdminDashboard />);
 

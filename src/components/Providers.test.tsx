@@ -11,7 +11,7 @@ describe("Providers", () => {
   it("セッション取得中でも本文をブロックせず表示する", async () => {
     const { default: Providers } = await import("./Providers");
 
-    render(<Providers><p>本文</p></Providers>);
+    render(<Providers session={null}><p>本文</p></Providers>);
 
     expect(screen.getByText("本文")).toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "画面を読み込んでいます" })).not.toBeInTheDocument();

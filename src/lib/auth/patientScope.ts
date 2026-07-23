@@ -1,12 +1,18 @@
 import 'server-only';
 import type { Session } from 'next-auth';
-import { PORTAL_COOKIE } from '@/lib/portalCookies';
-import { cookies } from 'next/headers';
+import { headers } from 'next/headers';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { PORTAL_PREVIEW_HEADER, verifyPortalPreviewToken } from '@/lib/auth/portalPreviewToken';
+
+async function patientPreviewId(session: Session): Promise<string | null> {
+  const token = (await headers()).get(PORTAL_PREVIEW_HEADER);
+  const preview = verifyPortalPreviewToken(token, session);
+  return preview?.kind === 'patient' ? preview.targetId : null;
+}
 
 // 「今どの患者として見るか」を解決する。
 // - role==='patient': 本人のIDのみ（他人のIDに化けることはできない）
-// - role==='clinic'|'bgj': demo-patient-id cookie が示すプレビュー対象。
+// - role==='clinic'|'bgj': タブ固有の署名済みトークンが示すプレビュー対象。
 //   clinicは自院の患者でなければnull（他院の患者は絶対にプレビューできない）。
 // - それ以外（未認証等）: null
 export async function resolveEffectivePatientId(
@@ -20,8 +26,7 @@ export async function resolveEffectivePatientId(
   }
 
   if (session.user.role === 'clinic' || session.user.role === 'bgj') {
-    const cookieStore = await cookies();
-    const previewId = cookieStore.get(PORTAL_COOKIE.patientPreviewId)?.value ?? null;
+    const previewId = await patientPreviewId(session);
     if (!previewId) return null;
 
     if (session.user.role === 'bgj') return previewId;
@@ -39,7 +44,7 @@ export async function resolveEffectivePatientId(
 
 // ブランディング表示用に「今どの得意先として見るか」を解決する。
 // patient/clinicロールはセッションのcustomerCodeをそのまま使う
-// （clinicは自院プレビュー制限が既にあるため安全）。bgjはdemo-patient-idの
+// （clinicは自院プレビュー制限が既にあるため安全）。bgjは署名済みトークンの
 // プレビュー対象患者から得意先コードを引く（bgjは他院患者もプレビュー可能なため）。
 export async function resolveEffectiveCustomerCode(
   supabase: SupabaseClient,
@@ -52,8 +57,7 @@ export async function resolveEffectiveCustomerCode(
   }
 
   if (session.user.role === 'bgj') {
-    const cookieStore = await cookies();
-    const previewId = cookieStore.get(PORTAL_COOKIE.patientPreviewId)?.value ?? null;
+    const previewId = await patientPreviewId(session);
     if (!previewId) return null;
     const { data } = await supabase
       .from('patients')
