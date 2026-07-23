@@ -2,16 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import LoadingState from '@/components/ui/LoadingState';
-import type { Webinar, WebinarProvider } from '@/lib/supabase/types';
+import WebinarRecipientSelector, { type WebinarClinicOption, type WebinarContactOption } from './WebinarRecipientSelector';
+import type { ClinicContactRole, ClinicContactRoleKey, Webinar, WebinarProvider } from '@/lib/supabase/types';
 
-type ClinicOption = { customer_code: string; name: string };
 type FormState = {
   id: string | null; version: number; title: string; description: string;
   provider: WebinarProvider; startsAt: string; endsAt: string; timezone: string;
-  joinUrl: string; customerCodes: string[];
+  joinUrl: string; externalSpaceId: string | null; calendarEventUrl: string | null;
+  customerCodes: string[]; contactIds: string[];
 };
 
-const emptyForm = (): FormState => ({ id: null, version: 1, title: '', description: '', provider: 'google_meet', startsAt: '', endsAt: '', timezone: 'Asia/Tokyo', joinUrl: '', customerCodes: [] });
+const emptyForm = (): FormState => ({ id: null, version: 1, title: '', description: '', provider: 'google_meet', startsAt: '', endsAt: '', timezone: 'Asia/Tokyo', joinUrl: '', externalSpaceId: null, calendarEventUrl: null, customerCodes: [], contactIds: [] });
 const statusLabel = { draft: '下書き', published: '公開中', canceled: '中止' } as const;
 const statusClass = { draft: 'bg-slate-100 text-slate-600', published: 'bg-emerald-100 text-emerald-700', canceled: 'bg-red-100 text-red-700' } as const;
 
@@ -23,12 +24,14 @@ function toLocalInput(value: string) {
 
 export default function WebinarManager() {
   const [webinars, setWebinars] = useState<Webinar[]>([]);
-  const [clinics, setClinics] = useState<ClinicOption[]>([]);
+  const [clinics, setClinics] = useState<WebinarClinicOption[]>([]);
+  const [contacts, setContacts] = useState<WebinarContactOption[]>([]);
+  const [contactRoles, setContactRoles] = useState<ClinicContactRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
-  const [clinicQuery, setClinicQuery] = useState('');
+  const [issuingMeet, setIssuingMeet] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -37,6 +40,7 @@ export default function WebinarManager() {
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.error ?? 'ウェビナーを取得できませんでした。');
       setWebinars(body.webinars ?? []); setClinics(body.clinics ?? []);
+      setContacts(body.contacts ?? []); setContactRoles(body.contactRoles ?? []);
     } catch (loadError) { setError(loadError instanceof Error ? loadError.message : 'ウェビナーを取得できませんでした。'); }
     finally { setLoading(false); }
   }, []);
@@ -49,7 +53,7 @@ export default function WebinarManager() {
   const edit = (webinar: Webinar) => {
     const slot = webinar.sessions[0];
     if (!slot) return;
-    setForm({ id: webinar.id, version: webinar.version, title: webinar.title, description: webinar.description ?? '', provider: slot.provider, startsAt: toLocalInput(slot.starts_at), endsAt: toLocalInput(slot.ends_at), timezone: slot.timezone, joinUrl: slot.join_url, customerCodes: webinar.target_clinics.map((target) => target.customer_code) });
+    setForm({ id: webinar.id, version: webinar.version, title: webinar.title, description: webinar.description ?? '', provider: slot.provider, startsAt: toLocalInput(slot.starts_at), endsAt: toLocalInput(slot.ends_at), timezone: slot.timezone, joinUrl: slot.join_url, externalSpaceId: slot.external_space_id, calendarEventUrl: null, customerCodes: webinar.target_clinics.map((target) => target.customer_code), contactIds: webinar.target_contacts.map((target) => target.contact_id) });
   };
 
   const close = () => {
@@ -74,6 +78,30 @@ export default function WebinarManager() {
     finally { setSaving(false); }
   };
 
+  const issueGoogleMeet = async () => {
+    if (!form || issuingMeet || saving) return;
+    if (!form.title.trim() || !form.startsAt || !form.endsAt) {
+      setError('タイトル・開始日時・終了日時を入力してからMeetを発行してください。');
+      return;
+    }
+    if (form.joinUrl && !window.confirm('現在の参加URLを新しく発行するGoogle Meet URLへ置き換えますか？')) return;
+    setIssuingMeet(true); setError(null);
+    try {
+      const response = await fetch('/api/bgj/webinars/google-meet', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title, description: form.description,
+          startsAt: new Date(form.startsAt).toISOString(), endsAt: new Date(form.endsAt).toISOString(),
+          timezone: form.timezone,
+        }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.error ?? 'Google Meetを発行できませんでした。');
+      setForm((current) => current ? { ...current, joinUrl: body.joinUrl, externalSpaceId: body.externalSpaceId, calendarEventUrl: body.calendarEventUrl ?? null } : current);
+    } catch (issueError) { setError(issueError instanceof Error ? issueError.message : 'Google Meetを発行できませんでした。'); }
+    finally { setIssuingMeet(false); }
+  };
+
   const transition = async (webinar: Webinar, status: 'published' | 'canceled') => {
     const message = status === 'published' ? '対象医院へ公開し、登録メールアドレスへ案内を送信します。よろしいですか？' : 'このウェビナーを中止しますか？';
     if (!window.confirm(message)) return;
@@ -87,10 +115,7 @@ export default function WebinarManager() {
     finally { setSaving(false); }
   };
 
-  const filteredClinics = useMemo(() => {
-    const query = clinicQuery.trim().toLowerCase();
-    return clinics.filter((clinic) => !query || `${clinic.customer_code} ${clinic.name}`.toLowerCase().includes(query));
-  }, [clinicQuery, clinics]);
+  const roleLabels = useMemo(() => new Map<ClinicContactRoleKey, string>(contactRoles.map((role) => [role.role_key, role.label])), [contactRoles]);
 
   return <>
     <div className="flex justify-end"><button type="button" onClick={() => setForm(emptyForm())} className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-violet-500">＋ 新規ウェビナー</button></div>
@@ -120,10 +145,10 @@ export default function WebinarManager() {
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
           <label className="block"><span className="text-sm font-bold text-slate-700">タイトル</span><input value={form.title} maxLength={200} onChange={(event) => setForm({ ...form, title: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" /></label>
           <label className="block"><span className="text-sm font-bold text-slate-700">説明</span><textarea value={form.description} maxLength={5000} rows={4} onChange={(event) => setForm({ ...form, description: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" /></label>
-          <div className="grid gap-4 sm:grid-cols-2"><label><span className="text-sm font-bold text-slate-700">配信サービス</span><select value={form.provider} onChange={(event) => setForm({ ...form, provider: event.target.value as WebinarProvider, joinUrl: '' })} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3"><option value="google_meet">Google Meet</option><option value="zoom">Zoom</option></select></label><label><span className="text-sm font-bold text-slate-700">タイムゾーン</span><input value={form.timezone} onChange={(event) => setForm({ ...form, timezone: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" /></label></div>
+          <div className="grid gap-4 sm:grid-cols-2"><label><span className="text-sm font-bold text-slate-700">配信サービス</span><select value={form.provider} onChange={(event) => setForm({ ...form, provider: event.target.value as WebinarProvider, joinUrl: '', externalSpaceId: null, calendarEventUrl: null })} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3"><option value="google_meet">Google Meet</option><option value="zoom">Zoom</option></select></label><label><span className="text-sm font-bold text-slate-700">タイムゾーン</span><input value={form.timezone} onChange={(event) => setForm({ ...form, timezone: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" /></label></div>
           <div className="grid gap-4 sm:grid-cols-2"><label><span className="text-sm font-bold text-slate-700">開始日時</span><input type="datetime-local" value={form.startsAt} onChange={(event) => setForm({ ...form, startsAt: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" /></label><label><span className="text-sm font-bold text-slate-700">終了日時</span><input type="datetime-local" value={form.endsAt} onChange={(event) => setForm({ ...form, endsAt: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" /></label></div>
-          <label className="block"><span className="text-sm font-bold text-slate-700">参加URL</span><input type="url" value={form.joinUrl} placeholder={form.provider === 'google_meet' ? 'https://meet.google.com/...' : 'https://us02web.zoom.us/j/...'} onChange={(event) => setForm({ ...form, joinUrl: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" /><span className="mt-1 block text-xs text-slate-400">現在は配信サービスで発行した実在URLを登録します。</span></label>
-          <section><div className="flex items-center justify-between"><span className="text-sm font-bold text-slate-700">対象医院（{form.customerCodes.length}件）</span><button type="button" onClick={() => setForm({ ...form, customerCodes: form.customerCodes.length === clinics.length ? [] : clinics.map((clinic) => clinic.customer_code) })} className="text-xs font-bold text-violet-700">{form.customerCodes.length === clinics.length ? 'すべて解除' : 'すべて選択'}</button></div><input value={clinicQuery} onChange={(event) => setClinicQuery(event.target.value)} placeholder="医院名・得意先コードで検索" className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" /><div className="mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 p-2">{filteredClinics.map((clinic) => <label key={clinic.customer_code} className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-violet-50"><input type="checkbox" checked={form.customerCodes.includes(clinic.customer_code)} onChange={(event) => setForm({ ...form, customerCodes: event.target.checked ? [...form.customerCodes, clinic.customer_code] : form.customerCodes.filter((code) => code !== clinic.customer_code) })} /><span className="flex-1 text-sm text-slate-700">{clinic.name}</span><span className="font-mono text-xs text-slate-400">{clinic.customer_code}</span></label>)}</div></section>
+          <div className="block"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm font-bold text-slate-700">参加URL</span>{form.provider === 'google_meet' && <button type="button" disabled={issuingMeet || saving} onClick={() => void issueGoogleMeet()} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-500 disabled:opacity-50">{issuingMeet ? 'Google Calendarで発行中…' : form.externalSpaceId ? 'Meetを再発行' : 'Google CalendarでMeetを発行'}</button>}</div><input type="url" value={form.joinUrl} placeholder={form.provider === 'google_meet' ? '「Google CalendarでMeetを発行」を押すか、URLを入力' : 'https://us02web.zoom.us/j/...'} onChange={(event) => setForm({ ...form, joinUrl: event.target.value, externalSpaceId: null, calendarEventUrl: null })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" /><span className="mt-1 block text-xs text-slate-400">{form.externalSpaceId ? <>Google Calendarに予定を作成しました。{form.calendarEventUrl && <a href={form.calendarEventUrl} target="_blank" rel="noreferrer" className="ml-1 font-semibold text-blue-600">予定を確認 ↗</a>}</> : '手動で発行した実在URLも登録できます。'}</span></div>
+          <WebinarRecipientSelector clinics={clinics} contacts={contacts} roleLabels={roleLabels} selectedContactIds={form.contactIds} onChange={(customerCodes, contactIds) => setForm({ ...form, customerCodes, contactIds })} />
         </div>
         <footer className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4"><button type="button" onClick={close} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600">キャンセル</button><button type="button" disabled={saving} onClick={() => void save()} className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{saving ? '保存中…' : '下書きを保存'}</button></footer>
       </section>

@@ -646,6 +646,13 @@ export type WebinarTargetClinic = {
   clinic?: { customer_code: string; name: string } | null;
 };
 
+export type WebinarTargetContact = {
+  webinar_id: string;
+  contact_id: string;
+  created_at: string;
+  contact?: Pick<ClinicContact, 'id' | 'customer_code' | 'name' | 'email' | 'role_key'> | null;
+};
+
 export type Webinar = {
   id: string;
   title: string;
@@ -659,6 +666,7 @@ export type Webinar = {
   updated_at: string;
   sessions: WebinarSession[];
   target_clinics: WebinarTargetClinic[];
+  target_contacts: WebinarTargetContact[];
 };
 
 export const WEBINAR_COLUMNS =
@@ -666,8 +674,9 @@ export const WEBINAR_COLUMNS =
 export const WEBINAR_SESSION_COLUMNS =
   'id, webinar_id, provider, starts_at, ends_at, timezone, join_url, external_space_id, created_at, updated_at';
 export const WEBINAR_TARGET_CLINIC_COLUMNS = 'webinar_id, customer_code, created_at';
+export const WEBINAR_TARGET_CONTACT_COLUMNS = 'webinar_id, contact_id, created_at';
 export const WEBINAR_WITH_DETAILS_COLUMNS =
-  `${WEBINAR_COLUMNS}, sessions:webinar_sessions(${WEBINAR_SESSION_COLUMNS}), target_clinics:webinar_target_clinics(${WEBINAR_TARGET_CLINIC_COLUMNS}, clinic:clinics!customer_code(customer_code, name))`;
+  `${WEBINAR_COLUMNS}, sessions:webinar_sessions(${WEBINAR_SESSION_COLUMNS}), target_clinics:webinar_target_clinics(${WEBINAR_TARGET_CLINIC_COLUMNS}, clinic:clinics!customer_code(customer_code, name)), target_contacts:webinar_target_contacts(${WEBINAR_TARGET_CONTACT_COLUMNS}, contact:clinic_contacts!contact_id(id, customer_code, name, email, role_key))`;
 
 export type ClinicContactTopic = 'webinar' | 'orders' | 'billing' | 'product' | 'system' | 'sales';
 export type ClinicContactChannel = 'email' | 'phone';

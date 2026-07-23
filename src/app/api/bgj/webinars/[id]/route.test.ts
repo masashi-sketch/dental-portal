@@ -9,7 +9,7 @@ vi.mock('next/server', async (importOriginal) => {
 });
 let sessionValue: Session | null = null;
 vi.mock('@/auth', () => ({ auth: async () => sessionValue }));
-const rpcSpy = vi.fn(async () => ({ data: 'webinar-1', error: null }));
+const rpcSpy = vi.fn<() => Promise<{ data: string | null; error: { message: string } | null }>>(async () => ({ data: 'webinar-1', error: null }));
 vi.mock('@/lib/supabase/server', () => ({ getSupabaseServerClient: () => ({ rpc: rpcSpy, from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: null, error: null }) }) }) }) }) }));
 vi.mock('@/lib/webinars/notifyClinics', () => ({ notifyClinicsAboutWebinar: vi.fn(async () => {}) }));
 const { PATCH } = await import('./route');
@@ -26,5 +26,13 @@ describe('PATCH /api/bgj/webinars/[id]', () => {
     expect(response.status).toBe(200);
     expect(rpcSpy).toHaveBeenCalledWith('transition_webinar', expect.objectContaining({ p_webinar_id: 'webinar-1', p_expected_version: 2, p_to_status: 'published' }));
     expect(afterCallbacks).toHaveLength(1);
+  });
+  it('選択担当者が無効になっていたら公開を拒否する', async () => {
+    sessionValue = { user: { role: 'bgj', email: 'staff@biogaia.jp' }, expires: '2099' } as Session;
+    rpcSpy.mockResolvedValueOnce({ data: null, error: { message: '送付先担当者が無効です' } });
+    const response = await PATCH(request({ status: 'published', version: 2 }), context);
+    expect(response.status).toBe(409);
+    expect((await response.json()).error).toContain('選択し直してください');
+    expect(afterCallbacks).toHaveLength(0);
   });
 });

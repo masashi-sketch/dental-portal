@@ -45,6 +45,13 @@ const MANAGED_APPS: ManagedApp[] = [
     dashboardUrl: "",
   },
   {
+    name: "Google Calendar / Meet API",
+    purpose: "BGJウェビナーのGoogle Calendar予定・Meet参加URL自動発行",
+    planTier: "Google Workspace既存契約",
+    requiredEnvVars: ["GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL", "GOOGLE_CALENDAR_SERVICE_ACCOUNT_PRIVATE_KEY", "GOOGLE_CALENDAR_ORGANIZER_EMAIL"],
+    dashboardUrl: "https://console.cloud.google.com/apis/library/calendar-json.googleapis.com",
+  },
+  {
     name: "GitHub",
     purpose: "ソースコード管理・CI（GitHub Actions）",
     planTier: "Free",

@@ -265,17 +265,17 @@ Shopify注文のキャンセル・返金を医院業務状態の`canceled`更新
 
 外部サービスの仕様確定前に全テーブルを作り込まず、必要になった段階で増分マイグレーションとして追加する。
 
-#### 9.2.1 ウェビナー Phase 1（2026-07-23実装）
+#### 9.2.1 ウェビナー・Google Meet自動発行（2026-07-24実装）
 
-BGJが主催情報を管理し、Google Meet／Zoomで発行済みの参加URLを対象医院へ公開する。`webinars`を本体、`webinar_sessions`を開催日時・配信サービス・参加URL、`webinar_target_clinics`を医院との多対多中間表、`webinar_events`を監査履歴として分離し、第3正規形を維持する。保存と状態遷移はDB関数で1トランザクション化し、`version`による楽観的排他を行う。
+BGJが主催情報を管理し、Google Calendar APIで開催予定と固有のMeet URLを自動発行する。`webinars`を本体、`webinar_sessions`を開催日時・配信サービス・参加URL・Calendar予定ID、`webinar_target_clinics`を医院との多対多中間表、`webinar_target_contacts`を個別メール送付先、`webinar_events`を監査履歴として分離し、第3正規形を維持する。保存と状態遷移はDB関数で1トランザクション化し、`version`による楽観的排他を行う。
 
-医院APIはログインセッションの得意先コードと対象医院中間表を照合し、自院向けかつ公開中の行だけを返す。公開後のSMTP通知はレスポンス後に実行し、通知障害と公開確定を分離する。Phase 1では外部認証情報を保存せず、Google／Zoom側で作成したHTTPS参加URLだけを扱う。Google Calendar／Meet API、Zoom Server-to-Server OAuth、申込者、出席、Webhook、録画情報は後続Phaseで追加する。
+医院APIはログインセッションの得意先コードと対象医院中間表を照合し、自院向けかつ公開中の行だけを返す。対象医院選択時は有効かつメール登録済みの担当者を医院単位で一括指定でき、個別に調整する。各対象医院に1名以上を必須とし、公開後のSMTP通知は`webinar_target_contacts`に保存した担当者ごとにレスポンス後送信する。同一メールアドレスでも別担当者なら個別送信する。Google Calendar認証はサービスアカウントのドメイン全体委任を使用し、秘密鍵は環境変数だけに保持する。Zoom Server-to-Server OAuth、申込者、出席、Webhook、録画情報は後続Phaseで追加する。
 
 #### 9.2.2 医院業務連絡担当者（2026-07-23実装）
 
 `clinics.tel`は医院代表電話、`clinic_users.email`は認証・パスワード再設定、`clinic_staff`は患者向け紹介であり、業務連絡先とは用途が異なる。業務連絡担当者を`clinic_contacts`へ分離し、医院ごとに複数登録、主担当1人、有効／無効、論理削除、versionによる楽観的排他を管理する。全担当者は`clinic_users`の認証アカウントを必ず1つ持つ。
 
-連絡内容と方法は多値属性のため、`clinic_contact_notification_preferences`へ担当者・通知種別・連絡方法の複合主キーで分離する。登録・更新・無効化・主担当変更・論理削除は`clinic_contact_events`へ保存する。ウェビナー通知は`get_webinar_notification_recipients`で「ウェビナー・メール」が有効な担当者を優先し、設定済み担当者がいない医院だけ従来の有効な`clinic_users.email`へフォールバックする。
+連絡内容と方法は多値属性のため、`clinic_contact_notification_preferences`へ担当者・通知種別・連絡方法の複合主キーで分離する。登録・更新・無効化・主担当変更・論理削除は`clinic_contact_events`へ保存する。ウェビナー通知は開催ごとに`webinar_target_contacts`で明示選択した担当者だけへ送信する。
 
 医院ポータルの認証情報は引き続き`clinic_users`を正本とし、`clinic_contacts`へ担当者IDやパスワードを重複保存しない。担当者登録と認証アカウント発行はDB関数で同一トランザクションにし、後付けの関連付け操作は提供しない。`clinic_users.login_id`を画面上の「担当者ID」とし、その値を医院ポータルのログインIDとして常に使用する。内部UUIDは画面に表示しない。
 

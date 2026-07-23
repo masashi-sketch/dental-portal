@@ -99,6 +99,9 @@ npm run build  # 本番ビルド`}</Code>
         </p>
         <Code>{`GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_CALENDAR_SERVICE_ACCOUNT_PRIVATE_KEY=
+GOOGLE_CALENDAR_ORGANIZER_EMAIL=
 AUTH_SECRET=
 AUTH_URL=
 SUPABASE_URL=
@@ -804,16 +807,17 @@ create table public.clinic_product_settings (
   },
   {
     key: "21",
-    label: "21. ウェビナー Phase 1",
+    label: "21. ウェビナー・Google Meet自動発行",
     content: (
       <>
-        <p>BGJがGoogle Meet／Zoomの参加URLを対象医院へ公開する第一段階。外部APIの認証・会議自動作成はまだ行わない。</p>
+        <p>BGJがGoogle Calendarに開催予定と固有のMeet URLを自動発行し、選択した医院担当者へ個別に案内する。Zoomは引き続き発行済みURLを手動登録する。</p>
         <ul className="list-disc list-inside pl-2">
-          <li><strong>BGJ：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/webinars</code>で下書き作成・編集・公開・中止と対象医院を管理する。</li>
+          <li><strong>BGJ：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/webinars</code>でタイトルと日時を入力し、「Google CalendarでMeetを発行」を押す。医院単位の一括選択後、担当者単位で送付先を調整する。</li>
           <li><strong>医院：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/webinars</code>で、自院が対象の公開中ウェビナーだけを確認して外部参加URLを開く。</li>
-          <li><strong>DB：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinars</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinar_sessions</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinar_target_clinics</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinar_events</code>に第3正規形で分離する。保存・状態遷移はDB関数でトランザクション化し、versionで更新競合を検出する。</li>
-          <li><strong>通知：</strong>公開確定後、「ウェビナー・メール」が有効な医院担当者へ既存Workspace SMTPで送る。設定がない医院のみ有効な医院ログインのメールへフォールバックする。画面レスポンスを待たせないため<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>を使い、送信失敗で公開自体は取り消さない。</li>
-          <li><strong>次段階：</strong>Google Calendar／Meet APIとZoom Server-to-Server OAuthをAdapterで接続する。登録者・Webhook・出席・録画情報はその後に追加する。</li>
+          <li><strong>DB：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinar_target_contacts</code>で選択担当者を保持し、各対象医院に1名以上の有効なメール送付先がいることをDB関数でも検証する。Calendar予定IDは<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">external_space_id</code>へ保存する。</li>
+          <li><strong>通知：</strong>公開確定後、保存済みの選択担当者全員へ既存Workspace SMTPで個別送信する。同じメールアドレスでも担当者が別なら担当者ごとに送る。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>を使い、送信失敗で公開自体は取り消さない。</li>
+          <li><strong>Google設定：</strong>Calendar APIを有効化したサービスアカウントへドメイン全体の委任を設定し、スコープ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">https://www.googleapis.com/auth/calendar.events</code>を許可する。開催者は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">GOOGLE_CALENDAR_ORGANIZER_EMAIL</code>で固定する。</li>
+          <li><strong>次段階：</strong>Zoom Server-to-Server OAuth、登録者同期、Webhook、出席・録画情報を追加する。</li>
         </ul>
       </>
     ),
@@ -831,7 +835,7 @@ create table public.clinic_product_settings (
           <li><strong>セキュリティ：</strong>担当者の無効化・論理削除は関連ログインを自動無効化する。パスワード変更と無効化でセッション世代を更新し、旧セッションを即時失効させる。医院ごとの最後の有効な管理者は変更・無効化できない。</li>
           <li><strong>整合性：</strong>主担当は医院ごとに最大1人、担当者と認証アカウントは必須の一対一とする。両テーブルの得意先CDを複合外部キーで一致させ、別医院の認証アカウントが混在しないようDBで保証する。</li>
           <li><strong>削除：</strong>物理削除せず<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">deleted_at</code>を設定し、操作履歴を保持する。</li>
-          <li><strong>通知：</strong>ウェビナーは担当者設定を優先し、未設定医院だけ従来の医院ログインメールへフォールバックする。</li>
+          <li><strong>通知：</strong>ウェビナー作成画面で医院ごとに送付先担当者を明示選択し、公開時は選択した担当者ごとにメールを送る。</li>
         </ul>
       </>
     ),

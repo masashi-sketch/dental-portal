@@ -20,8 +20,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     p_webinar_id: id, p_expected_version: version, p_to_status: status, p_actor_email: session.user.email,
   });
   if (error) {
+    const recipientInvalid = error.message.includes('送付先担当者');
     const conflict = error.message.includes('更新競合') || error.message.includes('状態遷移');
-    return NextResponse.json({ error: conflict ? '別の担当者が更新しました。再読み込みしてください。' : '状態を更新できませんでした。' }, { status: conflict ? 409 : 500 });
+    return NextResponse.json({ error: recipientInvalid ? '送付先担当者が無効になっています。下書きを編集して選択し直してください。' : conflict ? '別の担当者が更新しました。再読み込みしてください。' : '状態を更新できませんでした。' }, { status: recipientInvalid || conflict ? 409 : 500 });
   }
   if (status === 'published') {
     after(async () => {
