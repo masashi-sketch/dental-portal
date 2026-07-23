@@ -724,4 +724,4 @@ export const CLINIC_CONTACT_PREFERENCE_COLUMNS =
 export const CLINIC_CONTACT_WITH_PREFERENCES_COLUMNS =
   `${CLINIC_CONTACT_COLUMNS}, preferences:clinic_contact_notification_preferences(${CLINIC_CONTACT_PREFERENCE_COLUMNS})`;
 export const BGJ_CLINIC_CONTACT_LIST_COLUMNS =
-  `${CLINIC_CONTACT_WITH_PREFERENCES_COLUMNS}, clinic:clinics!customer_code(customer_code, name), clinic_user:clinic_users!clinic_user_id(id, login_id, status)`;
+  `${CLINIC_CONTACT_WITH_PREFERENCES_COLUMNS}, clinic:clinics!customer_code(customer_code, name), clinic_user:clinic_users!clinic_contacts_clinic_user_customer_fkey(id, login_id, status)`;

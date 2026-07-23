@@ -41,6 +41,6 @@ describe('GET /api/bgj/clinic-contacts', () => {
     expect(await response.json()).toEqual({ contacts: rows, contactRoles: [] });
     expect(selectSpy.mock.calls[0][0]).toContain('clinic:clinics!customer_code');
     expect(selectSpy.mock.calls[0][0]).toContain('preferences:clinic_contact_notification_preferences');
-    expect(selectSpy.mock.calls[0][0]).toContain('clinic_user:clinic_users!clinic_user_id');
+    expect(selectSpy.mock.calls[0][0]).toContain('clinic_user:clinic_users!clinic_contacts_clinic_user_customer_fkey');
   });
 });
