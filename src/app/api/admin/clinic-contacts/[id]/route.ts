@@ -34,8 +34,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   });
   if (error) {
     const conflict = error.message.includes('更新競合');
-    const duplicate = error.message.includes('clinic_contacts_email_per_clinic');
-    return NextResponse.json({ error: conflict ? '別の担当者が更新しました。再読み込みしてください。' : duplicate ? '同じメールアドレスが既に登録されています。' : '担当者を更新できませんでした。' }, { status: conflict ? 409 : duplicate ? 409 : 500 });
+    return NextResponse.json({ error: conflict ? '別の担当者が更新しました。再読み込みしてください。' : '担当者を更新できませんでした。' }, { status: conflict ? 409 : 500 });
   }
   return NextResponse.json({ id: data });
 }

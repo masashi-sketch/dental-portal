@@ -554,7 +554,6 @@ create table public.clinic_users (
 );
 
 create index idx_clinic_users_customer_code on public.clinic_users (customer_code);
-create unique index clinic_users_email_key on public.clinic_users (email) where email is not null;
 alter table public.clinic_users add constraint clinic_users_id_customer_code_key unique (id, customer_code);
 
 create trigger trg_clinic_users_updated_at
@@ -2397,8 +2396,6 @@ create table if not exists public.clinic_contact_events (
 );
 create unique index if not exists clinic_contacts_one_primary on public.clinic_contacts(customer_code)
   where is_primary and status = 'active' and deleted_at is null;
-create unique index if not exists clinic_contacts_email_per_clinic on public.clinic_contacts(customer_code, lower(email))
-  where email is not null and deleted_at is null;
 create index if not exists idx_clinic_contacts_customer on public.clinic_contacts(customer_code, status, is_primary desc) where deleted_at is null;
 create index if not exists idx_clinic_contact_events_contact on public.clinic_contact_events(contact_id, created_at desc);
 drop trigger if exists trg_clinic_contacts_updated_at on public.clinic_contacts;

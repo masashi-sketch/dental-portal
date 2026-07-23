@@ -48,6 +48,8 @@ export const DEFAULT_CLINIC_STAFF_PASSWORD_RESET_BODY = `{{患者名}} 様
 
 医院ポータルのパスワード再設定のご依頼を受け付けました。
 
+担当者ID：{{ログインID}}
+
 以下のリンクから、新しいパスワードを設定してください（30分間有効）。
 {{リンク}}
 

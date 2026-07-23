@@ -5,21 +5,22 @@ import Link from 'next/link';
 
 // パスワードを忘れた医院スタッフ向けの自己リセット入口。意図的に認証不要
 // （src/proxy.tsのisClinicPasswordResetPathで公開許可済み）。
-// メールアドレス欄にご登録があれば、パスワード再設定メールが届く（無ければ何も届かない）。
+// 担当者IDとメールアドレスの組み合わせが登録済みなら、パスワード再設定メールが届く。
 // 登録有無を外部から探れないよう、送信結果はどちらの場合も同じ文言を表示する。
 export default function ClinicForgotPasswordPage() {
+  const [loginId, setLoginId] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
   const handleSubmit = async () => {
-    if (!email.trim()) return;
+    if (!loginId.trim() || !email.trim()) return;
     setLoading(true);
     try {
       await fetch('/api/clinic-password-reset/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ loginId: loginId.trim(), email: email.trim() }),
       });
     } finally {
       setLoading(false);
@@ -39,7 +40,7 @@ export default function ClinicForgotPasswordPage() {
           <div className="text-center py-2">
             <h2 className="text-white font-bold text-lg mb-2">送信しました</h2>
             <p className="text-teal-300 text-sm mb-6">
-              ご登録のメールアドレスの場合、パスワード再設定用のリンクをお送りしました。メールが届かない場合は、BGJ担当者までお問い合わせください。
+              ご登録の担当者IDとメールアドレスが一致する場合、パスワード再設定用のリンクをお送りしました。メールが届かない場合は、BGJ担当者までお問い合わせください。
             </p>
             <Link href="/clinic-login" className="block w-full bg-teal-500 hover:bg-teal-400 text-white py-3 rounded-xl font-bold transition-colors shadow-sm">
               ログイン画面へ
@@ -48,8 +49,12 @@ export default function ClinicForgotPasswordPage() {
         ) : (
           <>
             <h2 className="text-white font-bold text-lg mb-1">パスワードをお忘れですか？</h2>
-            <p className="text-teal-300 text-xs mb-6">ご登録のメールアドレスを入力してください。再設定用のリンクをお送りします。</p>
+            <p className="text-teal-300 text-xs mb-6">担当者IDとご登録のメールアドレスを入力してください。再設定用のリンクをお送りします。</p>
             <div className="flex flex-col gap-4">
+              <div>
+                <label className="block text-teal-200 text-sm font-medium mb-1.5">担当者ID</label>
+                <input type="text" value={loginId} onChange={(e) => setLoginId(e.target.value)} placeholder="A＋6桁の担当者ID" className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-teal-400 transition-colors placeholder-teal-400" />
+              </div>
               <div>
                 <label className="block text-teal-200 text-sm font-medium mb-1.5">メールアドレス</label>
                 <input

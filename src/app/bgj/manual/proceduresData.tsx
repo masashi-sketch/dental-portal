@@ -552,7 +552,7 @@ alter table public.clinics
                     </p>
                   </div>
                   <Code>{`alter table public.clinic_users add column email text;
-create unique index clinic_users_email_key on public.clinic_users (email) where email is not null;
+-- メールアドレスは複数担当者で共有可能。再設定時は担当者IDと組み合わせて検索する。
 
 create table public.clinic_login_tokens (
   id             uuid primary key default gen_random_uuid(),
@@ -575,7 +575,7 @@ create table public.clinic_login_tokens (
                     <strong>前提となる運用変更：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>にはパスワード再設定用の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">email</code>列がある。BGJ得意先詳細「担当者」タブの明細行から、担当者ID・状態・メール・パスワードを一元管理する。<strong>メール未登録のスタッフはセルフサービス再設定を使えない</strong>（BGJによる手動リセットは可能）。
                   </p>
                   <p>
-                    <strong>セキュリティ設計は患者様版（システム手順「8」）と同一：</strong>トークンは30分有効・使い捨て・SHA-256ハッシュ保存（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/clinicLoginToken.ts</code>。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">loginToken.ts</code>のFK先を<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>に変えた並行モジュール）。同一スタッフへの再送は3分クールダウン。メールアドレスの登録有無に関わらず常に同じ成功レスポンスを返す（アドレス探索対策）。パスワードは8文字以上。メール送信は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>でレスポンス後に実行。
+                    <strong>セキュリティ設計は患者様版（システム手順「8」）と同一：</strong>トークンは30分有効・使い捨て・SHA-256ハッシュ保存（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/clinicLoginToken.ts</code>。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">loginToken.ts</code>のFK先を<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>に変えた並行モジュール）。メールは複数担当者で共有できるため、担当者IDとメールの両方が一致するアカウントだけを対象にする。同一スタッフへの再送は3分クールダウン。登録有無に関わらず常に同じ成功レスポンスを返す（アカウント探索対策）。パスワードは8文字以上。メール送信は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>でレスポンス後に実行。
                   </p>
                 </>
               ),

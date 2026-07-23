@@ -60,8 +60,7 @@ export async function POST(request: NextRequest) {
     p_phone_topics: value.phoneTopics, p_actor_type: actorType, p_actor_identifier: actorIdentifier,
   });
   if (error) {
-    const duplicate = error.message.includes('clinic_contacts_email_per_clinic') || error.message.includes('clinic_users_email_key');
-    return NextResponse.json({ error: duplicate ? '同じメールアドレスが既に登録されています。' : '担当者を登録できませんでした。' }, { status: duplicate ? 409 : 500 });
+    return NextResponse.json({ error: '担当者を登録できませんでした。' }, { status: 500 });
   }
   const { data: createdContact, error: contactError } = await supabase.from('clinic_contacts')
     .select('clinic_user_id').eq('id', data).single<{ clinic_user_id: string }>();

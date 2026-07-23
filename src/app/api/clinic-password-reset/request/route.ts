@@ -13,8 +13,8 @@ import { sendPatientEmail } from '@/lib/email/sendEmail';
 export const dynamic = 'force-dynamic';
 
 // 意図的に認証不要（ログインできなくて困っている医院スタッフが使う画面のため）。
-// 登録されているメールアドレスかどうかに関わらず常に同じ成功レスポンスを返す
-// （メールアドレスの登録有無を外部から探索されないようにするため）。
+// 登録されている担当者ID・メールアドレスの組み合わせかどうかに関わらず
+// 常に同じ成功レスポンスを返す（アカウントの登録有無を探索されないようにするため）。
 // 同一スタッフへの再送はhasRecentClinicLoginTokenでクールダウンし、第三者による
 // メール爆撃（実在アドレスへの連続送信）を抑止する。
 // 患者様向け（/api/password-reset/request）とほぼ同じ実装だが、clinic_usersは
@@ -22,15 +22,17 @@ export const dynamic = 'force-dynamic';
 // （DEFAULT_CLINIC_STAFF_PASSWORD_RESET_*）を直接使う。
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const email = typeof body?.email === 'string' ? body.email.trim() : '';
+  const loginId = typeof body?.loginId === 'string' ? body.loginId.trim() : '';
+  const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
   const GENERIC_RESPONSE = { ok: true } as const;
 
-  if (!email) return NextResponse.json(GENERIC_RESPONSE);
+  if (!loginId || !email) return NextResponse.json(GENERIC_RESPONSE);
 
   const supabase = getSupabaseServerClient();
   const { data: clinicUser } = await supabase
     .from('clinic_users')
     .select('id, name, login_id, customer_code, email')
+    .eq('login_id', loginId)
     .eq('email', email)
     .eq('status', '有効')
     .maybeSingle<{ id: string; name: string | null; login_id: string; customer_code: string; email: string }>();
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
 
       const vars = {
         patientName: clinicUser.name ?? clinicUser.login_id,
-        loginId: '',
+        loginId: clinicUser.login_id,
         clinicName,
         link,
       };

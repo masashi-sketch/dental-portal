@@ -29,10 +29,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     p_actor_identifier: session.user.email ?? session.user.name ?? session.user.customerCode ?? 'unknown',
   });
   if (error) {
-    const conflict = error.message.includes('duplicate') || error.message.includes('unique')
-      || error.message.includes('clinic_users_login_id_key') || error.message.includes('clinic_users_email_key');
     const lastAdmin = error.message.includes('最後の管理者');
-    return NextResponse.json({ error: lastAdmin ? error.message : conflict ? '同じメールアドレスが既に登録されています。' : 'ログイン情報を保存できませんでした。' }, { status: conflict || lastAdmin ? 409 : 500 });
+    return NextResponse.json({ error: lastAdmin ? error.message : 'ログイン情報を保存できませんでした。' }, { status: lastAdmin ? 409 : 500 });
   }
   const [{ data: clinicUser, error: userError }, { data: assignment }] = await Promise.all([
     supabase.from('clinic_users').select(CLINIC_USER_PUBLIC_COLUMNS).eq('id', userId).single(),
