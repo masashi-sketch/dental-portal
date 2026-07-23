@@ -100,11 +100,15 @@ describe('BgjSidebar', () => {
     expect(screen.getAllByRole('link', { name: '共通マスタ' })[0]).toHaveAttribute('href', '/bgj/system/settings');
   });
 
-  it('得意先一覧の下・営業担当の上に患者一覧へのリンクを表示する', () => {
+  it('得意先一覧の直下に担当者一覧、その下に患者一覧を表示する', () => {
     usePathnameMock.mockReturnValue('/bgj/dashboard');
     useSearchParamsMock.mockReturnValue(new URLSearchParams());
     render(<BgjSidebar />);
     fireEvent.click(screen.getAllByLabelText('マスタを開く')[0]);
+    const customerLink = screen.getAllByRole('link', { name: '得意先一覧' })[0];
+    const contactLink = screen.getAllByRole('link', { name: '担当者一覧' })[0];
+    expect(contactLink).toHaveAttribute('href', '/bgj/contacts');
+    expect(customerLink.compareDocumentPosition(contactLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getAllByRole('link', { name: '患者一覧' })[0]).toHaveAttribute('href', '/bgj/patients');
   });
 

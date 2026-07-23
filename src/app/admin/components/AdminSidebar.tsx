@@ -8,7 +8,7 @@ import { useActiveClinic } from '@/hooks/useActiveClinic';
 import type { ExternalLink, SalesRepWithMaster } from '@/lib/supabase/types';
 import { requestExternalLinks } from '@/lib/client/externalLinksRequest';
 
-export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'webinars' | 'clinicContract' | 'clinicConfig' | 'clinicQr' | 'clinicIntro' | 'clinicQa' | 'inquiry';
+export type AdminPage = 'dashboard' | 'news' | 'patients' | 'orders' | 'products' | 'commission' | 'campaign' | 'biogaia' | 'webinars' | 'clinicContract' | 'clinicConfig' | 'clinicQr' | 'clinicContacts' | 'clinicIntro' | 'clinicQa' | 'inquiry';
 
 function IconDashboard() {
   return <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>;
@@ -91,6 +91,7 @@ const navItems: (LinkNavItem | GroupNavItem)[] = [
       { key: 'clinicContract', label: '医院契約情報', href: '/admin/clinic-info/contract' },
       { key: 'clinicConfig',   label: '医院設定情報', href: '/admin/clinic-info/config' },
       { key: 'clinicQr',       label: 'QR設定',       href: '/admin/clinic-info/qr' },
+      { key: 'clinicContacts', label: '担当者情報',   href: '/admin/clinic-info/contacts' },
     ],
   },
   { type: 'link',  key: 'news',       label: 'お知らせ管理',     href: '/admin/news',        icon: <IconBell />, dividerBefore: true },

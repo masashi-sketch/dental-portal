@@ -47,6 +47,13 @@ describe('AdminSidebar 外部リンク（LINKS）', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/bgj/external-links');
   });
 
+  it('クリニック情報から担当者情報を開ける', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ externalLinks: [] }));
+    render(<AdminSidebar active="clinicContacts" />);
+    const links = await screen.findAllByRole('link', { name: '担当者情報' });
+    expect(links[0]).toHaveAttribute('href', '/admin/clinic-info/contacts');
+  });
+
   it('リンクが0件のときはLINKS欄自体を表示しない', async () => {
     fetchMock.mockResolvedValue(jsonResponse({ externalLinks: [] }));
     render(<AdminSidebar active="dashboard" />);

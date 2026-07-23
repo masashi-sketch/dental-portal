@@ -46,6 +46,7 @@ const manualNavItems: ChildNavItem[] = [
       { label: "19. 商品画像アップロード（Supabase Storage）", href: "/bgj/manual?tab=procedure&step=19" },
       { label: "20. BGJダッシュボード・レポートの実データ化", href: "/bgj/manual?tab=procedure&step=20" },
       { label: "21. ウェビナー Phase 1", href: "/bgj/manual?tab=procedure&step=21" },
+      { label: "22. 医院担当者管理", href: "/bgj/manual?tab=procedure&step=22" },
     ],
   },
   {

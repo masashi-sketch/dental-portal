@@ -544,13 +544,13 @@ alter table public.clinics
               label: "概要・DB",
               content: (
                 <>
-                  <WithImage image={{ src: "/manual/bgj-customer-login-tab.png", alt: "得意先詳細画面のログイン管理タブ。メールアドレス（任意）の入力欄" }}>
+                  <div>
                     <p>
                       医院スタッフログイン（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-login</code>）に、患者様と同じセルフサービスの「パスワードをお忘れの方」機能を追加した。流れは
                       <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-forgot-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinic-password-reset/request</code> → メール → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-reset-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinic-password-reset/confirm</code>。
-                      従来どおりBGJ職員が得意先詳細「ログイン設定」タブから手動でパスワード再設定する運用も併存する（置き換えではない）。
+                      BGJ職員は得意先詳細「担当者」タブの各担当者カードから、手動でログインID発行・変更・パスワード再設定を行う。
                     </p>
-                  </WithImage>
+                  </div>
                   <Code>{`alter table public.clinic_users add column email text;
 create unique index clinic_users_email_key on public.clinic_users (email) where email is not null;
 
@@ -572,7 +572,7 @@ create table public.clinic_login_tokens (
               content: (
                 <>
                   <p>
-                    <strong>前提となる運用変更：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>にはメールアドレス列が無かったため、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">email</code>列を追加した。得意先詳細「ログイン設定」タブ（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/components/ClinicLoginManager.tsx</code>）で、新規発行時のメールアドレス入力と、既存ログインへの後付け登録・編集ができる。<strong>メール未登録のスタッフはこの機能を使えない</strong>（従来どおりBGJによる手動リセットのみ）。
+                    <strong>前提となる運用変更：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>にはパスワード再設定用の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">email</code>列がある。BGJ得意先詳細「担当者」タブの担当者カード（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">ClinicContactLoginEditor.tsx</code>）から、ログインID・状態・メール・パスワードを一元管理する。<strong>メール未登録のスタッフはセルフサービス再設定を使えない</strong>（BGJによる手動リセットは可能）。
                   </p>
                   <p>
                     <strong>セキュリティ設計は患者様版（システム手順「8」）と同一：</strong>トークンは30分有効・使い捨て・SHA-256ハッシュ保存（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/clinicLoginToken.ts</code>。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">loginToken.ts</code>のFK先を<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>に変えた並行モジュール）。同一スタッフへの再送は3分クールダウン。メールアドレスの登録有無に関わらず常に同じ成功レスポンスを返す（アドレス探索対策）。パスワードは8文字以上。メール送信は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>でレスポンス後に実行。
@@ -812,8 +812,24 @@ create table public.clinic_product_settings (
           <li><strong>BGJ：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/webinars</code>で下書き作成・編集・公開・中止と対象医院を管理する。</li>
           <li><strong>医院：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/webinars</code>で、自院が対象の公開中ウェビナーだけを確認して外部参加URLを開く。</li>
           <li><strong>DB：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinars</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinar_sessions</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinar_target_clinics</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">webinar_events</code>に第3正規形で分離する。保存・状態遷移はDB関数でトランザクション化し、versionで更新競合を検出する。</li>
-          <li><strong>通知：</strong>公開確定後、対象医院の有効な医院ログインに登録されたメールアドレスへ既存Workspace SMTPで送る。画面レスポンスを待たせないため<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>を使い、送信失敗で公開自体は取り消さない。</li>
+          <li><strong>通知：</strong>公開確定後、「ウェビナー・メール」が有効な医院担当者へ既存Workspace SMTPで送る。設定がない医院のみ有効な医院ログインのメールへフォールバックする。画面レスポンスを待たせないため<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>を使い、送信失敗で公開自体は取り消さない。</li>
           <li><strong>次段階：</strong>Google Calendar／Meet APIとZoom Server-to-Server OAuthをAdapterで接続する。登録者・Webhook・出席・録画情報はその後に追加する。</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    key: "22",
+    label: "22. 医院担当者管理",
+    content: (
+      <>
+        <p>医院代表情報・医院ログイン・患者向けスタッフ紹介とは別に、業務連絡担当者を医院ごとに複数管理する。</p>
+        <ul className="list-disc list-inside pl-2">
+          <li><strong>画面：</strong>BGJの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/contacts</code>で全医院を横断検索し、得意先・役職・担当者名・担当内容別に絞り込む。得意先詳細「担当者」タブと医院用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/clinic-info/contacts</code>は共通編集コンポーネントを使用し、医院ログインは自院スコープへ固定する。</li>
+          <li><strong>DB：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_contacts</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_contact_notification_preferences</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_contact_events</code>へ第3正規形で分離する。</li>
+          <li><strong>整合性：</strong>主担当は医院ごとに最大1人、医院内の有効な担当者メールと医院ログイン関連は重複不可。保存・主担当切替・通知設定・履歴はDB関数で1トランザクションにする。</li>
+          <li><strong>削除：</strong>物理削除せず<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">deleted_at</code>を設定し、操作履歴を保持する。</li>
+          <li><strong>通知：</strong>ウェビナーは担当者設定を優先し、未設定医院だけ従来の医院ログインメールへフォールバックする。</li>
         </ul>
       </>
     ),

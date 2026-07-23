@@ -129,6 +129,9 @@ IMPORTANT_FIELDS = {
     "webinar_sessions": ["id", "webinar_id", "provider", "starts_at", "ends_at", "join_url"],
     "webinar_target_clinics": ["webinar_id", "customer_code"],
     "webinar_events": ["id", "webinar_id", "event_type", "actor_email", "to_status"],
+    "clinic_contacts": ["id", "customer_code", "clinic_user_id", "name", "email", "phone", "is_primary", "status", "deleted_at"],
+    "clinic_contact_notification_preferences": ["contact_id", "topic", "channel", "enabled"],
+    "clinic_contact_events": ["id", "contact_id", "event_type", "actor_type", "created_at"],
 }
 
 
@@ -228,6 +231,8 @@ def build_html(source) -> str:
         "commerce_outbox": (1880, 1030),
         "webinars": (40, 2450), "webinar_sessions": (500, 2450),
         "webinar_target_clinics": (960, 2450), "webinar_events": (1420, 2650),
+        "clinic_contacts": (40, 3000), "clinic_contact_notification_preferences": (500, 3000),
+        "clinic_contact_events": (960, 3000),
     }
     current_edges = [
         ("clinics", "clinic_terms", "医院契約条件"),
@@ -252,6 +257,9 @@ def build_html(source) -> str:
         ("webinars", "webinar_target_clinics", "公開対象"),
         ("clinics", "webinar_target_clinics", "対象医院"),
         ("webinars", "webinar_events", "操作履歴"),
+        ("clinics", "clinic_contacts", "業務連絡担当者"),
+        ("clinic_contacts", "clinic_contact_notification_preferences", "通知設定"),
+        ("clinic_contacts", "clinic_contact_events", "操作履歴"),
     ]
     future_edges = [
         ("commerce_accounts", "patient_orders", "接続先"),
@@ -274,7 +282,7 @@ def build_html(source) -> str:
     }
     unified_er_detail = er_diagram(
         "unified-er", all_tables, unified_positions, current_edges + future_edges,
-        height=3200, width=2400, future_names=future_only_names,
+        height=3600, width=2400, future_names=future_only_names,
     )
     unified_er = f'''
 <div class="meaning-box"><strong>この図が表すこと</strong><p>現在動いている注文管理に、Shopify連携後の定期購入・決済・配送を段階的に追加します。患者が単発で注文する場合は「定期購入」を通りません。</p></div>

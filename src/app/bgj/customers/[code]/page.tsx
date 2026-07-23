@@ -21,14 +21,14 @@ const ClinicBusinessInfoTab = dynamic(() => import("@/components/ClinicBusinessI
 const ClinicSalesOrders = dynamic(() => import("@/components/ClinicSalesOrders"), { loading: () => tabLoading });
 const ClinicTermsManager = dynamic(() => import("@/components/ClinicTermsManager"), { loading: () => tabLoading });
 const ClinicActivityFeed = dynamic(() => import("@/components/ClinicActivityFeed"), { loading: () => tabLoading });
-const ClinicLoginManager = dynamic(() => import("@/components/ClinicLoginManager"), { loading: () => tabLoading });
 const SignupQrCard = dynamic(() => import("@/components/SignupQrCard"), { loading: () => tabLoading });
 const ClinicEmailTemplatesManager = dynamic(() => import("@/components/ClinicEmailTemplatesManager"), { loading: () => tabLoading });
 const ClinicStaffManager = dynamic(() => import("@/components/ClinicStaffManager"), { loading: () => tabLoading });
 const ClinicAnnouncementManager = dynamic(() => import("@/components/ClinicAnnouncementManager"), { loading: () => tabLoading });
 const ClinicQaManager = dynamic(() => import("@/components/ClinicQaManager"), { loading: () => tabLoading });
+const ClinicContactManager = dynamic(() => import("@/components/ClinicContactManager"), { loading: () => tabLoading });
 
-const TABS = ["基本情報", "経営情報", "売上・注文", "取引条件", "行動履歴", "ログイン管理", "接続情報", "メール設定", "クリニック紹介", "お知らせ", "Q&A"];
+const TABS = ["基本情報", "担当者", "経営情報", "売上・注文", "取引条件", "行動履歴", "接続情報", "メール設定", "クリニック紹介", "お知らせ", "Q&A"];
 
 type VisitFormState = { visitDate: string; purpose: string; memo: string; nextVisitDate: string };
 const EMPTY_VISIT_FORM: VisitFormState = { visitDate: "", purpose: "", memo: "", nextVisitDate: "" };
@@ -291,6 +291,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
             />
           )}
 
+          {activeTab === "担当者" && <ClinicContactManager customerCode={code} theme="violet" manageLogins />}
+
           {/* 経営情報 */}
           {activeTab === "経営情報" && (
             <ClinicBusinessInfoTab
@@ -313,11 +315,6 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ code:
 
           {/* 行動履歴（訪問記録＋問い合わせの統合表示） */}
           {activeTab === "行動履歴" && <ClinicActivityFeed customerCode={code} refreshKey={activityRefreshKey} />}
-
-          {/* ログイン管理 */}
-          {activeTab === "ログイン管理" && (
-            <ClinicLoginManager customerCode={code} defaultName={clinic.staff?.name} theme="violet" />
-          )}
 
           {/* 接続情報（患者様の自己登録用QR + 受付PIN） */}
           {activeTab === "接続情報" && (

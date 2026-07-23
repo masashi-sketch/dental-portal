@@ -86,4 +86,18 @@ describe('/api/bgj/clinics/[code]/user', () => {
     await PATCH(req, { params: Promise.resolve({ code: 'A000001' }) });
     expect(updateSpy).toHaveBeenCalledWith(expect.not.objectContaining({ email: expect.anything() }));
   });
+
+  it('PATCH: 担当者一覧からログインIDを変更できる', async () => {
+    const req = jsonRequest('PATCH', { id: 'u1', loginId: 'new-login-id' });
+    const res = await PATCH(req, { params: Promise.resolve({ code: 'A000001' }) });
+    expect(res.status).toBe(200);
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ login_id: 'new-login-id' }));
+  });
+
+  it('POST: 8文字未満の初期パスワードを拒否する', async () => {
+    const req = jsonRequest('POST', { loginId: 'chuo-shika', password: 'short' });
+    const res = await POST(req, { params: Promise.resolve({ code: 'A000001' }) });
+    expect(res.status).toBe(400);
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
 });

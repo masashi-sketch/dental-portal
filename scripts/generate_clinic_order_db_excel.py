@@ -354,6 +354,33 @@ CURRENT_TABLES = [
             c("変更前状態", "from_status", "text", nullable="YES"), c("変更後状態", "to_status", "text"),
             c("発生日時", "created_at", "timestamptz", default="now()"),
         ]),
+    TableDefinition("現行", "医院業務連絡担当者", "clinic_contacts", "実装済み",
+        "医院ごとに複数の業務連絡担当者と主担当、論理削除、排他制御を管理する。", [
+            c("担当者ID", "id", "uuid", "PK", default="gen_random_uuid()"),
+            c("得意先コード", "customer_code", "text", "FK", constraint="clinics.customer_code ON DELETE RESTRICT"),
+            c("医院ログインID", "clinic_user_id", "uuid", "FK", nullable="YES", constraint="clinic_users.id ON DELETE SET NULL"),
+            c("氏名", "name", "text"), c("部署", "department", "text", nullable="YES"), c("役職", "title", "text", nullable="YES"),
+            c("メールアドレス", "email", "text", nullable="YES"), c("電話番号", "phone", "text", nullable="YES"),
+            c("主担当", "is_primary", "boolean", default="false"), c("状態", "status", "text", default="active", constraint="active / inactive"),
+            c("備考", "notes", "text", nullable="YES"), c("排他バージョン", "version", "integer", default="1"),
+            c("論理削除日時", "deleted_at", "timestamptz", nullable="YES"),
+            c("作成日時", "created_at", "timestamptz", default="now()"), c("更新日時", "updated_at", "timestamptz", default="now()"),
+        ]),
+    TableDefinition("現行", "担当者通知設定", "clinic_contact_notification_preferences", "実装済み",
+        "担当者ごとの連絡内容と方法を多値属性として分離する。", [
+            c("担当者ID", "contact_id", "uuid", "PK / FK", constraint="clinic_contacts.id ON DELETE RESTRICT"),
+            c("通知種別", "topic", "text", "PK", constraint="webinar / orders / billing / product / system / sales"),
+            c("連絡方法", "channel", "text", "PK", constraint="email / phone"),
+            c("有効", "enabled", "boolean", default="true"),
+            c("作成日時", "created_at", "timestamptz", default="now()"), c("更新日時", "updated_at", "timestamptz", default="now()"),
+        ]),
+    TableDefinition("現行", "担当者操作履歴", "clinic_contact_events", "実装済み",
+        "登録・更新・無効化・主担当変更・論理削除を監査保存する。", [
+            c("イベントID", "id", "uuid", "PK", default="gen_random_uuid()"),
+            c("担当者ID", "contact_id", "uuid", "FK", constraint="clinic_contacts.id ON DELETE RESTRICT"),
+            c("イベント種別", "event_type", "text"), c("操作者種別", "actor_type", "text"),
+            c("操作者識別子", "actor_identifier", "text"), c("発生日時", "created_at", "timestamptz", default="now()"),
+        ]),
 ]
 
 
@@ -548,6 +575,9 @@ EXACT_SCHEMA_TABLES = {
     "webinar_sessions",
     "webinar_target_clinics",
     "webinar_events",
+    "clinic_contacts",
+    "clinic_contact_notification_preferences",
+    "clinic_contact_events",
 }
 
 
@@ -611,6 +641,10 @@ RELATIONSHIPS_CURRENT = [
     ("ウェビナー", "webinars.id", "1", "N", "webinar_target_clinics.webinar_id", "ウェビナー対象医院", "PK・FK・CASCADE"),
     ("医院", "clinics.customer_code", "1", "N", "webinar_target_clinics.customer_code", "ウェビナー対象医院", "PK・FK・RESTRICT"),
     ("ウェビナー", "webinars.id", "1", "N", "webinar_events.webinar_id", "ウェビナー操作履歴", "FK・CASCADE"),
+    ("医院", "clinics.customer_code", "1", "N", "clinic_contacts.customer_code", "医院業務連絡担当者", "FK・RESTRICT"),
+    ("医院ログイン", "clinic_users.id", "1", "0..1", "clinic_contacts.clinic_user_id", "医院業務連絡担当者", "FK・SET NULL"),
+    ("医院業務連絡担当者", "clinic_contacts.id", "1", "N", "clinic_contact_notification_preferences.contact_id", "担当者通知設定", "PK・FK・RESTRICT"),
+    ("医院業務連絡担当者", "clinic_contacts.id", "1", "N", "clinic_contact_events.contact_id", "担当者操作履歴", "FK・RESTRICT"),
 ]
 
 
@@ -644,6 +678,9 @@ CONSTRAINTS = [
     ("現行", "UK8", "webinar_sessions", "webinar_id, starts_at", "UNIQUE", "同一ウェビナーの開催日時重複防止。"),
     ("現行", "UK9", "webinar_target_clinics", "webinar_id, customer_code", "PRIMARY KEY", "対象医院の重複防止。"),
     ("現行", "IDX6", "webinar_target_clinics", "customer_code, webinar_id", "INDEX", "医院別公開ウェビナー取得。"),
+    ("現行", "UK10", "clinic_contacts", "customer_code WHERE is_primary AND status='active' AND deleted_at IS NULL", "PARTIAL UNIQUE", "医院ごとの有効な主担当を1人に限定。"),
+    ("現行", "UK11", "clinic_contacts", "customer_code, lower(email) WHERE deleted_at IS NULL", "PARTIAL UNIQUE", "医院内の担当者メール重複防止。"),
+    ("現行", "UK12", "clinic_contacts", "clinic_user_id WHERE deleted_at IS NULL", "PARTIAL UNIQUE", "1ログインと複数担当者の誤関連防止。"),
     ("将来案", "UK1", "commerce_accounts", "provider, external_account_id", "UNIQUE", "外部接続先の重複防止。"),
     ("将来案", "UK2", "patient_fulfillment_items", "fulfillment_id, order_item_id", "UNIQUE", "同一配送への明細重複防止。"),
     ("将来案", "UK3", "patient_subscriptions", "commerce_account_id, external_subscription_id", "UNIQUE", "外部契約の重複防止。"),
@@ -703,9 +740,9 @@ def make_overview_sheet() -> Sheet:
     rows = [
         ("文書バージョン", "0.2 Draft"),
         ("更新日", "2026-07-23"),
-        ("対象", "医院が患者向け商品を管理するpatient_orders系列、およびウェビナー管理"),
+        ("対象", "医院が患者向け商品を管理するpatient_orders系列、ウェビナー、医院業務連絡担当者"),
         ("対象外", "BGJから医院へのB2B仕入履歴clinic_orders。患者注文とは統合しない。"),
-        ("現行正本", "Supabaseの患者注文・定期購入申込・送り先・ウェビナー各テーブル"),
+        ("現行正本", "Supabaseの患者注文・定期購入申込・送り先・ウェビナー・医院担当者各テーブル"),
         ("将来正本", "商品・注文・決済・返金・定期購入はShopify、医院・患者CRMはSalesforce"),
         ("KEY凡例", "PK=主キー、FK=外部キー、UK=一意キー、IDX=非一意インデックス"),
         ("重要課題1", "患者物理削除で注文が連鎖削除され得るため、本番前に無効化・匿名化とFK見直しが必要。"),

@@ -661,3 +661,49 @@ export const WEBINAR_SESSION_COLUMNS =
 export const WEBINAR_TARGET_CLINIC_COLUMNS = 'webinar_id, customer_code, created_at';
 export const WEBINAR_WITH_DETAILS_COLUMNS =
   `${WEBINAR_COLUMNS}, sessions:webinar_sessions(${WEBINAR_SESSION_COLUMNS}), target_clinics:webinar_target_clinics(${WEBINAR_TARGET_CLINIC_COLUMNS}, clinic:clinics!customer_code(customer_code, name))`;
+
+export type ClinicContactTopic = 'webinar' | 'orders' | 'billing' | 'product' | 'system' | 'sales';
+export type ClinicContactChannel = 'email' | 'phone';
+export type ClinicContactStatus = 'active' | 'inactive';
+
+export type ClinicContactPreference = {
+  contact_id: string;
+  topic: ClinicContactTopic;
+  channel: ClinicContactChannel;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ClinicContact = {
+  id: string;
+  customer_code: string;
+  clinic_user_id: string | null;
+  name: string;
+  department: string | null;
+  title: string | null;
+  email: string | null;
+  phone: string | null;
+  is_primary: boolean;
+  status: ClinicContactStatus;
+  notes: string | null;
+  version: number;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  preferences: ClinicContactPreference[];
+};
+
+export type BgjClinicContactListItem = ClinicContact & {
+  clinic: { customer_code: string; name: string } | null;
+  clinic_user: Pick<ClinicUserPublic, 'id' | 'login_id' | 'status'> | null;
+};
+
+export const CLINIC_CONTACT_COLUMNS =
+  'id, customer_code, clinic_user_id, name, department, title, email, phone, is_primary, status, notes, version, deleted_at, created_at, updated_at';
+export const CLINIC_CONTACT_PREFERENCE_COLUMNS =
+  'contact_id, topic, channel, enabled, created_at, updated_at';
+export const CLINIC_CONTACT_WITH_PREFERENCES_COLUMNS =
+  `${CLINIC_CONTACT_COLUMNS}, preferences:clinic_contact_notification_preferences(${CLINIC_CONTACT_PREFERENCE_COLUMNS})`;
+export const BGJ_CLINIC_CONTACT_LIST_COLUMNS =
+  `${CLINIC_CONTACT_WITH_PREFERENCES_COLUMNS}, clinic:clinics!customer_code(customer_code, name), clinic_user:clinic_users!clinic_user_id(id, login_id, status)`;
