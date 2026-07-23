@@ -18,7 +18,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       id: "clinic-credentials",
       name: "医院ログイン",
       credentials: {
-        loginId: { label: "ログインID", type: "text" },
+        loginId: { label: "担当者ID", type: "text" },
         password: { label: "パスワード", type: "password" },
       },
       async authorize(credentials) {
@@ -61,6 +61,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           clinicRole: clinicAccess?.role_key ?? "admin",
           clinicPermissions: clinicAccess?.permissions ?? ['view_contacts', 'manage_contacts', 'manage_logins'],
           clinicSessionVersion: data.session_version,
+          clinicUserId: data.id,
+          clinicMustChangePassword: data.must_change_password,
         };
       },
     }),
@@ -157,6 +159,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.clinicRole = (user as { clinicRole?: ClinicPortalRoleKey }).clinicRole ?? null;
         token.clinicPermissions = (user as { clinicPermissions?: ClinicPortalPermissionKey[] }).clinicPermissions ?? [];
         token.clinicSessionVersion = (user as { clinicSessionVersion?: number }).clinicSessionVersion ?? null;
+        token.clinicUserId = (user as { clinicUserId?: string }).clinicUserId ?? null;
+        token.clinicMustChangePassword = (user as { clinicMustChangePassword?: boolean }).clinicMustChangePassword ?? false;
         token.accountDisabled = false;
       } else if (token.role === "clinic" && token.sub) {
         const supabase = getSupabaseServerClient();
@@ -167,12 +171,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           session_version: number;
           role_key: ClinicPortalRoleKey;
           permissions: ClinicPortalPermissionKey[];
+          must_change_password: boolean;
         }> | null };
         const clinicUser = sessionRows?.[0];
         token.accountDisabled = !clinicUser || clinicUser.status !== "有効"
           || clinicUser.session_version !== token.clinicSessionVersion;
         token.clinicRole = clinicUser?.role_key ?? "admin";
         token.clinicPermissions = clinicUser?.permissions ?? [];
+        token.clinicMustChangePassword = clinicUser?.must_change_password ?? false;
       }
       return token;
     },
@@ -183,6 +189,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.clinicRole = (token.clinicRole as ClinicPortalRoleKey | null) ?? null;
       session.user.clinicPermissions = (token.clinicPermissions as ClinicPortalPermissionKey[] | undefined) ?? [];
       session.user.clinicSessionVersion = (token.clinicSessionVersion as number | null) ?? null;
+      session.user.clinicUserId = (token.clinicUserId as string | null) ?? null;
+      session.user.clinicMustChangePassword = Boolean(token.clinicMustChangePassword);
       session.user.accountDisabled = Boolean(token.accountDisabled);
       return session;
     },

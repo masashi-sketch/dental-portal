@@ -10,6 +10,8 @@ declare module "next-auth" {
       clinicRole: ClinicPortalRoleKey | null;
       clinicPermissions: ClinicPortalPermissionKey[];
       clinicSessionVersion: number | null;
+      clinicUserId: string | null;
+      clinicMustChangePassword: boolean;
       accountDisabled: boolean;
     };
   }
@@ -23,6 +25,8 @@ declare module "next-auth/jwt" {
     clinicRole?: ClinicPortalRoleKey | null;
     clinicPermissions?: ClinicPortalPermissionKey[];
     clinicSessionVersion?: number | null;
+    clinicUserId?: string | null;
+    clinicMustChangePassword?: boolean;
     accountDisabled?: boolean;
   }
 }

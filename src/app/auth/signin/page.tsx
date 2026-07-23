@@ -168,7 +168,7 @@ function SignInContent() {
 
         <p className="text-xs text-slate-400 text-center mt-5">
           {selected.id === "clinic"
-            ? "医院ごとに発行されたログインID・パスワードでログインします"
+            ? "医院ごとに発行された担当者ID・パスワードでログインします"
             : selected.id === "patient"
             ? "発行されたログインID・パスワードでログインします"
             : "@biogaia.jp のGoogle Workspaceアカウントが必要です"}

@@ -122,12 +122,12 @@ describe('ManualPage', () => {
   it('システム手順「16. 医院スタッフのパスワードリセット」のサブタブが切り替わる', () => {
     useSearchParamsMock.mockReturnValue(new URLSearchParams('tab=procedure&step=16'));
     render(<ManualPage />);
-    expect(screen.getByText(/「担当者」タブの各担当者カード/)).toBeInTheDocument();
+    expect(screen.getByText(/担当者IDの確認・パスワード再設定/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '運用変更・セキュリティ' }));
 
     expect(screen.getByText('前提となる運用変更：')).toBeInTheDocument();
-    expect(screen.queryByText(/「担当者」タブの各担当者カード/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/担当者IDの確認・パスワード再設定/)).not.toBeInTheDocument();
   });
 
   it('システム手順「17. 商品マスタと医院ごとの表示設定」のサブタブが切り替わる', () => {

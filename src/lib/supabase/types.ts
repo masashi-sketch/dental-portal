@@ -314,6 +314,7 @@ export type ClinicUser = {
   session_version: number;
   last_login_at: string | null;
   password_changed_at: string | null;
+  must_change_password: boolean;
 };
 
 // クライアントへ返す用（password_hash・ログインロックアウト関連の内部情報を含まない）
@@ -409,11 +410,11 @@ export const CLINIC_STATUS_COLUMNS = 'id, name, color, created_at, updated_at';
 export const STAFF_AREA_COLUMNS = 'id, name, created_at, updated_at';
 
 export const CLINIC_USER_COLUMNS =
-  'id, customer_code, login_id, password_hash, name, email, status, created_at, updated_at, failed_login_attempts, locked_until, session_version, last_login_at, password_changed_at';
+  'id, customer_code, login_id, password_hash, name, email, status, created_at, updated_at, failed_login_attempts, locked_until, session_version, last_login_at, password_changed_at, must_change_password';
 
 // クライアントへ返す一覧・詳細用（password_hashを含めない）
 export const CLINIC_USER_PUBLIC_COLUMNS =
-  'id, customer_code, login_id, name, email, status, created_at, updated_at, session_version, last_login_at, password_changed_at';
+  'id, customer_code, login_id, name, email, status, created_at, updated_at, session_version, last_login_at, password_changed_at, must_change_password';
 
 export const CLINIC_LOGIN_TOKEN_COLUMNS = 'id, clinic_user_id, expires_at, used_at, purpose';
 
@@ -671,6 +672,15 @@ export const WEBINAR_WITH_DETAILS_COLUMNS =
 export type ClinicContactTopic = 'webinar' | 'orders' | 'billing' | 'product' | 'system' | 'sales';
 export type ClinicContactChannel = 'email' | 'phone';
 export type ClinicContactStatus = 'active' | 'inactive';
+export type ClinicContactRoleKey = 'physician' | 'dentist' | 'nurse' | 'dental_hygienist' | 'receptionist' | 'other';
+
+export type ClinicContactRole = {
+  role_key: ClinicContactRoleKey;
+  label: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
 
 export type ClinicContactPreference = {
   contact_id: string;
@@ -684,10 +694,10 @@ export type ClinicContactPreference = {
 export type ClinicContact = {
   id: string;
   customer_code: string;
-  clinic_user_id: string | null;
+  clinic_user_id: string;
   name: string;
   department: string | null;
-  title: string | null;
+  role_key: ClinicContactRoleKey;
   email: string | null;
   phone: string | null;
   is_primary: boolean;
@@ -702,11 +712,13 @@ export type ClinicContact = {
 
 export type BgjClinicContactListItem = ClinicContact & {
   clinic: { customer_code: string; name: string } | null;
-  clinic_user: Pick<ClinicUserPublic, 'id' | 'login_id' | 'status'> | null;
+  clinic_user: Pick<ClinicUserPublic, 'id' | 'login_id' | 'status'>;
 };
 
 export const CLINIC_CONTACT_COLUMNS =
-  'id, customer_code, clinic_user_id, name, department, title, email, phone, is_primary, status, notes, version, deleted_at, created_at, updated_at';
+  'id, customer_code, clinic_user_id, name, department, role_key, email, phone, is_primary, status, notes, version, deleted_at, created_at, updated_at';
+export const CLINIC_CONTACT_ROLE_COLUMNS =
+  'role_key, label, sort_order, created_at, updated_at';
 export const CLINIC_CONTACT_PREFERENCE_COLUMNS =
   'contact_id, topic, channel, enabled, created_at, updated_at';
 export const CLINIC_CONTACT_WITH_PREFERENCES_COLUMNS =

@@ -3,6 +3,7 @@ import { parseClinicContactInput } from './validation';
 
 const valid = {
   name: '受付 太郎',
+  roleKey: 'receptionist',
   email: 'TARO@EXAMPLE.COM',
   phone: '03-1234-5678',
   status: 'active',
@@ -16,6 +17,7 @@ describe('parseClinicContactInput', () => {
     expect(result.error).toBeUndefined();
     expect(result.value).toMatchObject({
       name: '受付 太郎',
+      roleKey: 'receptionist',
       email: 'taro@example.com',
       isPrimary: false,
       version: 1,
@@ -26,6 +28,10 @@ describe('parseClinicContactInput', () => {
   it('メールと電話が両方なければ拒否する', () => {
     expect(parseClinicContactInput({ ...valid, email: '', phone: '', emailTopics: [], phoneTopics: [] }).error)
       .toBe('メールアドレスまたは電話番号を入力してください。');
+  });
+
+  it('マスタにない役職を拒否する', () => {
+    expect(parseClinicContactInput({ ...valid, roleKey: 'director' }).error).toBe('役職を選択してください。');
   });
 
   it('連絡先がないチャネルの通知指定を拒否する', () => {

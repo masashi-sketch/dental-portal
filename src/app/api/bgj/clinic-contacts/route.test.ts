@@ -38,7 +38,7 @@ describe('GET /api/bgj/clinic-contacts', () => {
     requireBgjSessionMock.mockReturnValue(true);
     const response = await GET();
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ contacts: rows });
+    expect(await response.json()).toEqual({ contacts: rows, contactRoles: [] });
     expect(selectSpy.mock.calls[0][0]).toContain('clinic:clinics!customer_code');
     expect(selectSpy.mock.calls[0][0]).toContain('preferences:clinic_contact_notification_preferences');
     expect(selectSpy.mock.calls[0][0]).toContain('clinic_user:clinic_users!clinic_user_id');

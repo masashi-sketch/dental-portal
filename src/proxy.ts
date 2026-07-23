@@ -37,6 +37,8 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   // LINKマスタのGETは医院サイドバーからも利用する。API自身が認証済みセッションを
   // 検証するため、clinicロールをBGJ領域として弾く前に通す。更新系は従来通りBGJ限定。
   const isSharedExternalLinksGet = pathname === "/api/bgj/external-links" && req.method === "GET";
+  const isClinicChangePasswordPath = pathIs(pathname, '/clinic-change-password');
+  const isClinicChangePasswordApiPath = pathIs(pathname, '/api/clinic-change-password');
 
   if (isApiAuth) return NextResponse.next();
   if (isAuthPath) return NextResponse.next();
@@ -50,7 +52,6 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
   if (isPasswordResetApiPath) return NextResponse.next();
   if (isClinicPasswordResetPath) return NextResponse.next();
   if (isClinicPasswordResetApiPath) return NextResponse.next();
-  if (isSharedExternalLinksGet) return NextResponse.next();
 
   if (req.auth?.user?.accountDisabled) {
     if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Session expired' }, { status: 401 });
@@ -58,6 +59,14 @@ export default auth((req: NextRequest & { auth: Session | null }) => {
     response.cookies.delete('portal-selected');
     return response;
   }
+
+  if (req.auth?.user?.role === 'clinic' && req.auth.user.clinicMustChangePassword) {
+    if (isClinicChangePasswordPath || isClinicChangePasswordApiPath) return NextResponse.next();
+    if (pathname.startsWith('/api/')) return NextResponse.json({ error: '初回パスワード変更が必要です。' }, { status: 403 });
+    return NextResponse.redirect(new URL('/clinic-change-password', req.url));
+  }
+
+  if (isSharedExternalLinksGet) return NextResponse.next();
 
   const role = req.auth?.user?.role;
   const isPatientPortalPath = PATIENT_PORTAL_PATHS.some(
@@ -129,5 +138,7 @@ export const config = {
     "/api/bgj/:path*",
     "/api/patient-portal/:path*",
     "/api/periodontal/:path*",
+    "/clinic-change-password",
+    "/api/clinic-change-password",
   ],
 };

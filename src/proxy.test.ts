@@ -38,8 +38,31 @@ describe('proxy matcher', () => {
     '/api/admin/overview',
     '/api/bgj/dashboard-overview',
     '/api/patient-portal/profile',
+    '/clinic-change-password',
+    '/api/clinic-change-password',
   ])('保護パス %s ではProxyを実行する', (url) => {
     expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(true);
+  });
+});
+
+describe('医院の初回パスワード変更', () => {
+  function request(pathname: string, method = 'GET') {
+    const req = new NextRequest(`https://example.com${pathname}`, { method, headers: { cookie: 'portal-selected=true' } }) as NextRequest & { auth: unknown };
+    req.auth = { user: { role: 'clinic', clinicMustChangePassword: true, customerCode: 'A000001' } };
+    return req;
+  }
+
+  it('通常画面から変更画面へ転送する', () => {
+    expect(proxy(request('/admin')).headers.get('location')).toBe('https://example.com/clinic-change-password');
+  });
+
+  it('変更画面と変更APIだけを許可する', () => {
+    expect(proxy(request('/clinic-change-password')).headers.get('location')).toBeNull();
+    expect(proxy(request('/api/clinic-change-password', 'POST')).status).not.toBe(403);
+  });
+
+  it('他のAPIを403にする', () => {
+    expect(proxy(request('/api/admin/orders', 'GET')).status).toBe(403);
   });
 });
 

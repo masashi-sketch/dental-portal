@@ -1,14 +1,14 @@
-import type { ClinicContactStatus, ClinicContactTopic } from '@/lib/supabase/types';
+import type { ClinicContactRoleKey, ClinicContactStatus, ClinicContactTopic } from '@/lib/supabase/types';
+import { isClinicContactRoleKey } from '@/lib/clinicContacts/roles';
 
 export const CLINIC_CONTACT_TOPICS: ClinicContactTopic[] = ['webinar', 'orders', 'billing', 'product', 'system', 'sales'];
 
 export type ClinicContactInput = {
   id: string | null;
   version: number;
-  clinicUserId: string | null;
   name: string;
   department: string;
-  title: string;
+  roleKey: ClinicContactRoleKey;
   email: string;
   phone: string;
   isPrimary: boolean;
@@ -27,6 +27,7 @@ export function parseClinicContactInput(body: unknown): { value?: ClinicContactI
   const email = typeof data.email === 'string' ? data.email.trim().toLowerCase() : '';
   const phone = typeof data.phone === 'string' ? data.phone.trim() : '';
   const status = data.status === 'inactive' ? 'inactive' : 'active';
+  const roleKey = data.roleKey;
   const hasInvalidTopic = (value: unknown) => value !== undefined && (
     !Array.isArray(value)
     || value.some((topic) => typeof topic !== 'string' || !CLINIC_CONTACT_TOPICS.includes(topic as ClinicContactTopic))
@@ -41,21 +42,20 @@ export function parseClinicContactInput(body: unknown): { value?: ClinicContactI
   const phoneTopics = topics(data.phoneTopics);
 
   if (!name || name.length > 100) return { error: '担当者名は100文字以内で入力してください。' };
+  if (!isClinicContactRoleKey(roleKey)) return { error: '役職を選択してください。' };
   if (!email && !phone) return { error: 'メールアドレスまたは電話番号を入力してください。' };
   if (email && (email.length > 254 || !EMAIL_PATTERN.test(email))) return { error: 'メールアドレスの形式が不正です。' };
   if (phone && !PHONE_PATTERN.test(phone)) return { error: '電話番号の形式が不正です。' };
   if (!email && emailTopics.length) return { error: 'メール通知を選ぶ場合はメールアドレスが必要です。' };
   if (!phone && phoneTopics.length) return { error: '電話連絡を選ぶ場合は電話番号が必要です。' };
   const department = typeof data.department === 'string' ? data.department.trim() : '';
-  const title = typeof data.title === 'string' ? data.title.trim() : '';
   const notes = typeof data.notes === 'string' ? data.notes.trim() : '';
-  if (department.length > 100 || title.length > 100 || notes.length > 1000) return { error: '部署・役職・備考の文字数を確認してください。' };
+  if (department.length > 100 || notes.length > 1000) return { error: '部署・備考の文字数を確認してください。' };
 
   return { value: {
     id: typeof data.id === 'string' && data.id ? data.id : null,
     version: Number.isInteger(data.version) && Number(data.version) > 0 ? Number(data.version) : 1,
-    clinicUserId: typeof data.clinicUserId === 'string' && data.clinicUserId ? data.clinicUserId : null,
-    name, department, title, email, phone,
+    name, department, roleKey, email, phone,
     isPrimary: Boolean(data.isPrimary) && status === 'active', status, notes, emailTopics, phoneTopics,
   } };
 }

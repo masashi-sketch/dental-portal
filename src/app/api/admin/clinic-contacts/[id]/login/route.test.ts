@@ -14,10 +14,10 @@ vi.mock('@/lib/supabase/server', () => ({
     rpc: rpcMock,
     from: (table: string) => {
       if (table === 'clinic_contacts') return {
-        select: () => ({ eq: () => ({ is: () => ({ maybeSingle: async () => ({ data: { customer_code: 'A000001', clinic_user_id: null } }) }) }) }),
+        select: () => ({ eq: () => ({ is: () => ({ maybeSingle: async () => ({ data: { customer_code: 'A000001', clinic_user_id: 'user-1' } }) }) }) }),
       };
       if (table === 'clinic_users') return {
-        select: () => ({ eq: () => ({ single: async () => ({ data: { id: 'user-1', login_id: 'staff01', status: '有効' }, error: null }) }) }),
+        select: () => ({ eq: () => ({ single: async () => ({ data: { id: 'user-1', login_id: 'A000001', status: '有効', must_change_password: true }, error: null }) }) }),
       };
       if (table === 'clinic_user_role_assignments') return {
         select: () => ({ eq: () => ({ single: async () => ({ data: { role_key: 'staff' }, error: null }) }) }),
@@ -60,18 +60,18 @@ describe('PUT /api/admin/clinic-contacts/[id]/login', () => {
   it('担当者単位のRPCにハッシュと権限を渡す', async () => {
     authMock.mockResolvedValue({ user: { role: 'clinic', customerCode: 'A000001', email: null, name: '医院管理者' } });
     const response = await PUT(request({
-      loginId: 'staff01', password: 'password123', email: 'STAFF@example.com', status: '有効', roleKey: 'staff',
+      password: 'changed-password', email: 'STAFF@example.com', status: '有効', roleKey: 'staff',
     }), context);
     expect(response.status).toBe(200);
     expect(rpcMock).toHaveBeenCalledWith('save_clinic_contact_login', expect.objectContaining({
-      p_contact_id: 'contact-1', p_customer_code: 'A000001', p_login_id: 'staff01',
-      p_password_hash: 'hashed:password123', p_email: 'staff@example.com', p_role_key: 'staff', p_actor_type: 'clinic',
+      p_contact_id: 'contact-1', p_customer_code: 'A000001',
+      p_password_hash: 'hashed:changed-password', p_email: 'staff@example.com', p_role_key: 'staff', p_actor_type: 'clinic',
     }));
   });
 
   it('別医院の担当者は404にする', async () => {
     authMock.mockResolvedValue({ user: { role: 'clinic', customerCode: 'A999999' } });
-    expect((await PUT(request({ loginId: 'staff01', password: 'password123' }), context)).status).toBe(404);
+    expect((await PUT(request({}), context)).status).toBe(404);
     expect(rpcMock).not.toHaveBeenCalled();
   });
 });

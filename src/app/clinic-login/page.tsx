@@ -20,7 +20,7 @@ export default function ClinicLoginPage() {
 
   const handleSubmit = async () => {
     if (!loginId.trim() || !password.trim()) {
-      setError('ログインIDとパスワードを入力してください。');
+      setError('担当者IDとパスワードを入力してください。');
       return;
     }
     setLoading(true);
@@ -34,14 +34,14 @@ export default function ClinicLoginPage() {
 
     setLoading(false);
     if (!result || result.error) {
-      setError('ログインIDまたはパスワードが正しくありません。');
+      setError('担当者IDまたはパスワードが正しくありません。');
       return;
     }
 
     setPortalCookie();
     const session = await getSession();
     if (session?.user?.customerCode) rememberLoginClinic(session.user.customerCode);
-    router.push('/admin');
+    router.push(session?.user?.clinicMustChangePassword ? '/clinic-change-password' : '/admin');
   };
 
   return (
@@ -68,7 +68,7 @@ export default function ClinicLoginPage() {
 
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-7 border border-white/20 shadow-2xl">
           <h2 className="text-white font-bold text-lg mb-1">医院スタッフログイン</h2>
-          <p className="text-teal-300 text-xs mb-6">発行されたログインID・パスワードでログインしてください</p>
+          <p className="text-teal-300 text-xs mb-6">発行された担当者ID・パスワードでログインしてください</p>
 
           {error && (
             <div className="bg-red-500/20 border border-red-400/40 text-red-100 text-sm rounded-xl px-4 py-2.5 mb-4">
@@ -78,7 +78,7 @@ export default function ClinicLoginPage() {
 
           <div className="flex flex-col gap-4">
             <div>
-              <label className="block text-teal-200 text-sm font-medium mb-1.5">ログインID</label>
+              <label className="block text-teal-200 text-sm font-medium mb-1.5">担当者ID</label>
               <input
                 type="text"
                 value={loginId}

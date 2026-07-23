@@ -17,11 +17,12 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
   if (!contact || (session.user.role === 'clinic' && contact.customer_code !== session.user.customerCode)) {
     return NextResponse.json({ error: 'Not Found' }, { status: 404 });
   }
-  const parsed = parseClinicLoginInput(await request.json().catch(() => null), !contact.clinic_user_id);
+  if (!contact.clinic_user_id) return NextResponse.json({ error: '担当者IDが発行されていません。' }, { status: 409 });
+  const parsed = parseClinicLoginInput(await request.json().catch(() => null), false);
   if (!parsed.value) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const value = parsed.value;
   const { data: userId, error } = await supabase.rpc('save_clinic_contact_login', {
-    p_contact_id: id, p_customer_code: contact.customer_code, p_login_id: value.loginId,
+    p_contact_id: id, p_customer_code: contact.customer_code,
     p_password_hash: value.password ? hashPassword(value.password) : '', p_email: value.email,
     p_status: value.status, p_role_key: value.roleKey,
     p_actor_type: session.user.role === 'bgj' ? 'bgj' : 'clinic',
@@ -31,7 +32,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     const conflict = error.message.includes('duplicate') || error.message.includes('unique')
       || error.message.includes('clinic_users_login_id_key') || error.message.includes('clinic_users_email_key');
     const lastAdmin = error.message.includes('最後の管理者');
-    return NextResponse.json({ error: lastAdmin ? error.message : conflict ? '同じログインIDまたはメールアドレスが既に登録されています。' : 'ログイン情報を保存できませんでした。' }, { status: conflict || lastAdmin ? 409 : 500 });
+    return NextResponse.json({ error: lastAdmin ? error.message : conflict ? '同じメールアドレスが既に登録されています。' : 'ログイン情報を保存できませんでした。' }, { status: conflict || lastAdmin ? 409 : 500 });
   }
   const [{ data: clinicUser, error: userError }, { data: assignment }] = await Promise.all([
     supabase.from('clinic_users').select(CLINIC_USER_PUBLIC_COLUMNS).eq('id', userId).single(),

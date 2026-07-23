@@ -548,7 +548,7 @@ alter table public.clinics
                     <p>
                       医院スタッフログイン（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-login</code>）に、患者様と同じセルフサービスの「パスワードをお忘れの方」機能を追加した。流れは
                       <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-forgot-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinic-password-reset/request</code> → メール → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/clinic-reset-password</code> → <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/clinic-password-reset/confirm</code>。
-                      BGJ職員は得意先詳細「担当者」タブの各担当者カードから、手動でログインID発行・変更・パスワード再設定を行う。
+                      BGJ職員は得意先詳細「担当者」タブの明細行から、担当者IDの確認・パスワード再設定・認証状態管理を行う。担当者IDは担当者登録時に自動発行され、変更できない。
                     </p>
                   </div>
                   <Code>{`alter table public.clinic_users add column email text;
@@ -572,7 +572,7 @@ create table public.clinic_login_tokens (
               content: (
                 <>
                   <p>
-                    <strong>前提となる運用変更：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>にはパスワード再設定用の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">email</code>列がある。BGJ得意先詳細「担当者」タブの担当者カード（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">ClinicContactLoginEditor.tsx</code>）から、ログインID・状態・メール・パスワードを一元管理する。<strong>メール未登録のスタッフはセルフサービス再設定を使えない</strong>（BGJによる手動リセットは可能）。
+                    <strong>前提となる運用変更：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>にはパスワード再設定用の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">email</code>列がある。BGJ得意先詳細「担当者」タブの明細行から、担当者ID・状態・メール・パスワードを一元管理する。<strong>メール未登録のスタッフはセルフサービス再設定を使えない</strong>（BGJによる手動リセットは可能）。
                   </p>
                   <p>
                     <strong>セキュリティ設計は患者様版（システム手順「8」）と同一：</strong>トークンは30分有効・使い捨て・SHA-256ハッシュ保存（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/clinicLoginToken.ts</code>。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">loginToken.ts</code>のFK先を<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_users</code>に変えた並行モジュール）。同一スタッフへの再送は3分クールダウン。メールアドレスの登録有無に関わらず常に同じ成功レスポンスを返す（アドレス探索対策）。パスワードは8文字以上。メール送信は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">after()</code>でレスポンス後に実行。
@@ -826,10 +826,10 @@ create table public.clinic_product_settings (
         <p>医院代表情報・医院ログイン・患者向けスタッフ紹介とは別に、業務連絡担当者を医院ごとに複数管理する。</p>
         <ul className="list-disc list-inside pl-2">
           <li><strong>画面：</strong>BGJの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/contacts</code>で全医院を横断検索し、得意先・役職・担当者名・担当内容別に絞り込む。得意先詳細「担当者」タブと医院用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/clinic-info/contacts</code>は共通編集コンポーネントを使用し、医院ログインは自院スコープへ固定する。</li>
-          <li><strong>DB：</strong>担当者、認証情報、権限マスタ、権限機能、ログイン権限割当、通知設定、監査履歴を個別テーブルへ分離し、第3正規形を維持する。</li>
-          <li><strong>個人ログイン：</strong>医院管理者は担当者からログインIDを発行し、管理者・一般・閲覧専用を割り当てる。一般は担当者管理を閲覧のみ、閲覧専用は医院ポータル全体の更新系APIを使用できない。</li>
+          <li><strong>DB：</strong>担当者、役職マスタ、認証情報、権限マスタ、権限機能、ログイン権限割当、通知設定、監査履歴を個別テーブルへ分離し、第3正規形を維持する。役職は「医師・歯科医師・看護師・歯科衛生士・受付・その他」から選択する。</li>
+          <li><strong>担当者ID：</strong>担当者登録と認証アカウント発行は同時に行い、後付けの関連付けは行わない。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">A000001</code>から自動連番で発行する担当者IDを医院ポータルへのログインIDとして常に使用する。初期パスワードは<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">A123456789A</code>で、初回ログイン時に変更を必須とする。</li>
           <li><strong>セキュリティ：</strong>担当者の無効化・論理削除は関連ログインを自動無効化する。パスワード変更と無効化でセッション世代を更新し、旧セッションを即時失効させる。医院ごとの最後の有効な管理者は変更・無効化できない。</li>
-          <li><strong>整合性：</strong>主担当は医院ごとに最大1人、医院内の有効な担当者メールと医院ログイン関連は重複不可。保存・主担当切替・通知設定・履歴はDB関数で1トランザクションにする。</li>
+          <li><strong>整合性：</strong>主担当は医院ごとに最大1人、担当者と認証アカウントは必須の一対一とする。両テーブルの得意先CDを複合外部キーで一致させ、別医院の認証アカウントが混在しないようDBで保証する。</li>
           <li><strong>削除：</strong>物理削除せず<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">deleted_at</code>を設定し、操作履歴を保持する。</li>
           <li><strong>通知：</strong>ウェビナーは担当者設定を優先し、未設定医院だけ従来の医院ログインメールへフォールバックする。</li>
         </ul>
