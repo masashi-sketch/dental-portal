@@ -33,6 +33,13 @@ export const procedureSteps: ProcedureStep[] = [
                   いずれのログインも5回連続で失敗すると15分間ロックされる（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/loginLockout.ts</code>、clinic/patientのみ）。
                   ほぼ全パスは<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>（Next.js 16でのmiddleware）が認証必須にしており、公開ページは明示的な許可リストで管理する。
                 </p>
+                <p>
+                  <strong>代理閲覧（プレビュー）：</strong>BGJ職員が医院ポータルを、BGJ職員・医院スタッフが患者ポータルを本人としてログインせずに確認する仕組み。
+                  <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">POST /api/portal-preview</code>が対象の実在確認・権限確認（他院の患者は不可等）を行った上で、セッションに紐付く署名付きトークン（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/auth/portalPreviewToken.ts</code>）を発行する。
+                  トークンは新しいタブのURL（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">?portalPreview=...</code>）経由でそのタブの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">sessionStorage</code>にだけ保存され（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/client/portalState.ts</code>）、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/admin</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/patient-portal</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/api/periodontal</code>宛のfetchにのみ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">x-portal-preview-token</code>ヘッダーとして自動付与される。
+                  以前は共有Cookieでタブ間の代理閲覧対象を管理していたが、複数タブを開くと互いに干渉する不具合があったため、タブ固有のトークン方式へ移行した。
+                  この設計上、<strong>通常のページ遷移（SSR・初回HTML）ではサーバー側は代理閲覧対象を知り得ない</strong>（ヘッダーはJSのfetchでのみ付与されるため）。ページ本文・タブタイトル等で代理閲覧対象の情報を出す画面は、クライアント側で取得後に上書きする設計にする（システム手順「23」参照）。
+                </p>
               </>
             ),
           },
@@ -829,13 +836,33 @@ create table public.clinic_product_settings (
       <>
         <p>医院代表情報・医院ログイン・患者向けスタッフ紹介とは別に、業務連絡担当者を医院ごとに複数管理する。</p>
         <ul className="list-disc list-inside pl-2">
-          <li><strong>画面：</strong>BGJの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/contacts</code>で全医院を横断検索し、得意先・役職・担当者名・担当内容別に絞り込む。得意先詳細「担当者」タブと医院用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/clinic-info/contacts</code>は共通編集コンポーネントを使用し、医院ログインは自院スコープへ固定する。</li>
+          <li><strong>画面：</strong>BGJの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/bgj/contacts</code>（読み取り専用）で全医院を横断検索し、得意先・役職・状態・担当内容（ウェビナー／受注・定期購入／請求／商品・キャンペーン／システム／営業）で絞り込む。更新は得意先詳細「担当者」タブへ集約し、更新経路を増やさない。医院用<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/admin/clinic-info/contacts</code>は同じ共通編集コンポーネントを使い、医院ログインは自院スコープへ固定する。</li>
           <li><strong>DB：</strong>担当者、役職マスタ、認証情報、権限マスタ、権限機能、ログイン権限割当、通知設定、監査履歴を個別テーブルへ分離し、第3正規形を維持する。役職は「医師・歯科医師・看護師・歯科衛生士・受付・その他」から選択する。</li>
+          <li><strong>権限（Phase 1）：</strong>医院ポータルの権限区分は3段階。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">admin</code>（担当者・ログイン管理も含め全操作可）、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">staff</code>（担当者管理画面は閲覧のみ）、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">viewer</code>（医院ポータルの更新系APIを<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>が一括で403拒否、個別APIの認可漏れに対する多層防御）。</li>
           <li><strong>担当者ID：</strong>担当者登録と認証アカウント発行は同時に行い、後付けの関連付けは行わない。<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">A000001</code>から自動連番で発行する担当者IDを医院ポータルへのログインIDとして常に使用する。初期パスワードは<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">A123456789A</code>で、初回ログイン時に変更を必須とする。</li>
           <li><strong>セキュリティ：</strong>担当者の無効化・論理削除は関連ログインを自動無効化する。パスワード変更と無効化でセッション世代を更新し、旧セッションを即時失効させる。医院ごとの最後の有効な管理者は変更・無効化できない。</li>
           <li><strong>整合性：</strong>主担当は医院ごとに最大1人、担当者と認証アカウントは必須の一対一とする。両テーブルの得意先CDを複合外部キーで一致させ、別医院の認証アカウントが混在しないようDBで保証する。</li>
           <li><strong>削除：</strong>物理削除せず<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">deleted_at</code>を設定し、操作履歴を保持する。</li>
           <li><strong>通知：</strong>ウェビナー作成画面で医院ごとに送付先担当者を明示選択し、公開時は選択した担当者ごとにメールを送る。</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    key: "23",
+    label: "23. タブタイトルの得意先名表示",
+    content: (
+      <>
+        <p>
+          ブラウザタブのタイトルが、開発初期のモック名残の固定文言「テストデンタル歯科」のまま全ポータル共通で表示されていた不具合を修正し、
+          医院ポータル・患者ポータルではログイン中の得意先名を、BGJポータルでは固定文言をそれぞれ表示するようにした。
+        </p>
+        <ul className="list-disc list-inside pl-2">
+          <li><strong>医院・患者の実ログイン：</strong>セッションの<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">customerCode</code>が同期的に分かるため、<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/app/admin/layout.tsx</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/app/(patient)/layout.tsx</code>の<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">generateMetadata</code>でSSR時点から正しいタブタイトルを出す（フラッシュなし）。クリニック名は<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/lib/clinicDisplayName.ts</code>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinic_patient_settings.display_name</code>優先、無ければ<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">clinics.name</code>）を5分キャッシュ（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">unstable_cache</code>）して引く。</li>
+          <li><strong>BGJ職員の代理閲覧：</strong>タブ固有プレビュートークン（システム手順「0」の認証タブ参照）はサーバー側のページ遷移では解決できないため、上記layoutは既定タイトルのまま返す。既存のクライアント側フック<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">useActiveClinic</code>・<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">usePatientClinicBranding</code>がクリニック名取得後に、新設した共通フック<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">useDocumentTitle</code>（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/hooks/useDocumentTitle.ts</code>）経由で<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">document.title</code>を上書きする。実ログイン時は同じ値を上書きするだけなので実害はない。</li>
+          <li><strong>BGJポータル：</strong>得意先に紐付かないため<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/app/bgj/layout.tsx</code>で固定タイトル「BGJ管理ポータル」を返す。</li>
+          <li><strong>ルート既定値：</strong><code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/app/layout.tsx</code>の固定タイトルは、クリニック名が未確定な画面（ポータル選択・ログイン画面等）向けの汎用文言「患者様専用ポータル」に変更した。</li>
+          <li><strong>ディレクトリ構成：</strong>タイトル解決を1箇所に集約するため、患者ポータル6ルート（home/medication/shop/subscription/qa/clinic）と共有<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">components/BottomNav.tsx</code>を、URLを変えないNext.jsのRoute Group<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/app/(patient)/</code>配下へ移動した（<code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">src/proxy.ts</code>の許可リストはURLパス文字列でマッチしており無修正で動く）。</li>
         </ul>
       </>
     ),

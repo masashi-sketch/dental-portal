@@ -47,6 +47,7 @@ const manualNavItems: ChildNavItem[] = [
       { label: "20. BGJダッシュボード・レポートの実データ化", href: "/bgj/manual?tab=procedure&step=20" },
       { label: "21. ウェビナー・Google Meet自動発行", href: "/bgj/manual?tab=procedure&step=21" },
       { label: "22. 医院担当者管理", href: "/bgj/manual?tab=procedure&step=22" },
+      { label: "23. タブタイトルの得意先名表示", href: "/bgj/manual?tab=procedure&step=23" },
     ],
   },
   {
