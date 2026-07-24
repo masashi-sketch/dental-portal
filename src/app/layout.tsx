@@ -12,13 +12,15 @@ const mPlusRounded = M_PLUS_Rounded_1c({
   variable: "--font-m-plus-rounded",
 });
 
+// 得意先ごとのクリニック名は各ポータルのlayout（admin/(patient)）がgenerateMetadataで
+// 上書きする。ここはクリニック名が未確定な画面（ポータル選択・ログイン等）向けの汎用文言。
 export const metadata: Metadata = {
-  title: "テストデンタル歯科 患者様専用ポータル",
+  title: "患者様専用ポータル",
   description: "患者様専用ポータルサイト",
   openGraph: {
-    title: "テストデンタル歯科 患者様専用ポータル",
+    title: "患者様専用ポータル",
     description: "患者様専用ポータルサイト",
-    siteName: "テストデンタル歯科",
+    siteName: "患者様専用ポータル",
   },
 };
 

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useSafeState } from './useSafeState';
+import { useDocumentTitle } from './useDocumentTitle';
 import { DEFAULT_NAV_VISIBILITY, type NavVisibility } from '@/lib/patientNav';
 
 // 患者ポータルのログイン後ページ（home/medication/shop/subscription/qa/clinic）用。
@@ -29,6 +30,11 @@ export function usePatientClinicBranding() {
       .finally(() => setLoaded(true));
     // useSafeStateのsetterはuseCallbackで安定しているため、依存配列に含めても再実行は起きない。
   }, [setClinicName, setNavVisibility, setShowPeriodontalDiagnosis, setLoaded]);
+
+  // 実患者セッションはサーバー側generateMetadataで既に正しいタイトルが出ているため
+  // 同じ値を上書きするだけになるが、スタッフのプレビュー（サーバー側では解決不能）は
+  // ここで初めて実クリニック名へ切り替わる。
+  useDocumentTitle(clinicName ? `${clinicName} 患者様専用ポータル` : null);
 
   return { clinicName, navVisibility, showPeriodontalDiagnosis, loaded };
 }

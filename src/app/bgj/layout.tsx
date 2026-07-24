@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import BgjSidebar from "./components/BgjSidebar";
 import BgjHeader from "./components/BgjHeader";
+
+// BGJポータルは得意先に紐付かないため固定タイトル。
+export const metadata: Metadata = {
+  title: "BGJ管理ポータル",
+};
 
 export default function BgjLayout({ children }: { children: React.ReactNode }) {
   return (

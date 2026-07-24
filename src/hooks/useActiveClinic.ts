@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSafeState } from './useSafeState';
+import { useDocumentTitle } from './useDocumentTitle';
 import type { SalesRepWithMaster } from '@/lib/supabase/types';
 import { effectiveAdminCustomerCode } from '@/lib/auth/effectiveAdminCustomerCode';
 import { requestClinicInfo } from '@/lib/client/clinicInfoRequest';
@@ -37,6 +38,11 @@ export function useActiveClinic() {
 
   // clinicロール以外は取得対象がないため、sessionが確定した時点で読み込み完了とする
   const loaded = sessionStatus !== 'loading' && (!code || fetchDone);
+
+  // 実クリニックセッションはサーバー側generateMetadataで既に正しいタイトルが出ているため
+  // 同じ値を上書きするだけになるが、BGJ職員のタブ固有プレビュー（サーバー側では解決不能）は
+  // ここで初めて実クリニック名へ切り替わる。
+  useDocumentTitle(clinicName ? `${clinicName} 管理ポータル` : null);
 
   return { clinicName, salesRep, loaded };
 }
